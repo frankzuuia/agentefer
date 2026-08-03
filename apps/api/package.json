@@ -1,0 +1,13 @@
+{
+  "name": "@agentefer/api",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "API, autenticación, webhooks, consultas y enqueue de AgenteFer.",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "fastify": "5.11.2"
+  }
+}

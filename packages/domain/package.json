@@ -1,0 +1,10 @@
+{
+  "name": "@agentefer/domain",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Invariantes y estados comerciales independientes de proveedor.",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

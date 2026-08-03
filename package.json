@@ -1,0 +1,58 @@
+{
+  "name": "@agentefer/root",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "packageManager": "npm@11.16.0",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": "11.16.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.18.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "11.16.0",
+      "onFail": "error"
+    }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "overrides": {
+    "next": {
+      "postcss": "8.5.25",
+      "sharp": "0.35.3"
+    }
+  },
+  "scripts": {
+    "audit": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=high",
+    "build": "npm run build --workspaces --if-present",
+    "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs prettier.config.mjs \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs prettier.config.mjs \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "lint": "eslint --no-error-on-unmatched-pattern eslint.config.mjs prettier.config.mjs \"scripts/**/*.mjs\" \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit",
+    "verify:ci-policy": "node ./scripts/verify-ci-policy.mjs",
+    "verify:workspace-gates": "node ./scripts/verify-workspace-gates.mjs",
+    "verify:workspaces": "node ./scripts/verify-workspaces.mjs",
+    "test": "npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:ci-policy && npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "24.13.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.12",
+    "prettier": "3.9.6",
+    "tsx": "4.23.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0",
+    "vitest": "4.1.10"
+  }
+}

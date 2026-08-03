@@ -1,0 +1,10 @@
+{
+  "name": "@agentefer/contracts",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Contratos de bordes, eventos y herramientas de AgenteFer.",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

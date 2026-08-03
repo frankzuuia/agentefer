@@ -1,0 +1,10 @@
+{
+  "name": "@agentefer/worker",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Worker durable de agente, medios, mensajería y publicaciones de AgenteFer.",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@agentefer/config",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Contratos y validación de configuración por proceso y entorno.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint src test",
+    "test": "vitest run test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  }
+}

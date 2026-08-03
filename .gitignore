@@ -1,0 +1,42 @@
+# Dependencies and package-manager caches
+node_modules/
+.npm/
+
+# Build and test output
+.next/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Runtime output
+*.log
+npm-debug.log*
+logs/
+tmp/
+temp/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Provider/deployment state
+.vercel/
+.wrangler/
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

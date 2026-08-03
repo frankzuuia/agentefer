@@ -1,0 +1,8 @@
+node_modules/
+.npm/
+.next/
+dist/
+build/
+coverage/
+package-lock.json
+supabase/.temp/

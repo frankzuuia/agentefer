@@ -1,0 +1,10 @@
+{
+  "name": "@agentefer/observability",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "Logging, trazas, métricas y correlación con redacción central.",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
