@@ -59,7 +59,7 @@ El gate se ejecuta como `npm run verify:documentation-contract`, forma parte de 
 - `npm run format:check`: aprobado.
 - `npm run lint`: aprobado.
 - `npm run verify`: aprobado en 134.7 s; formato, lint, typecheck, 30 pruebas, builds, runtime API/worker, contratos de contenedor/dependencias y auditorías npm con 0 vulnerabilidades.
-- CI de `develop`: pendiente del commit/push de este cambio.
+- CI de `develop`: run 30861773946 aprobado para `861e9c9`; `Verify` 1m37s y `Container runtime` 54s, incluidas firmas/attestations e imágenes reales no-root/health.
 
 ## Veredicto
 
