@@ -1,6 +1,21 @@
 # AgenteFer — checklist de seguridad para release
 
-Estado: no apto para producción; checklist creado en Bloque 0.
+Fecha de última revisión: 2026-08-03.  
+Estado: no apto para producción; baseline B1 comprobado, gates B2–B9 pendientes.
+
+## Evidencia preparatoria B1-009
+
+Estos checks no autorizan un release; prueban únicamente el cimiento disponible:
+
+- [x] Repositorio/remoto exclusivos `frankzuuia/agentefer`, rama de desarrollo `develop`.
+- [x] Node/npm y dependencias directas fijados; lockfile v3 reproducible.
+- [x] CI read-only con Actions por SHA, gates de código, firmas y contenedores reales.
+- [x] API/worker no-root, health/readiness y shutdown comprobados en runner Linux.
+- [x] Variables por proceso, ejemplos sin valores y escaneo versionable sin secretos.
+- [x] Auditorías npm completa/producción: 0 vulnerabilidades conocidas.
+- [x] Lifecycle scripts y licencias recíprocas inventariados bajo política fail-closed.
+- [ ] SBOM, escaneo de imagen y avisos de terceros finales: B8-005.
+- [ ] Aprobación de producción: prohibida hasta completar y firmar B9.
 
 ## Frontera y artefacto
 

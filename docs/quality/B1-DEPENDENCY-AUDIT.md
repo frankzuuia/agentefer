@@ -84,3 +84,7 @@ npm audit signatures
 - Dependencias flotantes: 0.
 - Código funcional o integración externa introducida: 0.
 - Siguiente gate: B1-005, contrato de variables y separación de entornos sin valores secretos.
+
+## Addendum B1-009
+
+El árbol creció de forma controlada por B1-005/B1-007/B1-008. El estado actual y la política fail-closed se documentan en `docs/security/DEPENDENCY_REVIEW.md` y `docs/quality/B1-SECURITY-GATE-AUDIT.md`; las cifras originales de esta auditoría permanecen como evidencia histórica del cierre B1-004.

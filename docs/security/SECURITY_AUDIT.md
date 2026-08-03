@@ -1,7 +1,7 @@
 # AgenteFer — auditoría de seguridad
 
 Fecha: 2026-08-03.  
-Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esquema funcional, canal, integración externa ni despliegue.
+Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esquema funcional, canal, integración externa ni despliegue.
 
 ## Superficies revisadas
 
@@ -25,6 +25,7 @@ Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esque
 - Scaffold: root npm y nueve workspaces privados verificados; cuatro workspaces activos.
 - Migraciones de aplicación: ninguna.
 - Dependencias runtime actuales nuevas en B1-007/B1-008: OpenTelemetry, Pino y Fastify, todas exactas; lockfile y árbol reproducible presentes.
+- Política de dependencias: versiones/orígenes/integrity/licencias/lifecycle verificados automáticamente y fail-closed.
 - Auditoría npm completa/producción: 0 vulnerabilidades.
 - Firmas: 449 paquetes verificados; 109 attestations verificadas.
 - Recursos configurados: Supabase de AgenteFer enlazado; EasyPanel de AgenteFer vacío.
@@ -81,6 +82,14 @@ Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esque
 - Acción: conservar el job bloqueante y comprobar configuración/rollback al crear servicios en B4-007.
 - Estado: mitigado en B1-008; despliegue permanece diferido.
 
+### SA-007 — Lifecycle scripts y licencias recíprocas
+
+- Severidad residual: informativa; bloquea release si faltan notices/SBOM.
+- Evidencia: tres paquetes dev-only tienen lifecycle flag; cuatro familias usan LGPL/MPL, todos fijados y justificados en `dependency-policy.json`.
+- Impacto residual: una distribución futura de frontend/imágenes debe incluir avisos y cumplir obligaciones aplicables de libvips/MPL/CC-BY.
+- Acción: el gate B1-009 rechaza cambios no revisados; B8-005 generará SBOM, escaneará imágenes y producirá notices finales.
+- Estado: control preventivo implementado; cumplimiento de distribución pendiente de release.
+
 ## Controles que ya existen como política
 
 - frontera exclusiva AgenteFer en `AGENTS.md`;
@@ -105,5 +114,6 @@ Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esque
 - B1-006 remoto: `Quality` run 30853524915 aprobó el commit `edfe0b0` en `develop` con Actions Node 24 por SHA y 0 annotations.
 - B1-007 completo: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C y métricas aprobados localmente y en el run remoto 30859122936.
 - B1-008 completo: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, 30 pruebas y build/runtime Docker remoto aprobados en `develop`.
+- B1-009 local: política de dependencias y artefactos de seguridad actualizados desde el árbol real; CI remoto pendiente del commit del bloque.
 - Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.

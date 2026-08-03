@@ -33,8 +33,8 @@
   "scripts": {
     "audit": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=high",
     "build": "npm run prepare:internal && npm run build --workspaces --if-present",
-    "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
-    "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "format": "prettier --write package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
     "lint": "npm run prepare:internal && eslint --no-error-on-unmatched-pattern eslint.config.mjs prettier.config.mjs \"scripts/**/*.mjs\" \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
     "prepare:internal": "node ./scripts/prepare-workspace-dependencies.mjs",
     "typecheck": "npm run prepare:internal && npm run typecheck --workspaces --if-present",
@@ -42,8 +42,9 @@
     "verify:ci-policy": "node ./scripts/verify-ci-policy.mjs",
     "verify:workspace-gates": "node ./scripts/verify-workspace-gates.mjs",
     "verify:workspaces": "node ./scripts/verify-workspaces.mjs",
-    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:container-contract && npm run test --workspaces --if-present",
+    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:container-contract && npm run verify:dependency-policy && npm run test --workspaces --if-present",
     "verify:container-contract": "node ./scripts/verify-container-contract.mjs",
+    "verify:dependency-policy": "node ./scripts/verify-dependency-policy.mjs",
     "verify:process-runtime": "node ./scripts/verify-process-runtime.mjs",
     "verify:workspace-build-graph": "node ./scripts/prepare-workspace-dependencies.mjs --verify"
   },

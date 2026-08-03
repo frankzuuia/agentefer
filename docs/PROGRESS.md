@@ -200,6 +200,8 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Auditoría B1-007: `docs/quality/B1-OBSERVABILITY-AUDIT.md` (`COMPLETE` local y remoto).
 - Contrato de contenedores B1-008: `docs/architecture/CONTAINER-RUNTIME-CONTRACT.md`.
 - Auditoría B1-008: `docs/quality/B1-CONTAINER-AUDIT.md` (`COMPLETE`; Docker real verificado en CI).
+- Política de dependencias B1-009: `dependency-policy.json` y `scripts/verify-dependency-policy.mjs`.
+- Auditoría B1-009: `docs/quality/B1-SECURITY-GATE-AUDIT.md` (`COMPLETE` local; CI remoto pendiente).
 - B1-001/B1-002: completos documentalmente.
 - B1-003: scaffold estructural verificado.
 - B1-004: runtime, dependencias exactas, lockfile, licencias, firmas y auditorías verificados.
@@ -207,4 +209,4 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - B1-006: gates locales y workflow `Quality` remoto aprobados en `develop`, con Actions Node 24 fijadas por SHA y cero annotations.
 - B1-007: logging/redacción, errores, W3C API→worker y métricas base aprobados; API/worker ya consumen logger/readiness.
 - B1-008: runtime API/worker, Dockerfiles, Compose y gate aprobados; build/run Docker real y shutdown verificados en CI.
-- B1-009: pendiente; no existe despliegue.
+- B1-009: artefactos y política de seguridad aprobados localmente; CI remoto pendiente. No existe despliegue.

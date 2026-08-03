@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "allowedRegistryHost": "registry.npmjs.org",
+  "allowedExternalLicenseExpressions": [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 AND LGPL-3.0-or-later",
+    "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+    "BlueOak-1.0.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC-BY-4.0",
+    "CC0-1.0",
+    "ISC",
+    "LGPL-3.0-or-later",
+    "MIT",
+    "MPL-2.0",
+    "Python-2.0"
+  ],
+  "allowedLifecyclePackages": [
+    {
+      "name": "esbuild",
+      "version": "0.28.1",
+      "reason": "Dev-only native binary selector; installs are scriptless and platform packages remain lockfile-pinned."
+    },
+    {
+      "name": "fsevents",
+      "version": "2.3.3",
+      "reason": "Dev-only optional macOS watcher; never present in Linux production images."
+    },
+    {
+      "name": "unrs-resolver",
+      "version": "1.12.2",
+      "reason": "Dev-only native resolver selector; installs are scriptless and tests resolve the platform binding directly."
+    }
+  ],
+  "allowedReciprocalPackageFamilies": [
+    {
+      "name": "axe-core",
+      "version": "4.12.1",
+      "licenses": ["MPL-2.0"],
+      "reason": "Transitive development accessibility tooling; source-file obligations are tracked for release notices."
+    },
+    {
+      "prefix": "lightningcss",
+      "version": "1.33.0",
+      "licenses": ["MPL-2.0"],
+      "reason": "Next.js CSS tooling and pinned platform binaries; source-file obligations are tracked for release notices."
+    },
+    {
+      "prefix": "@img/sharp-libvips-",
+      "version": "1.3.2",
+      "licenses": ["LGPL-3.0-or-later"],
+      "reason": "Sharp optional libvips binaries; LGPL notices and relinking obligations remain a B8 release gate."
+    },
+    {
+      "prefix": "@img/sharp-",
+      "version": "0.35.3",
+      "licenses": ["Apache-2.0 AND LGPL-3.0-or-later", "Apache-2.0 AND LGPL-3.0-or-later AND MIT"],
+      "reason": "Sharp Windows/WASM binaries; third-party notices and applicable LGPL obligations remain a B8 release gate."
+    }
+  ]
+}
