@@ -35,7 +35,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B1-003 | BL-023, BL-025                                | monorepo TypeScript con límites `web`, `api`, `worker` y paquetes compartidos ratificados                           | estructura, workspace y comandos funcionan sin mocks             | [x]    |
 | B1-004 | BL-025, SC-036                                | versiones exactas, lockfile y política de actualización                                                             | instalación reproducible y auditoría inicial                     | [x]    |
 | B1-005 | BL-021, BL-023                                | matriz de entornos y `.env.example` sin valores                                                                     | secret scan y revisión cliente/servidor                          | [x]    |
-| B1-006 | BL-025                                        | lint, format, typecheck, unit/integration test y build en CI                                                        | pipeline real en `develop`; fallos bloquean                      | [ ]    |
+| B1-006 | BL-025                                        | lint, format, typecheck, unit/integration test y build en CI                                                        | pipeline real en `develop`; fallos bloquean                      | [x]    |
 | B1-007 | BL-021, BL-022                                | logging estructurado, taxonomía de errores, IDs de correlación y métricas base                                      | tests de redacción y correlación API→worker                      | [ ]    |
 | B1-008 | BL-023, SC-031, SC-034                        | Dockerfiles no-root, health/readiness y configuración local                                                         | builds reales, health checks y límites documentados              | [ ]    |
 | B1-009 | BL-025                                        | artefactos `SECURITY_AUDIT`, `DEPENDENCY_REVIEW` y checklist release iniciales                                      | contenido basado en dependencias/código reales                   | [ ]    |
@@ -194,10 +194,10 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Auditoría B1-004: `docs/quality/B1-DEPENDENCY-AUDIT.md`.
 - Contrato de entornos B1-005: `docs/architecture/ENVIRONMENT-CONTRACT.md`.
 - Auditoría B1-005: `docs/quality/B1-ENVIRONMENT-AUDIT.md`.
-- Auditoría local B1-006: `docs/quality/B1-CI-AUDIT.md` (`LOCAL-READY / REMOTE-PENDING`).
+- Auditoría B1-006: `docs/quality/B1-CI-AUDIT.md` (`COMPLETE`; run remoto registrado).
 - B1-001/B1-002: completos documentalmente.
 - B1-003: scaffold estructural verificado.
 - B1-004: runtime, dependencias exactas, lockfile, licencias, firmas y auditorías verificados.
 - B1-005: variables por proceso, ejemplos vacíos, redacción y secret scan verificados.
-- B1-006: gates y workflow pasan localmente; pendiente commit/push autorizado y corrida real en `develop`, por eso continúa `[ ]`.
+- B1-006: gates locales y workflow `Quality` remoto aprobados en `develop`, con Actions Node 24 fijadas por SHA y cero annotations.
 - B1-007–B1-009: pendientes; no existe código funcional, Dockerfile ni despliegue.

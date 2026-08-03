@@ -94,6 +94,6 @@ Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código 
 - Dependencias B1-004: versiones exactas, lockfile, instalación limpia, licencias, firmas y auditorías verificadas.
 - Entornos B1-005: ejemplos vacíos por proceso, parser tipado, redacción, separación pública/secreta y 15 pruebas verificadas.
 - B1-006 local: format/lint/typecheck/test/build/audit y política CI pasan; workflow read-only y Actions por SHA preparados.
-- B1-006 remoto: pendiente de commit/push explícitamente autorizado y de observar una corrida real en `develop`.
+- B1-006 remoto: `Quality` run 30853524915 aprobó el commit `edfe0b0` en `develop` con Actions Node 24 por SHA y 0 annotations.
 - Código funcional/integraciones: todavía no existen ni han sido validados.
 - Producción: no apta.

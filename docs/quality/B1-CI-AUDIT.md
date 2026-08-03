@@ -1,7 +1,7 @@
-# AgenteFer — auditoría local de calidad/CI B1-006
+# AgenteFer — auditoría de calidad/CI B1-006
 
 Fecha: 2026-08-03.  
-Estado: **LOCAL-READY / REMOTE-PENDING**.  
+Estado: **COMPLETE**.  
 Raíz: `C:/Users/figod/Desktop/agentefer`.  
 Rama local: `develop`.
 
@@ -58,21 +58,23 @@ Los SHAs y `using: node24` se verificaron directamente en los tags/repositorios 
 
 El artefacto emitió ESM, source maps, declaraciones y declaration maps para `api`, `core`, `web`, `worker` e `index`. Node importó correctamente `@agentefer/config` por su export público. `dist/` está ignorado y no se versiona.
 
-## Razón de no cierre
+## Evidencia remota
 
-El criterio B1-006 exige pipeline real ejecutado en `develop`. El repositorio todavía no tiene commit inicial y todos los archivos permanecen untracked. Por política:
+- Repositorio: `frankzuuia/agentefer`.
+- Rama: `develop`.
+- Commit verificado: `edfe0b077f394c6192c27d575b88a078a8118ac8`.
+- Workflow/run: [Quality 30853524915](https://github.com/frankzuuia/agentefer/actions/runs/30853524915).
+- Conclusión: `success`.
+- Duración del job Verify: 36 segundos.
+- Annotations: 0.
+- Etapas aprobadas: checkout, setup Node 24, toolchain, `npm ci`, gate completo, firmas y attestations.
 
-- no se hace commit ni push sin instrucción explícita;
-- no se afirma que GitHub Actions pasó hasta observar una corrida remota real;
-- Dependabot tampoco se considera activo hasta que su archivo esté en GitHub.
+La primera corrida remota también aprobó, pero avisó que las Actions v4 usaban un runtime Node 20 deprecado. La autopsia verificó los releases oficiales v7 con `using: node24`, se actualizaron por SHA completo y la segunda corrida quedó verde sin annotations.
 
-## Pasos de activación autorizables
+## Veredicto
 
-1. revisar el alcance exacto de archivos;
-2. crear commit inicial en `develop`;
-3. push a `origin/develop`;
-4. observar el workflow `Quality`;
-5. corregir cualquier diferencia Linux/runtime sin relajar gates;
-6. guardar URL/commit/resultado y entonces marcar B1-006 `[x]`.
-
-No se hará ninguno de esos movimientos sin autorización explícita del usuario.
+- B1-006: aprobado.
+- Pipeline real en `develop`: activo y verificado.
+- Permisos de escritura/deploy: 0.
+- Dependabot: activo y dirigido a `develop`.
+- `main`: no creada ni modificada.
