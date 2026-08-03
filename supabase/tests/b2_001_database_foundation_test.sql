@@ -90,7 +90,7 @@ select extensions.is(
 
 select extensions.is(
   (
-    select array_agg(policyname order by policyname)
+    select array_agg(policyname::text order by policyname)
     from pg_catalog.pg_policies
     where schemaname = 'app_private'
   ),
