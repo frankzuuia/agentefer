@@ -24,7 +24,7 @@ Regla: cada requisito debe mapearse posteriormente a lógica de negocio, especif
 - **RQ-013 — Continuidad omnicanal:** cada conversación conserva canal, identidad disponible, publicación/producto de origen, historial, etapa comercial y responsable actual.
 - **RQ-014 — Identidad de cliente:** en Messenger se usará el nombre/identificador que Meta entregue legítimamente; no se inventarán datos ausentes.
 - **RQ-015 — Conocimiento del catálogo:** precios, existencia, fotos, garantías y condiciones comerciales deben responderse desde la fuente de verdad vigente.
-- **RQ-016 — Conocimiento general:** el LLM puede explicar conocimiento general de llantas o compatibilidad, pero debe distinguir datos verificados, inferencias y datos faltantes.
+- **RQ-016 — Conocimiento general:** el LLM puede explicar conocimiento general aplicable a cualquier categoría —por ejemplo llantas o compatibilidad vehicular—, pero debe distinguir datos verificados, inferencias y datos faltantes.
 - **RQ-017 — Compatibilidad responsable:** no se afirmará que una llanta o rin es compatible con un vehículo si faltan datos críticos; el agente preguntará vehículo, año, versión, medida u otros datos necesarios.
 - **RQ-018 — Venta consultiva:** el agente puede sugerir alternativas existentes más económicas o adecuadas, explicando por qué y sin inventar stock.
 - **RQ-019 — Precio ausente:** si el producto no tiene precio, el agente recopilará cantidad, variante y datos útiles, notificará a Fer y mantendrá informado al cliente.
@@ -55,13 +55,13 @@ Regla: cada requisito debe mapearse posteriormente a lógica de negocio, especif
 ## 4. Ingesta de productos y SKU
 
 - **RQ-040 — Alta por fotografías:** Fer podrá enviar fotos con texto adicional y pedir que se agreguen al catálogo.
-- **RQ-041 — Extracción multimodal:** el LLM analizará foto y mensaje para proponer categoría, marca, modelo, medida, rin, barrenación, condición, inclusión, garantía, servicios y precios presentes.
+- **RQ-041 — Extracción multimodal:** el LLM analizará foto y mensaje para proponer categoría, atributos comunes y especializados que realmente apliquen —por ejemplo marca, modelo, medida, rin o barrenación—, condición, inclusión, garantía, servicios, unidad y precios presentes.
 - **RQ-042 — Sin inventar datos:** baja calidad, texto tapado o atributos dudosos deben producir preguntas o campos pendientes, nunca valores fabricados.
-- **RQ-043 — Preguntas críticas:** antes de publicar se debe aclarar, según el producto, con/sin rin, precio por pieza o paquete, cantidad incluida, condición, stock y atributos de compatibilidad.
+- **RQ-043 — Preguntas críticas:** antes de publicar se debe aclarar, según el producto, categoría/atributos obligatorios, opciones o variante —por ejemplo con/sin rin—, unidad vendible, precio por unidad o paquete, cantidad incluida, condición, stock y compatibilidad cuando aplique.
 - **RQ-044 — Producto y variante:** un producto representa la oferta conceptual; cada combinación vendible materialmente distinta tiene una variante y un SKU estable.
 - **RQ-045 — SKU con/sin rin:** llanta sola y combo llanta+rin son variantes diferentes aunque compartan medida o imágenes.
 - **RQ-046 — Precio por cantidad:** una variante puede tener tarifas explícitas para 1, 2, 3, 4 o más unidades y vigencias distintas.
-- **RQ-047 — Unidades de inventario:** el stock se controla en la unidad vendible definida, normalmente piezas; los sets/paquetes deben declarar cuántas piezas consumen.
+- **RQ-047 — Unidades de inventario:** el stock se controla en la unidad inventariable definida; pieza es sólo un caso. Sets, paquetes o kits deben declarar sus componentes, cantidades y consumo sin inferirlos por categoría.
 - **RQ-048 — SKU generado:** el agente propondrá un SKU legible y estable; la base de datos garantizará unicidad sin usar el SKU como sustituto del identificador interno.
 - **RQ-049 — Detección de existente:** si el producto/variante posiblemente existe, el agente mostrará coincidencias con ID/SKU y diferencias para que Fer decida actualizar o crear.
 - **RQ-050 — Galería:** Fer podrá agregar fotografías nuevas a un producto existente y ordenar o retirar imágenes.
@@ -139,6 +139,7 @@ Regla: cada requisito debe mapearse posteriormente a lógica de negocio, especif
 - **RQ-107 — Modelo configurable:** el modelo exacto de OpenAI o MiniMax se seleccionará mediante configuración de entorno; la lógica comercial no contendrá una lista cerrada de modelos.
 - **RQ-108 — Capacidad multimodal explícita:** el modelo principal y, cuando sea necesario, el modelo de visión podrán configurarse por separado; nunca se enviarán datos silenciosamente a otra familia/proveedor ni se asumirá una capacidad no verificada.
 - **RQ-109 — Evolución de modelos:** incorporar un modelo o proveedor futuro debe limitarse a la frontera de IA, capacidades, contratos, evaluaciones y configuración, sin modificar catálogo, inventario, pedidos, canales o tools de negocio.
+- **RQ-110 — Catálogo universal sin despliegues:** Fer podrá agregar al catálogo cualquier mercancía u oferta permitida por la ley, la política comercial y el canal, aunque su categoría no exista todavía. Categorías, atributos tipados, unidades de venta, opciones, variantes y tarifas se definen como datos de la organización; incorporar una categoría nueva no debe exigir migración, cambio de código ni despliegue. Llantas, rines, tinacos y tambos son casos iniciales de validación, no una lista cerrada ni columnas especiales del núcleo.
 
 ## 10. Evidencia visual recibida
 

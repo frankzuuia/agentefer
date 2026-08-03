@@ -6,7 +6,7 @@ Estado: arquitectura lógica con baseline técnico ratificado; las capacidades d
 
 AgenteFer es un sistema asistido por LLM para que Fer administre por voz/texto/imagen:
 
-- catálogo, variantes, precios, stock y fotografías;
+- catálogo universal, categorías configurables, variantes, unidades, precios, stock y fotografías;
 - atención entrante de WhatsApp y Messenger;
 - calificación, cierre o handoff de clientes;
 - catálogo web/QR y solicitudes de pedido;
@@ -71,7 +71,7 @@ Reglas:
 
 Responsabilidades:
 
-- catálogo público, galería, selector de variante/cantidad y precio aplicable;
+- catálogo público multirubro, galería, filtros y selectores de opción/unidad/cantidad generados desde datos, y precio aplicable;
 - QR/enlaces compartibles;
 - creación protegida de solicitud de pedido;
 - administración accesible cuando se implemente;
@@ -118,7 +118,7 @@ Módulos lógicos inicialmente requeridos:
 - identidad, organización y membresía;
 - conexiones/identidades de canal;
 - conversación y mensajería;
-- catálogo, categoría, producto, variante y atributos;
+- catálogo, categorías/atributos tipados configurables, producto, variante, unidad y composición de paquetes;
 - medios y evidencia;
 - libro de precios;
 - inventario, reservas y movimientos;
@@ -166,10 +166,10 @@ Los módulos se implementarán como límites de código dentro de un monorepo/mo
 
 1. Medio auténtico se descarga a un área controlada con límites y hash.
 2. Se registra evidencia y se detecta duplicado.
-3. Visión/LLM propone borrador y posibles coincidencias existentes.
-4. Herramientas guardan propuesta; no activan campos críticos dudosos.
-5. Fer resuelve preguntas como variante, cantidad del set, stock y precio.
-6. Herramienta transaccional crea/actualiza producto, variante, SKU, precio, stock y galería.
+3. Visión/LLM busca y propone reutilizar o crear categoría, atributos tipados, unidad, borrador y posibles coincidencias existentes.
+4. Herramientas guardan la propuesta; una categoría nueva es dato de la organización y no activa campos críticos dudosos.
+5. Fer resuelve preguntas críticas según la oferta: categoría/atributos, variante/opciones, unidad, cantidad/paquete, stock y precio.
+6. Herramienta transaccional crea/actualiza definiciones autorizadas, producto, variante, unidad, SKU, precio, stock y galería.
 7. Publicación requiere política/autorización separada.
 
 ### 5.4 Precio pendiente
@@ -202,6 +202,9 @@ Los módulos se implementarán como límites de código dentro de un monorepo/mo
 
 - ID interno opaco e inmutable; SKU es identificador comercial único por organización.
 - `organization_id` en todo dato operacional.
+- Categorías, definiciones de atributos, unidades y escalones son datos versionados; el núcleo no contiene tablas, enums o decisiones especiales por rubro.
+- Crear una categoría autorizada no requiere migración ni despliegue; las plantillas de llanta, rin, tinaco o tambor son datos opcionales.
+- Paquetes/kits declaran componentes y consumo; el sistema no los infiere por nombre o categoría.
 - Tiempo almacenado en UTC; presentación y reportes en zona configurada.
 - Precios con moneda y unidad; nunca `float` binario para dinero.
 - Ledger/movimientos para inventario y auditoría; no ocultar historia.
@@ -240,6 +243,7 @@ El backend puede usar condicionales para reglas deterministas de seguridad/estad
 - **ADR-008:** EasyPanel no se configura hasta existir código, Dockerfiles, health checks y pruebas reales.
 - **ADR-009:** Node.js 24/TypeScript 6, npm workspaces, Next.js 16, Fastify 5, Supabase Queues/Cron y tres artefactos ratificados.
 - **ADR-010:** proveedor/modelo LLM seleccionable por configuración, adaptadores aislados y onboarding contractual para modelos futuros.
+- **ADR-011:** catálogo universal definido por datos, sin categorías ni cantidades cerradas en código.
 
 ## 9. Riesgos abiertos
 

@@ -46,6 +46,7 @@ const requiredRootScripts = [
   "audit",
   "verify",
   "verify:ci-policy",
+  "verify:documentation-contract",
 ];
 
 for (const scriptName of requiredRootScripts) {
@@ -55,6 +56,11 @@ for (const scriptName of requiredRootScripts) {
     `root package is missing ${scriptName}`,
   );
 }
+
+assert.ok(
+  rootManifest.scripts.test.includes("npm run verify:documentation-contract"),
+  "the root test pipeline must execute the documentation contract",
+);
 
 const activeWorkspaces = [];
 const deferredWorkspaces = [];

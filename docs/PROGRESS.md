@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 en ejecución; investigación y decisiones técnicas completas, sin código funcional ni despliegue.  
+Estado global: Bloque 1 completo; Bloque 2 es el siguiente gate funcional y todavía no existe esquema de negocio ni despliegue.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -16,7 +16,7 @@ Regla: una tarea solo pasa a completada con entregable real y evidencia de valid
 | ID     | Fuente                       | Entregable                                                           | Validación                                         | Estado |
 | ------ | ---------------------------- | -------------------------------------------------------------------- | -------------------------------------------------- | ------ |
 | B0-001 | BL-023, SC-034               | verificar raíz, remoto, rama y recursos exclusivos AgenteFer         | Git + escaneo de referencias externas              | [x]    |
-| B0-002 | RQ-001–RQ-106                | ledger exhaustivo de requisitos y evidencia visual                   | IDs continuos 001–106 y revisión de incertidumbres | [x]    |
+| B0-002 | RQ-001–RQ-110                | ledger exhaustivo de requisitos y evidencia visual                   | IDs continuos 001–110 y revisión de incertidumbres | [x]    |
 | B0-003 | BL-001–BL-025                | lógica de negocio con actor, datos, permisos, auditoría y validación | cobertura de las 25 reglas                         | [x]    |
 | B0-004 | BL-001–BL-025                | contexto, componentes, límites, entornos y flujos                    | revisión de aislamiento y flujo end-to-end lógico  | [x]    |
 | B0-005 | BL-019–BL-025, SC-029–SC-037 | baseline y modelo de amenazas                                        | top 10 AppSec + amenazas/pruebas                   | [x]    |
@@ -46,9 +46,9 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------ |
 | B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | organizaciones, perfiles, membresías, usuarios e identidades de canal               | migración, constraints y pruebas cross-org                | [ ]    |
 | B2-002 | BL-003, BL-004, SC-001, SC-005–SC-006 | conexiones, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | idempotencia, RLS y estados válidos                       | [ ]    |
-| B2-003 | BL-008, BL-009, SC-007–SC-009         | categorías, productos, variantes, atributos, SKUs, medios y evidencia               | unicidad por organización, procedencia y casos multirubro | [ ]    |
-| B2-004 | BL-010, SC-010, SC-013                | libros/tiers de precio, moneda, vigencia y `on_request`                             | cantidades 1–4, vigencias y dinero preciso                | [ ]    |
-| B2-005 | BL-011, SC-014, SC-018–SC-019         | ubicaciones, movimientos, saldos y reservas                                         | prueba concurrente: stock nunca negativo                  | [ ]    |
+| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia | categoría nueva sin deploy, unicidad, procedencia y casos multirubro | [ ]    |
+| B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                     | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso | [ ]    |
+| B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas | concurrencia, paquete/kit declarado y stock nunca negativo | [ ]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas       | pedido ≠ venta, snapshots e idempotencia                  | [ ]    |
 | B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios          | estados, dedupe, cancelación y versionado                 | [ ]    |
 | B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts          | trazabilidad, costo y redacción                           | [ ]    |
@@ -63,9 +63,9 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B3-001 | BL-019, SC-029–SC-030                  | registro de tools con contratos, permisos, idempotencia y auditoría | tool desconocida/argumento inválido/rol incorrecto falla cerrado | [ ]    |
 | B3-002 | BL-002, BL-020, SC-002–SC-003          | resolución de identidad propietario/cliente                         | matriz de canales/roles y spoofing                               | [ ]    |
 | B3-003 | BL-004, BL-005, SC-001, SC-004         | recuperación de contexto publicación-conversación-oferta            | origen válido/roto/múltiple                                      | [ ]    |
-| B3-004 | BL-005, BL-009, BL-014, SC-020         | búsqueda de catálogo, candidatos y alternativas                     | solo activos/stock real y certeza explícita                      | [ ]    |
-| B3-005 | BL-008, SC-007, SC-008, SC-009         | ingesta segura y borrador multimodal                                | cinco imágenes autorizadas + casos adversarios                   | [ ]    |
-| B3-006 | BL-009, BL-010, SC-007–SC-010          | alta/actualización producto-variante-SKU-precio                     | transacción, conflicto SKU y rollback                            | [ ]    |
+| B3-004 | BL-005, BL-009, BL-014, SC-020, RQ-110 | búsqueda universal de catálogo, candidatos y alternativas           | distintos rubros, sólo activos/stock real y certeza explícita    | [ ]    |
+| B3-005 | BL-008, SC-007, SC-008, SC-009, RQ-110 | ingesta segura y borrador multimodal con categoría/atributos propuestos | cinco imágenes autorizadas, categoría nueva y casos adversarios | [ ]    |
+| B3-006 | BL-009, BL-010, SC-007–SC-010, RQ-110  | alta/actualización universal de categoría-producto-variante-unidad-SKU-precio | categoría nueva sin código, transacción, conflicto SKU y rollback | [ ]    |
 | B3-007 | BL-006, BL-010, SC-011, SC-012, SC-013 | precio pendiente, desambiguación y resolución diferida              | una/múltiples pendientes y fallo de envío                        | [ ]    |
 | B3-008 | BL-011, SC-014, SC-018–SC-019          | adjust/reserve/release/sale/receive                                 | concurrencia, retries y ledger                                   | [ ]    |
 | B3-009 | BL-012, BL-013, SC-015–SC-017          | cálculo servidor, pedido, reserva y notificación                    | canales, consentimiento, duplicado y cambio de precio            | [ ]    |
@@ -94,18 +94,18 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B5-001 | BL-019, SC-029–SC-031, RQ-107–RQ-109 | adaptadores OpenAI/MiniMax y modelo seleccionado con tool calling nativo | ambas familias reales, cambio por variable, errores, timeout y trazas | [ ]    |
 | B5-002 | BL-019, BL-020                       | política/prompt versionado y exposición dinámica de tools                | owner/cliente/canal/estado reciben tools correctas                    | [ ]    |
 | B5-003 | BL-002, SC-002                       | transcripción de notas de voz y confirmación accesible                   | audio real, ruido, idioma y costo/latencia                            | [ ]    |
-| B5-004 | BL-008, SC-007–SC-009, SC-033        | visión con evidencia, confianza y preguntas                              | imágenes reales y prompt injection visual                             | [ ]    |
+| B5-004 | BL-008, SC-007–SC-009, SC-033, RQ-110 | visión con evidencia, categoría/atributos propuestos, confianza y preguntas | imágenes reales multirubro y prompt injection visual                  | [ ]    |
 | B5-005 | BL-019, SC-029                       | política de memoria, pendientes y configuración durable                  | cliente no envenena memoria/reglas                                    | [ ]    |
 | B5-006 | BL-022, SC-030–SC-031                | budgets, tiers de modelo, cache hash, retry/fallback y alertas           | loop, costo excedido, proveedor caído                                 | [ ]    |
-| B5-007 | BL-005–BL-020, SC-001–SC-033         | suite de evaluaciones cognitivas y de tool safety                        | lenguaje natural, acentos, ambigüedad, ventas y ataques               | [ ]    |
+| B5-007 | BL-005–BL-020, SC-001–SC-033, RQ-110 | suite de evaluaciones cognitivas y de tool safety                        | lenguaje natural, catálogo universal, ambigüedad, ventas y ataques    | [ ]    |
 
 ## Bloque 6 — Catálogo/QR y experiencia administrativa accesible
 
 | ID     | Fuente                        | Entregable real                                                             | Validación requerida                              | Estado |
 | ------ | ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------- | ------ |
 | B6-001 | BL-012, SC-017                | sistema visual responsive/accesible y estados UX                            | móvil/tablet/desktop, teclado, contraste y lector | [ ]    |
-| B6-002 | BL-012, SC-017, SC-020        | catálogo público filtrable con empty/loading/error                          | datos reales y RLS pública mínima                 | [ ]    |
-| B6-003 | BL-012, SC-017                | detalle/galería, variante, cantidad y precio dinámico                       | imágenes múltiples, 1–4, con/sin rin, agotado     | [ ]    |
+| B6-002 | BL-012, SC-017, SC-020, RQ-110 | catálogo público universal/filtrable con empty/loading/error                | categoría nueva visible sin deploy, datos reales y RLS pública mínima | [ ]    |
+| B6-003 | BL-012, SC-017, RQ-110         | detalle/galería, opciones, unidad, cantidad y precio dinámico                | rubros distintos, cantidad >4, unidades/atributos dinámicos y agotado | [ ]    |
 | B6-004 | BL-013, SC-015–SC-016         | checkout de solicitud con contacto/consentimiento                           | WhatsApp/Messenger, validación y antiabuso        | [ ]    |
 | B6-005 | BL-012, SC-017                | “consultar precio” con texto/SKU prellenado                                 | URL segura y producto correcto                    | [ ]    |
 | B6-006 | BL-012                        | QR estable y descargable del catálogo                                       | escaneo real y routing                            | [ ]    |
@@ -159,11 +159,12 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - SC-014–SC-020 → B2-005/006, B3-004/008/009, B6-002–B6-005, B9-001.
 - SC-021–SC-028 → B2-007/008, B3-011, B4-001/005/006, B6-007/008, B9-001.
 - SC-029–SC-037 → B1-005–B1-009, B2-009/010, B3-001, B5, B8, B9.
+- RQ-110 → ADR-011, B2-003/004/005, B3-004/005/006/008/009, B5-004/007, B6-002/003/005/007 y B9-001/005.
 
 ## Gate actual
 
 - Project boundary: aprobado.
-- Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–106, BL-001–025 y SC-001–037; cero faltantes).
+- Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
 - Functional implementation: no iniciada.
 - External integrations: no configuradas.
@@ -185,6 +186,8 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Investigación oficial fechada: `docs/references/OFFICIAL_DOCUMENTATION_REVIEW.md`.
 - Baseline técnico aceptado: `docs/architecture/ADR-009-TECHNICAL-BASELINE.md`.
 - Portabilidad OpenAI/MiniMax aceptada: `docs/architecture/ADR-010-MODEL-PROVIDER-PORTABILITY.md`.
+- Catálogo universal data-driven aceptado: `docs/architecture/ADR-011-UNIVERSAL-CATALOG.md`.
+- Auditoría RQ-110: `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` (`MATCH PERFECT` documental; implementación B2 pendiente).
 - Onboarding de modelos futuros: `docs/operations/MODEL-ONBOARDING-PLAYBOOK.md`.
 - Gates de QA: `docs/quality/QUALITY-STRATEGY.md`.
 - Auditoría reproducible: `docs/quality/B1-DOCUMENTATION-AUDIT.md`.

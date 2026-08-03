@@ -181,8 +181,9 @@ Casos obligatorios:
 - precio ausente y respuesta diferida;
 - dos productos ambiguos y elección por ID;
 - alta desde las imágenes autorizadas con campos tapados;
-- variantes con/sin rin;
-- precios explícitos para 1, 2, 3 y 4;
+- creación/reutilización de una categoría y atributos nuevos sin cambiar código;
+- variantes con/sin rin como fixture y variantes de otro rubro;
+- precios explícitos para 1, 2, 3 y 4, una cantidad mayor y otra unidad vendible;
 - cambio de stock/agotamiento/reactivación;
 - alternativa del catálogo sin inventar compatibilidad;
 - handoff a Fer;

@@ -90,3 +90,7 @@ Los escaneos no imprimieron valores sensibles.
 
 B1-001 y B1-002 quedan completos en alcance documental.  
 B1-003 es el siguiente gate; no debe declararse completo hasta que el monorepo, workspaces y comandos existan y funcionen sin mocks.
+
+## Addendum posterior — RQ-110
+
+El conteo RQ-001–RQ-109 anterior conserva la evidencia exacta del cierre original de B1-001/B1-002 y no se reescribe retroactivamente. El 2026-08-03 se capturó la aclaración RQ-110 sobre catálogo universal definido por datos. Su cross-match actual se documenta en `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` y se verifica mediante `npm run verify:documentation-contract`.

@@ -12,6 +12,7 @@ Regla de implementación: ningún nombre externo/capacidad de proveedor aquí de
 - Dinero usa decimal entero/preciso más moneda; nunca `float`.
 - Cliente, contacto, conversación, lead, pedido y venta son conceptos distintos.
 - Producto, variante y SKU son conceptos distintos.
+- Categorías, atributos tipados, unidades, opciones y escalones de precio son datos extensibles de la organización; ninguna categoría comercial está compilada en el núcleo.
 - Tool calling nativo resuelve cognición; backend valida autorización e invariantes.
 - Mutaciones, mensajes y trabajos externos son idempotentes y auditables.
 - Los nombres de tablas/herramientas siguientes son contratos planeados; se ratificarán en la especificación de datos antes de migrar.
@@ -93,31 +94,31 @@ Permisos/eventos exactos de Meta, vínculo de identidad de Fer y reglas de reten
 
 ### Requirements Covered
 
-RQ-019–RQ-024, RQ-040–RQ-054, RQ-076, RQ-104.
+RQ-019–RQ-024, RQ-040–RQ-054, RQ-076, RQ-104 y RQ-110.
 
 ### Scenario Matrix
 
 | ID     | Actor / precondición / trigger                  | Comportamiento y datos                                                                | Herramientas / externos                                          | Auditoría y efecto                   | Validación                           | Fallback                               |
 | ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------ | ------------------------------------ | -------------------------------------- |
-| SC-007 | Fer; foto clara + precio/stock                  | crear evidencia, borrador y candidatos; confirmar invariantes; alta producto/variante | visión LLM, `media.ingest`, `catalog.upsert_offer`               | hash, extracción, confirmación y IDs | producto consultable con SKU único   | si no cumple campos, queda borrador    |
+| SC-007 | Fer; foto de mercancía + precio/stock           | proponer/reutilizar categoría y atributos; crear evidencia, borrador y candidatos; confirmar invariantes; alta producto/variante | visión LLM, `media.ingest`, `catalog.upsert_offer` | hash, extracción, categoría, confirmación e IDs | producto de cualquier rubro consultable con SKU único | si faltan campos/definición, queda borrador |
 | SC-008 | Fer; foto con marca tapada                      | marcar campo desconocido y preguntar; no publicar                                     | `catalog.create_draft`, `pending_question.create`                | evidencia y campo dudoso             | marca no se fabrica                  | Fer completa o conserva borrador       |
 | SC-009 | Fer; posible producto existente                 | mostrar candidatos/diferencias y pedir ID                                             | `catalog.find_candidates`                                        | candidatos y selección               | no duplica silenciosamente           | crear solo tras elección explícita     |
-| SC-010 | Fer; “sin rin por pieza X, cuatro Y; con rin Z” | resolver dos variantes y tiers explícitos                                             | `pricing.set_tiers`                                              | anterior/nuevo y vigencia            | cantidades devuelven tarifas exactas | preguntar cantidad/unidad faltante     |
+| SC-010 | Fer define opciones, unidad y tarifas           | resolver variantes/opciones y escalones explícitos; llanta con/sin rin y 1/4 piezas es un fixture, no el contrato | `pricing.set_tiers` | anterior/nuevo, unidad y vigencia | cualquier cantidad permitida devuelve tarifa exacta | preguntar opción/cantidad/unidad faltante |
 | SC-011 | Cliente; oferta sin precio                      | recopilar variante/cantidad; crear pendiente y avisar                                 | `pending_request.create`, outbox                                 | pendiente ligada a conversación      | una notificación idempotente         | seguir calificando sin prometer precio |
 | SC-012 | Fer; “dile que cuesta X”; varias pendientes     | LLM presenta candidatos identificables; no muta                                       | `pending_request.search`                                         | ambigüedad y opción elegida          | respuesta va al cliente correcto     | esperar selección                      |
 | SC-013 | Fer resuelve pendiente única                    | fijar precio solo si ordenado y responder conversación                                | `pending_request.resolve`, `pricing.set_tiers`, `messaging.send` | resolución y efectos separados       | puede responder sin cambiar catálogo | si envío falla, outbox reintenta       |
 
 ### Data Flow
 
-Medio/mensaje → ingesta/evidencia → análisis LLM → borrador → candidatos → preguntas → confirmación → transacción producto/variante/SKU/precio/stock/galería.
+Medio/mensaje → ingesta/evidencia → análisis LLM → categoría/atributos existentes o propuestos → borrador → candidatos → preguntas → confirmación → transacción producto/variante/unidad/SKU/precio/stock/galería.
 
 ### Tables / APIs / Tools
 
 Entidades planeadas:
 
-- `categories`, `products`, `product_variants`, `attribute_definitions`, `variant_attributes`;
+- `categories`, `products`, `product_variants`, `attribute_definitions`, valores tipados de atributos y unidades; nombres físicos finales pendientes de B2-003;
 - `media_assets`, `media_evidence`, `product_media`;
-- `price_books`, `price_tiers`, `pending_requests`, `pending_questions`;
+- `price_books`, `price_tiers`, composición explícita de paquetes cuando aplique, `pending_requests`, `pending_questions`;
 - `handoffs`, `conversation_assignments`;
 - herramientas `media.ingest`, `catalog.create_draft`, `catalog.find_candidates`, `catalog.upsert_offer`, `pricing.set_tiers`, `pending_request.search/resolve`, `handoff.create/resume`.
 
@@ -148,11 +149,11 @@ Borrador conserva evidencia; transacción completa o nada; historial de precio p
 
 ### Validation
 
-Fixtures reales autorizados de las cinco imágenes, extracción con incertidumbre, variantes con/sin rin, tiers 1–4, candidatos, resolución diferida y aislamiento Storage.
+Fixtures reales autorizados de las cinco imágenes; llanta/rin con opciones y tiers 1–4; escenarios de tinaco, tambor y artículo genérico con definiciones distintas; categoría nueva sin migración/despliegue; cantidad superior a cuatro; unidades distintas; extracción con incertidumbre, candidatos, resolución diferida y aislamiento Storage. Los escenarios no visuales validan contratos sin crear productos comerciales falsos.
 
 ### Open Risks
 
-Taxonomía inicial de categorías/atributos, proveedor de voz/visión, moneda y reglas comerciales de publicación automática.
+Gobierno/versionado de definiciones de categoría y unidad, proveedor de voz/visión, moneda y reglas comerciales de publicación automática.
 
 ---
 
@@ -160,7 +161,7 @@ Taxonomía inicial de categorías/atributos, proveedor de voz/visión, moneda y 
 
 ### Requirements Covered
 
-RQ-027–RQ-039, RQ-047, RQ-055–RQ-061, RQ-072–RQ-075.
+RQ-027–RQ-039, RQ-047, RQ-055–RQ-061, RQ-072–RQ-075 y RQ-110.
 
 ### Scenario Matrix
 
@@ -216,7 +217,7 @@ Liberación idempotente, conciliación stock-publicación, reintento de notifica
 
 ### Validation
 
-Concurrencia real PostgreSQL, cantidades/sets, snapshots, pedido por ambos canales, accesibilidad móvil, antiabuso y reportes consistentes.
+Concurrencia real PostgreSQL, cantidades/unidades/paquetes arbitrarios, snapshots, pedido por ambos canales, catálogo multirubro, accesibilidad móvil, antiabuso y reportes consistentes.
 
 ### Open Risks
 
@@ -364,7 +365,7 @@ Modelo exacto de cada entorno, presupuesto, observabilidad backend, retención, 
 
 ### Coherence failure
 
-No detectada: los requisitos RQ-001–RQ-109 se enlazan a BL-001–BL-025 y escenarios SC-001–SC-037.
+No detectada: los requisitos RQ-001–RQ-110 se enlazan a BL-001–BL-025 y escenarios SC-001–SC-037.
 
 ### Technical hallucination
 

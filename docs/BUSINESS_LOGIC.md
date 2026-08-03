@@ -102,51 +102,51 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 
 ## BL-009: Producto, variante y SKU
 
-**Regla →** El producto agrupa la oferta conceptual; cada combinación vendible distinta tiene variante y SKU estable, sin duplicar silenciosamente una existente.  
-**Dirección técnica →** IDs internos inmutables, SKU único por organización, atributos de categoría y búsqueda semántica/estructurada para candidatos; Fer resuelve ambigüedad.
+**Regla →** El producto agrupa cualquier oferta comercial permitida; cada combinación vendible distinta tiene variante y SKU estable, sin duplicar silenciosamente una existente. Una categoría nueva se registra como dato de la organización y no exige cambiar código.  
+**Dirección técnica →** Núcleo agnóstico a categoría, IDs internos inmutables, SKU único por organización, definiciones de atributos tipados y búsqueda semántica/estructurada para candidatos; Fer resuelve ambigüedad. No existen columnas, enums ni ramas de dominio exclusivas para llantas, rines, tinacos o tambos.
 
 - Actor: Fer y agente.
-- Requisitos: RQ-004, RQ-044, RQ-045, RQ-048, RQ-049, RQ-052.
-- Datos: categorías, productos, variantes, atributos, SKUs y relaciones de medios.
+- Requisitos: RQ-004, RQ-044, RQ-045, RQ-048, RQ-049, RQ-052, RQ-110.
+- Datos: categorías configurables, definiciones/valores tipados de atributos, productos, variantes, unidades de venta, SKUs y relaciones de medios.
 - Permiso: edición administrativa; lectura pública solo de activos.
 - Auditoría: alta, candidato descartado/elegido, cambio de SKU y fusión futura.
-- Validación: con/sin rin, mismo modelo distinta medida, SKU concurrente y categoría no-llanta.
+- Validación: llanta con/sin rin como fixture; tinaco por capacidad/material; tambor por presentación; artículo genérico sin atributos especializados; categoría creada por Fer; reclasificación controlada; mismo modelo distinta variante y SKU concurrente.
 
 ## BL-010: Precios explícitos y por cantidad
 
-**Regla →** Cada variante puede tener precio por pieza, paquete o cantidad; un precio no se deriva si Fer proporcionó una tarifa explícita distinta.  
-**Dirección técnica →** libro de precios versionado con unidad, cantidad mínima/máxima, moneda, vigencia y estado `priced`/`on_request`.
+**Regla →** Cada variante puede tener precio por cualquier unidad vendible, paquete o escalón de cantidad configurado; un precio no se deriva si Fer proporcionó una tarifa explícita distinta. Las cantidades 1–4 son un caso comercial posible, no un límite del catálogo.  
+**Dirección técnica →** libro de precios versionado con unidad de venta explícita, cantidad mínima/máxima, moneda, vigencia y estado `priced`/`on_request`; los escalones son filas/datos, no columnas fijas por cantidad.
 
 - Actor: Fer, cliente y agente.
-- Requisitos: RQ-031, RQ-032, RQ-033, RQ-046, RQ-053, RQ-054.
-- Datos: listas de precios, escalones, moneda, vigencias e historial.
+- Requisitos: RQ-031, RQ-032, RQ-033, RQ-046, RQ-053, RQ-054, RQ-110.
+- Datos: unidades de venta, listas de precios, escalones arbitrarios, moneda, vigencias e historial.
 - Permiso: propietario/administrador modifica; público consulta tarifa aplicable.
 - Auditoría: anterior/nuevo, fuente, actor y vigencia.
-- Validación: cantidades 1–4, paquete de cuatro con descuento, vigencias superpuestas, sin precio y moneda ausente.
+- Validación: cantidades 1–4 como fixture, paquete con descuento, pieza, par, set, volumen u otra unidad definida, cantidad superior a cuatro, vigencias superpuestas, sin precio y moneda ausente.
 
 ## BL-011: Inventario transaccional
 
-**Regla →** Stock, reservas, ventas, entradas y correcciones se registran como movimientos; ninguna concurrencia puede generar stock negativo.  
+**Regla →** Stock, reservas, ventas, entradas y correcciones se registran como movimientos en la unidad inventariable explícita; ninguna concurrencia puede generar stock negativo. Paquetes o kits declaran su composición y consumo, nunca se infieren por categoría.  
 **Dirección técnica →** ledger de inventario y operaciones PostgreSQL atómicas con bloqueo/versión, claves idempotentes y reservas con expiración.
 
 - Actor: Fer, catálogo, pedido y worker.
-- Requisitos: RQ-038, RQ-047, RQ-055, RQ-056, RQ-057, RQ-058, RQ-059, RQ-060, RQ-061.
-- Datos: ubicaciones, existencias, movimientos, reservas, ventas y estados de variante.
+- Requisitos: RQ-038, RQ-047, RQ-055, RQ-056, RQ-057, RQ-058, RQ-059, RQ-060, RQ-061, RQ-110.
+- Datos: unidades inventariables, composición de paquetes cuando aplique, ubicaciones, existencias, movimientos, reservas, ventas y estados de variante.
 - Permiso: herramientas administrativas o transacciones de pedido autorizadas.
 - Auditoría: tipo, cantidad, saldo previo/posterior, referencia y motivo.
-- Validación: dos compradores por última unidad, reintento, expiración, corrección y set que consume varias piezas.
+- Validación: dos compradores por última unidad, reintento, expiración, corrección, unidad no divisible y paquete/kit que consume componentes declarados.
 
 ## BL-012: Catálogo público y QR
 
-**Regla →** El catálogo móvil muestra solo ofertas elegibles, permite galería, variantes y cantidades, y ofrece pedido o consulta de precio.  
-**Dirección técnica →** frontend público con consultas limitadas/RLS, URL estable y QR; cálculo de precio en servidor o función autorizada, no confiado al cliente.
+**Regla →** El catálogo móvil muestra sólo ofertas elegibles de cualquier categoría configurada, permite galería, opciones/variantes y cantidades válidas, y ofrece pedido o consulta de precio.  
+**Dirección técnica →** frontend público generado desde definiciones de categoría/unidad con consultas limitadas/RLS, URL estable y QR; filtros, opciones y cálculo de precio provienen de datos validados por servidor o función autorizada, no de lógica de categoría en el cliente.
 
 - Actor: visitante/cliente.
-- Requisitos: RQ-027, RQ-028, RQ-029, RQ-030, RQ-031, RQ-032, RQ-033, RQ-039.
+- Requisitos: RQ-027, RQ-028, RQ-029, RQ-030, RQ-031, RQ-032, RQ-033, RQ-039, RQ-110.
 - Datos: vista pública de catálogo, precios aplicables, disponibilidad, medios y configuración comercial pública.
 - Permiso: lectura pública mínima; sin acceso a costos, PII o historial.
 - Auditoría: eventos de interés con minimización y consentimiento aplicable.
-- Validación: móvil, accesibilidad, agotado durante selección, precio por consultar y enlace QR obsoleto.
+- Validación: móvil, accesibilidad, categoría recién creada sin despliegue, filtros/atributos generados por datos, cantidad/unidad permitida, agotado durante selección, precio por consultar y enlace QR obsoleto.
 
 ## BL-013: Solicitud de pedido y contacto
 
@@ -162,15 +162,15 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 
 ## BL-014: Asesoría y alternativas verificables
 
-**Regla →** El agente ayuda con conocimiento general y ofrece alternativas del catálogo, sin presentar una inferencia como compatibilidad confirmada.  
-**Dirección técnica →** recuperación de candidatos por herramientas; respuesta con fuente/estado de certeza y preguntas de compatibilidad faltantes.
+**Regla →** El agente ayuda con conocimiento general de la categoría consultada y ofrece alternativas del catálogo, sin presentar una inferencia como hecho o compatibilidad confirmada.  
+**Dirección técnica →** recuperación de candidatos por herramientas; respuesta con fuente/estado de certeza y preguntas de aplicabilidad/compatibilidad faltantes según atributos definidos.
 
 - Actor: cliente y agente.
-- Requisitos: RQ-016, RQ-017, RQ-018.
-- Datos: catálogo, atributos de compatibilidad, historial de conversación y conocimiento del modelo.
+- Requisitos: RQ-016, RQ-017, RQ-018, RQ-110.
+- Datos: catálogo, definiciones/valores de atributos, aplicabilidad/compatibilidad, historial de conversación y conocimiento del modelo.
 - Permiso: lectura de ofertas públicas.
 - Auditoría: variantes sugeridas y atributos usados.
-- Validación: alternativa más barata, sin alternativas, datos de vehículo incompletos y conocimiento contradictorio con catálogo.
+- Validación: alternativa más barata en distintos rubros, sin alternativas, datos de aplicabilidad incompletos —incluido vehículo cuando corresponda— y conocimiento contradictorio con catálogo.
 
 ## BL-015: Publicaciones oficiales de Meta
 
@@ -306,7 +306,7 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 
 ## Auditoría de cobertura inicial
 
-- Requisitos cubiertos directamente: RQ-001 a RQ-109.
+- Requisitos cubiertos directamente: RQ-001 a RQ-110.
 - Duplicados intencionales: seguridad, accesibilidad e aislamiento aparecen en varias reglas porque son propiedades transversales.
 - Conceptos separados deliberadamente: pedido ≠ venta; producto ≠ variante; Página de Facebook ≠ Marketplace; stock cero ≠ pausa manual; conocimiento general ≠ dato de catálogo.
 - Estado del veredicto: **INTEGRIDAD TOTAL para lógica de negocio inicial**.

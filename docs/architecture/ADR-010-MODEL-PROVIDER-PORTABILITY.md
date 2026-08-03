@@ -167,7 +167,7 @@ Todo adaptador/modelo seleccionado debe pasar el mismo contrato:
 11. redacción de logs;
 12. no duplicación tras retry/fallback.
 
-Además debe ejecutar evals representativas de AgenteFer: precio pendiente, ambigüedad entre IDs, alta multimodal, con/sin rin, tiers 1–4, inventario, handoff, asesoría y publicaciones.
+Además debe ejecutar evals representativas de AgenteFer: precio pendiente, ambigüedad entre IDs, alta multimodal de categorías conocidas y nuevas, atributos/unidades dinámicos, llanta con/sin rin y tiers 1–4 como fixtures, cantidades mayores, inventario, handoff, asesoría y publicaciones.
 
 ## Consecuencias
 

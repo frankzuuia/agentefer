@@ -90,10 +90,18 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - Acción: el gate B1-009 rechaza cambios no revisados; B8-005 generará SBOM, escaneará imágenes y producirá notices finales.
 - Estado: control preventivo implementado; cumplimiento de distribución pendiente de release.
 
+### SA-008 — Catálogo universal y política de publicación
+
+- Severidad actual: informativa; se vuelve alta si una integración publica sin policy gate.
+- Evidencia: RQ-110 y ADR-011 permiten categorías extensibles como datos, pero separan expresamente capacidad de modelado, activación pública y autorización de canal.
+- Impacto: una categoría universal sin validación de legalidad/política podría intentar ofrecer mercancía prohibida por el negocio, la ley o Meta.
+- Acción: B2 conserva estado privado/publicable; B3 autoriza tools; B4 aplica capability/policy antes de publicación; B8 prueba bypass, prompt injection y categorías bloqueadas.
+- Estado: control arquitectónico definido; implementación pendiente porque todavía no existe esquema, catálogo funcional ni adaptador Meta.
+
 ## Controles que ya existen como política
 
 - frontera exclusiva AgenteFer en `AGENTS.md`;
-- requisitos RQ-001–RQ-109 y reglas BL-001–BL-025;
+- requisitos RQ-001–RQ-110 y reglas BL-001–BL-025;
 - modelo de amenazas TM-001–TM-024;
 - escenarios SC-001–SC-037;
 - prohibición de secretos, mocks e infraestructura no identificada;
@@ -115,5 +123,6 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - B1-007 completo: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C y métricas aprobados localmente y en el run remoto 30859122936.
 - B1-008 completo: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, 30 pruebas y build/runtime Docker remoto aprobados en `develop`.
 - B1-009 completo: política de dependencias y artefactos actualizados desde el árbol real; run 30860154280 aprobado sobre `develop`.
+- Aclaración RQ-110: catálogo universal y separación de policy formalizados en ADR-011; gate documental automatizado incorporado al pipeline local/CI.
 - Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.
