@@ -44,8 +44,8 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 | ID     | Fuente                                | Entregable real                                                                     | Validación requerida                                      | Estado |
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------ |
-| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | organizaciones, perfiles, membresías, usuarios e identidades de canal               | migración, constraints y pruebas cross-org                | [ ]    |
-| B2-002 | BL-003, BL-004, SC-001, SC-005–SC-006 | conexiones, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | idempotencia, RLS y estados válidos                       | [ ]    |
+| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías | migración definitiva, owner invariant, grants/RLS y pruebas cross-org | [ ]    |
+| B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [ ]    |
 | B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia | categoría nueva sin deploy, unicidad, procedencia y casos multirubro | [ ]    |
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                     | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso | [ ]    |
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas | concurrencia, paquete/kit declarado y stock nunca negativo | [ ]    |

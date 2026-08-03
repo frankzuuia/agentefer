@@ -43,8 +43,9 @@
     "verify:documentation-contract": "node ./scripts/verify-documentation-contract.mjs",
     "verify:workspace-gates": "node ./scripts/verify-workspace-gates.mjs",
     "verify:workspaces": "node ./scripts/verify-workspaces.mjs",
-    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:container-contract && npm run verify:dependency-policy && npm run test --workspaces --if-present",
+    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:container-contract && npm run verify:database-contract && npm run verify:dependency-policy && npm run test --workspaces --if-present",
     "verify:container-contract": "node ./scripts/verify-container-contract.mjs",
+    "verify:database-contract": "node ./scripts/verify-database-contract.mjs",
     "verify:dependency-policy": "node ./scripts/verify-dependency-policy.mjs",
     "verify:process-runtime": "node ./scripts/verify-process-runtime.mjs",
     "verify:workspace-build-graph": "node ./scripts/prepare-workspace-dependencies.mjs --verify"

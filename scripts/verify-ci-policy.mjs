@@ -84,6 +84,26 @@ assert.ok(
 );
 assert.ok(qualityWorkflow.includes("npm run verify"), "CI must run the complete quality gate");
 assert.ok(qualityWorkflow.includes("npm audit signatures"), "CI must verify registry signatures");
+assert.ok(
+  qualityWorkflow.includes("database:\n    name: Database contract"),
+  "CI must define the isolated database contract job",
+);
+assert.ok(
+  qualityWorkflow.includes("supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1"),
+  "database CI must pin the audited Supabase CLI action",
+);
+assert.ok(
+  qualityWorkflow.includes("version: 2.111.0"),
+  "database CI must pin the verified Supabase CLI version",
+);
+for (const command of [
+  "supabase db reset --local --no-seed",
+  "supabase test db --local supabase/tests",
+  "supabase db lint --local --schema app_private,api --level warning --fail-on error",
+  "supabase db advisors --local --type all --level warning --fail-on error",
+]) {
+  assert.ok(qualityWorkflow.includes(command), `database CI must execute: ${command}`);
+}
 
 const dependabot = await readFile(path.join(repositoryRoot, ".github", "dependabot.yml"), "utf8");
 const developTargets = dependabot.split("target-branch: develop").length - 1;

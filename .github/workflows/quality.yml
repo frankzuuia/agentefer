@@ -156,3 +156,43 @@ jobs:
           docker stop --time 10 "$api_name" "$worker_name"
           test "$(docker inspect --format '{{.State.ExitCode}}' "$api_name")" = "0"
           test "$(docker inspect --format '{{.State.ExitCode}}' "$worker_name")" = "0"
+
+  database:
+    name: Database contract
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1
+        with:
+          version: 2.111.0
+
+      - name: Report database toolchain
+        run: supabase --version
+
+      - name: Start isolated Supabase database
+        run: supabase db start
+
+      - name: Apply production migrations from zero
+        run: supabase db reset --local --no-seed
+
+      - name: Run transactional pgTAP contract
+        run: supabase test db --local supabase/tests
+
+      - name: Lint application schemas
+        run: supabase db lint --local --schema app_private,api --level warning --fail-on error
+
+      - name: Run local security and performance advisors
+        run: supabase db advisors --local --type all --level warning --fail-on error
+
+      - name: Stop isolated Supabase services
+        if: always()
+        run: supabase stop --no-backup

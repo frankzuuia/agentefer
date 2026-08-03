@@ -52,9 +52,12 @@ Entidades planeadas:
 
 APIs externas por validar: recepción/firma/envío WhatsApp y Messenger; identidad/referencia de publicación; reglas de ventana/plantilla.
 
+Contrato físico inicial: B2-001 implementa organizaciones, perfiles y membresías en `app_private`, con vistas mínimas `security_invoker` en `api`. B2-002 crea juntas las conexiones e identidades de canal para que ningún identificador externo exista sin scope/conexión verificable. Véase `docs/architecture/DATABASE-FOUNDATION-B2-001.md`.
+
 ### Permissions / Tenant Boundaries
 
 - RLS por membresía para administración.
+- Tablas de dominio en schema no expuesto; grants explícitos y vistas/RPC mínimas en `api`.
 - Lectura pública solo mediante proyección mínima de catálogo.
 - Identidad de canal se resuelve server-side; cliente no suministra rol/organización.
 - Mensajes/PII no son accesibles entre organizaciones.
