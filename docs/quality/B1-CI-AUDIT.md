@@ -33,14 +33,14 @@ Cuando aparezca el primer archivo de código en un workspace diferido, `verify-w
 - Permisos: `contents: read`.
 - Concurrencia: cancela ejecuciones obsoletas de la misma referencia.
 - Timeout: 20 minutos.
-- `actions/checkout`: SHA `11d5960a326750d5838078e36cf38b85af677262`, release v4.4.0.
-- `actions/setup-node`: SHA `49933ea5288caeca8642d1e84afbd3f7d6820020`, release v4.4.0.
+- `actions/checkout`: SHA `3d3c42e5aac5ba805825da76410c181273ba90b1`, release v7.0.1, runtime Node 24.
+- `actions/setup-node`: SHA `820762786026740c76f36085b0efc47a31fe5020`, release v7.0.0, runtime Node 24.
 - Instalación: `npm ci --ignore-scripts`.
 - Gate: `npm run verify`.
 - Supply chain: `npm audit signatures`.
 - Deploy/credenciales de escritura: ninguno.
 
-Los SHAs se resolvieron directamente desde los repositorios oficiales de ambas Actions el 2026-08-03.
+Los SHAs y `using: node24` se verificaron directamente en los tags/repositorios oficiales de ambas Actions el 2026-08-03. Las referencias v4 iniciales se sustituyeron después de que la primera corrida remota aprobada reportara su runtime Node 20 deprecado.
 
 ## Evidencia local
 
