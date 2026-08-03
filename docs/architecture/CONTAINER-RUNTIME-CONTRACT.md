@@ -63,7 +63,7 @@ El workflow `Quality` queda preparado con dos jobs:
 1. `Verify`: gates TypeScript, pruebas, arranque de procesos reales, auditorías, firmas y política.
 2. `Container runtime`: construye ambas imágenes, comprueba usuario no-root, arranca con controles de seguridad, espera los healthchecks, consulta el API por TCP, confirma que el worker no publica puerto y exige salida limpia tras SIGTERM.
 
-El segundo job sólo será evidencia real después de commit/push autorizado y ejecución verde en GitHub Actions. Esta máquina no tiene Docker/Podman/nerdctl/buildah; por ello el bloque no se marca completo localmente.
+El segundo job quedó verificado en GitHub Actions contra `645f785aa7d166a212bdb09492d2aab8a899a4d6`: ambas imágenes construyeron y aprobaron runtime/health/shutdown. Esta máquina no tiene Docker/Podman/nerdctl/buildah; la evidencia OCI reproducible proviene del runner Linux remoto, no de una instalación local implícita.
 
 ## Fuentes primarias
 

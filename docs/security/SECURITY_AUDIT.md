@@ -73,13 +73,13 @@ Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esque
 - Acción: B8-005 generará SBOM, avisos de terceros y revisión de distribución.
 - Estado: abierto para release, no para desarrollo.
 
-### SA-006 — Validación Docker real pendiente
+### SA-006 — Validación Docker real
 
-- Severidad actual: baja; bloquea despliegue.
-- Evidencia: Dockerfiles/Compose/gate estático pasan, pero esta máquina no tiene Docker ni otro engine OCI.
-- Impacto: sintaxis BuildKit, árbol copiado, usuario, healthcheck y shutdown todavía no tienen evidencia de runtime real.
-- Acción: ejecutar el job `Container runtime` en GitHub Actions después de commit/push autorizado; no crear servicios EasyPanel antes del resultado verde.
-- Estado: abierto, explícitamente cubierto por B1-008.
+- Severidad residual: informativa; los límites productivos se medirán antes del despliegue.
+- Evidencia: `Container runtime` del run 30859122936 construyó ambas imágenes y validó usuario, filesystem, healthcheck, exposición y shutdown.
+- Impacto residual: EasyPanel todavía debe reproducir controles y fijar CPU/memoria según mediciones reales.
+- Acción: conservar el job bloqueante y comprobar configuración/rollback al crear servicios en B4-007.
+- Estado: mitigado en B1-008; despliegue permanece diferido.
 
 ## Controles que ya existen como política
 
@@ -103,7 +103,7 @@ Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esque
 - Entornos B1-005: ejemplos vacíos por proceso, parser tipado, redacción, separación pública/secreta y 15 pruebas verificadas.
 - B1-006 local: format/lint/typecheck/test/build/audit y política CI pasan; workflow read-only y Actions por SHA preparados.
 - B1-006 remoto: `Quality` run 30853524915 aprobó el commit `edfe0b0` en `develop` con Actions Node 24 por SHA y 0 annotations.
-- B1-007 local: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C, métricas y 12 pruebas aprobados; CI remoto pendiente de publicación.
-- B1-008 local parcial: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, gate estructural y suite global de 30 pruebas aprobados; build Docker/CI remoto pendientes.
+- B1-007 completo: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C y métricas aprobados localmente y en el run remoto 30859122936.
+- B1-008 completo: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, 30 pruebas y build/runtime Docker remoto aprobados en `develop`.
 - Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.

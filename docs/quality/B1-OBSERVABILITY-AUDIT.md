@@ -3,7 +3,7 @@
 Fecha: 2026-08-03.  
 Raíz: `C:/Users/figod/Desktop/agentefer`.  
 Rama: `develop`.  
-Estado: `COMPLETE` local; publicación y CI remoto del cambio aún no ejecutados.
+Estado: `COMPLETE` local y remoto.
 
 ## Entregables
 
@@ -92,7 +92,8 @@ Escaneos versionables:
 - No existe SDK Node, instrumentación automática, OTLP exporter ni backend.
 - No existen dashboards, retención, sampling, SLOs o alertas.
 - No se tocó Supabase, EasyPanel, Meta, Cloudflare ni Vercel.
-- No se creó commit ni se ejecutó CI remoto para este cambio local.
+- Publicación: commit `645f785aa7d166a212bdb09492d2aab8a899a4d6` en `develop`.
+- CI remoto: [Quality 30859122936](https://github.com/frankzuuia/agentefer/actions/runs/30859122936) aprobado.
 
 ## Veredicto
 

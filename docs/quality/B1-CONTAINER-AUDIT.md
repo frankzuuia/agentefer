@@ -3,7 +3,7 @@
 Fecha: 2026-08-03.  
 Raíz: `C:/Users/figod/Desktop/agentefer`.  
 Rama: `develop`.  
-Estado: `IN PROGRESS`; QA local aprobada, ejecución Docker real pendiente.
+Estado: `COMPLETE`; QA local y ejecución Docker remota aprobadas.
 
 ## Entregables preparados
 
@@ -56,22 +56,23 @@ Una verificación en checkout limpio descubrió que `dist` local ocultaba la dep
 
 El checkout limpio final aprobó la suite completa con 101 archivos versionables, 458 paquetes instalados y 0 vulnerabilidades. Los directorios de auditoría permanecen fuera del repositorio en `%TEMP%`; no se tocó otro proyecto.
 
-## Evidencia todavía obligatoria
+## Evidencia Docker remota
 
-- `docker build --pull` real de ambas imágenes;
-- arranque real con root filesystem read-only;
-- health Docker `healthy` en ambos servicios;
-- usuario final inspeccionado como `node`;
-- API accesible sólo por su puerto y worker sin puerto publicado;
-- shutdown SIGTERM observado;
-- CI remoto verde contra el commit exacto de `develop`.
+- Commit: `645f785aa7d166a212bdb09492d2aab8a899a4d6` en `develop`.
+- Run: [Quality 30859122936](https://github.com/frankzuuia/agentefer/actions/runs/30859122936), conclusión `success`.
+- Job `Verify`: 2m01s, todos los pasos aprobados.
+- Job `Container runtime`: 56s, todos los pasos aprobados.
+- `docker build --pull`: API y worker aprobados.
+- Runtime: usuario `node`, root filesystem read-only, capabilities eliminadas y `no-new-privileges`.
+- Health: ambos contenedores alcanzaron `healthy`; API respondió por TCP y worker publicó cero puertos.
+- Shutdown: `docker stop` entregó SIGTERM y ambos contenedores terminaron con código 0.
 
-No hay engine Docker local. Instalar Docker Desktop sería un cambio de sistema amplio y no se ejecutó implícitamente. EasyPanel tampoco se usó como banco de pruebas porque B4-007 exige imágenes previamente validadas.
+No hay engine Docker local. Instalar Docker Desktop habría sido un cambio de sistema amplio y no se ejecutó implícitamente. EasyPanel no se usó como banco de pruebas; permanece sin servicios hasta su bloque de despliegue.
 
 ## Veredicto
 
 - Implementación y QA estática/local de B1-008: aprobadas.
-- Validación de contenedor real: pendiente.
-- B1-008 permanece abierto y bloquea la creación de servicios EasyPanel.
+- Validación de contenedor real: aprobada en GitHub Actions.
+- B1-008: completo; los artefactos quedan aptos para la preparación posterior de EasyPanel en B4-007.
 - Infraestructura externa mutada: 0.
-- Commit/push del cambio: no ejecutado.
+- Commit/push: ejecutado sólo en `develop`; `main` intacta.
