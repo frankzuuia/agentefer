@@ -1,7 +1,7 @@
 # AgenteFer — auditoría de seguridad
 
 Fecha: 2026-08-03.  
-Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código funcional, esquema de aplicación, endpoints ni despliegue.
+Alcance: archivos actuales de AgenteFer durante B1-008; todavía no existe esquema funcional, canal, integración externa ni despliegue.
 
 ## Superficies revisadas
 
@@ -21,14 +21,14 @@ Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código 
 - Git root: `C:/Users/figod/Desktop/agentefer`.
 - Rama: `develop`.
 - Remoto: `https://github.com/frankzuuia/agentefer.git`.
-- Archivos funcionales: ninguno.
-- Scaffold: root npm y nueve workspaces privados verificados.
+- Código funcional: configuración, observabilidad y runtimes mínimos API/worker con health; canales y negocio continúan vacíos.
+- Scaffold: root npm y nueve workspaces privados verificados; cuatro workspaces activos.
 - Migraciones de aplicación: ninguna.
-- Dependencias directas: 19, todas exactas; lockfile y árbol reproducible presentes.
+- Dependencias runtime actuales nuevas en B1-007/B1-008: OpenTelemetry, Pino y Fastify, todas exactas; lockfile y árbol reproducible presentes.
 - Auditoría npm completa/producción: 0 vulnerabilidades.
-- Firmas: 444 paquetes verificados; 104 attestations verificadas.
+- Firmas: 449 paquetes verificados; 109 attestations verificadas.
 - Recursos configurados: Supabase de AgenteFer enlazado; EasyPanel de AgenteFer vacío.
-- Escaneo estricto de secretos en archivos versionables: cero coincidencias.
+- Escaneo estricto de secretos plausibles en archivos versionables: cero coincidencias.
 - Escaneo de referencias de infraestructura no-AgenteFer: cero coincidencias.
 
 ## Hallazgos
@@ -41,11 +41,11 @@ Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código 
 - Acción: B1-005/B2-009 deben definir auth, redirects, exposición Data API, SSL/red y secretos por entorno antes de `config push`.
 - Estado: B1-005 ya separó entornos/secretos y exige HTTPS; Auth, Data API y red reales siguen abiertos para B2-009. Bloquea producción.
 
-### SA-002 — No existe todavía implementación de controles
+### SA-002 — Implementación de controles aún parcial
 
 - Severidad actual: informativa.
-- Evidencia: sólo hay documentación, scaffold estructural/verificador y configuración inicial Supabase.
-- Impacto: RLS, firma de webhooks, rate limits, autorización de tools y redacción están especificados pero no probados.
+- Evidencia: redacción/correlación/errores/métricas ya están implementados; aplicaciones, DB y canales siguen vacíos.
+- Impacto: RLS, firma de webhooks, rate limits y autorización de tools están especificados pero no probados.
 - Acción: ejecutar B1–B8 y convertir cada control en prueba/evidencia.
 - Estado: esperado en Bloque 0.
 
@@ -73,6 +73,14 @@ Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código 
 - Acción: B8-005 generará SBOM, avisos de terceros y revisión de distribución.
 - Estado: abierto para release, no para desarrollo.
 
+### SA-006 — Validación Docker real pendiente
+
+- Severidad actual: baja; bloquea despliegue.
+- Evidencia: Dockerfiles/Compose/gate estático pasan, pero esta máquina no tiene Docker ni otro engine OCI.
+- Impacto: sintaxis BuildKit, árbol copiado, usuario, healthcheck y shutdown todavía no tienen evidencia de runtime real.
+- Acción: ejecutar el job `Container runtime` en GitHub Actions después de commit/push autorizado; no crear servicios EasyPanel antes del resultado verde.
+- Estado: abierto, explícitamente cubierto por B1-008.
+
 ## Controles que ya existen como política
 
 - frontera exclusiva AgenteFer en `AGENTS.md`;
@@ -95,5 +103,7 @@ Alcance: archivos actuales de AgenteFer tras B1-004; todavía no existe código 
 - Entornos B1-005: ejemplos vacíos por proceso, parser tipado, redacción, separación pública/secreta y 15 pruebas verificadas.
 - B1-006 local: format/lint/typecheck/test/build/audit y política CI pasan; workflow read-only y Actions por SHA preparados.
 - B1-006 remoto: `Quality` run 30853524915 aprobó el commit `edfe0b0` en `develop` con Actions Node 24 por SHA y 0 annotations.
-- Código funcional/integraciones: todavía no existen ni han sido validados.
+- B1-007 local: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C, métricas y 12 pruebas aprobados; CI remoto pendiente de publicación.
+- B1-008 local parcial: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, gate estructural y suite global de 30 pruebas aprobados; build Docker/CI remoto pendientes.
+- Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.

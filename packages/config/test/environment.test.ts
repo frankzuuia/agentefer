@@ -48,6 +48,8 @@ const validWorkerEnvironment = (): RawEnvironment => ({
   APP_ENV: "staging",
   LOG_LEVEL: "info",
   DEPLOYMENT_COMMIT_SHA: deploymentCommitSha,
+  WORKER_HEALTH_HOST: "0.0.0.0",
+  WORKER_HEALTH_PORT: "3002",
   SUPABASE_URL: supabaseUrl,
   SUPABASE_PROJECT_REF: projectRef,
   SUPABASE_SECRET_KEY: workerSupabaseTestSecret,
@@ -163,6 +165,7 @@ describe("worker environment", () => {
   it("preserves exact OpenAI, MiniMax vision and fallback model IDs", () => {
     const configuration = parseWorkerEnvironment(validWorkerEnvironment());
 
+    expect(configuration.health).toEqual({ host: "0.0.0.0", port: 3002 });
     expect(configuration.ai.model.canonical).toBe("openai:gpt-5.6-luna");
     expect(configuration.ai.visionModel.canonical).toBe("minimax:MiniMax-M3");
     expect(configuration.ai.fallbackModels[0]?.canonical).toBe("minimax:MiniMax-M2.7-highspeed");

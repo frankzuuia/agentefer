@@ -1,0 +1,42 @@
+# Version control, editor state and documentation are not image inputs.
+.git/
+.github/
+.idea/
+.vscode/
+docs/
+*.md
+
+# Never send local secrets or provider state to the Docker daemon.
+.env
+.env.*
+**/.env
+**/.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+.vercel/
+.wrangler/
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Dependencies and generated output are rebuilt from the exact lockfile.
+node_modules/
+**/node_modules/
+.npm/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Runtime and local test output.
+*.log
+logs/
+tmp/
+temp/
+playwright-report/
+test-results/

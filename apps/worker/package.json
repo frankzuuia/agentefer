@@ -4,7 +4,19 @@
   "license": "UNLICENSED",
   "type": "module",
   "description": "Worker durable de agente, medios, mensajería y publicaciones de AgenteFer.",
+  "scripts": {
+    "build": "npm run prepare:internal && tsc -p tsconfig.build.json",
+    "lint": "npm run prepare:internal && eslint src test",
+    "prepare:internal": "node ../../scripts/prepare-workspace-dependencies.mjs @agentefer/worker",
+    "start": "node --enable-source-maps dist/main.js",
+    "test": "npm run prepare:internal && vitest run test",
+    "typecheck": "npm run prepare:internal && tsc -p tsconfig.json"
+  },
   "engines": {
     "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@agentefer/config": "*",
+    "@agentefer/observability": "*"
   }
 }

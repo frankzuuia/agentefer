@@ -19,7 +19,7 @@ Remoto: `https://github.com/frankzuuia/agentefer.git`.
 | ------- | --------: | ----------------------------------------- | ------------------------------------ |
 | web     |         8 | ninguno                                   | sólo cinco `NEXT_PUBLIC_*` aprobadas |
 | api     |        11 | Supabase secret key propia                | ninguna variable secreta pública     |
-| worker  |        18 | Supabase + OpenAI/MiniMax según selección | ninguna                              |
+| worker  |        20 | Supabase + OpenAI/MiniMax según selección | ninguna                              |
 
 Las listas exportadas del parser se comparan automáticamente con cada `.env.example`; una divergencia rompe la suite.
 
@@ -43,7 +43,7 @@ Las listas exportadas del parser se comparan automáticamente con cada `.env.exa
 - TypeScript 6 strict, `--noEmit`: aprobado.
 - Prettier check sobre código/matriz: aprobado.
 - Vitest: 1 archivo, 15 pruebas aprobadas.
-- Ejemplos: 8/11/18 variables, todos los valores vacíos, sin duplicados y no ignorados por Git.
+- Ejemplos: 8/11/20 variables, todos los valores vacíos, sin duplicados y no ignorados por Git.
 - Workspace boundary: 9 paquetes verificados.
 - `npm audit` completo: 0 vulnerabilidades.
 - `npm audit --omit=dev`: 0 vulnerabilidades.
@@ -71,3 +71,7 @@ La cuarentena `.npm/stale-node_modules-b1-004` y `%TEMP%/agentefer-audit.json` p
 - Infraestructura mutada: 0.
 - Código funcional de canal/LLM: 0.
 - Siguiente gate: B1-006, configuración ejecutable de lint/format/typecheck/test/build y CI sobre `develop`.
+
+## Addendum B1-008
+
+El worker incorporó `WORKER_HEALTH_HOST` y `WORKER_HEALTH_PORT` para un health server estrictamente interno. Parser, `.env.example` y prueba de sincronización se actualizaron juntos; el contrato total pasó de 18 a 20 variables sin agregar secretos.

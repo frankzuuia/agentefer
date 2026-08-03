@@ -105,6 +105,8 @@ export const workerEnvironmentVariables = [
   "APP_ENV",
   "LOG_LEVEL",
   "DEPLOYMENT_COMMIT_SHA",
+  "WORKER_HEALTH_HOST",
+  "WORKER_HEALTH_PORT",
   "SUPABASE_URL",
   "SUPABASE_PROJECT_REF",
   "SUPABASE_SECRET_KEY",
@@ -127,6 +129,11 @@ const workerEnvironmentSchema = z
     APP_ENV: applicationEnvironmentSchema,
     LOG_LEVEL: logLevelSchema,
     DEPLOYMENT_COMMIT_SHA: optionalCommitShaSchema,
+    WORKER_HEALTH_HOST: requiredTextSchema,
+    WORKER_HEALTH_PORT: positiveIntegerSchema.refine(
+      (value) => value <= 65_535,
+      "must be a valid TCP port",
+    ),
     SUPABASE_URL: httpUrlSchema,
     SUPABASE_PROJECT_REF: supabaseProjectRefSchema,
     SUPABASE_SECRET_KEY: supabaseSecretKeySchema,
@@ -202,6 +209,10 @@ const workerEnvironmentSchema = z
         environment: environment.APP_ENV,
         logLevel: environment.LOG_LEVEL,
         deploymentCommitSha: environment.DEPLOYMENT_COMMIT_SHA,
+      },
+      health: {
+        host: environment.WORKER_HEALTH_HOST,
+        port: environment.WORKER_HEALTH_PORT,
       },
       supabase: {
         url: environment.SUPABASE_URL,

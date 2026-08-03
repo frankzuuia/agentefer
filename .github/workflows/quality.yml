@@ -36,6 +36,10 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Install exact npm
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@11.16.0 --ignore-scripts
+
       - name: Report toolchain
         run: |
           node --version
@@ -49,3 +53,106 @@ jobs:
 
       - name: Verify registry signatures and attestations
         run: npm audit signatures
+
+  containers:
+    name: Container runtime
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build immutable service images
+        run: |
+          docker build --pull --file apps/api/Dockerfile --tag agentefer-api:ci .
+          docker build --pull --file apps/worker/Dockerfile --tag agentefer-worker:ci .
+
+      - name: Verify non-root runtime and health contracts
+        run: |
+          set -Eeuo pipefail
+
+          api_name="agentefer-api-ci"
+          worker_name="agentefer-worker-ci"
+          trap 'docker rm --force "$api_name" "$worker_name" >/dev/null 2>&1 || true' EXIT
+
+          publishable_key="$(printf '%s_%s_%s' sb publishable ci-test-only)"
+          api_secret_key="$(printf '%s_%s_%s' sb secret api-ci-test-only)"
+          worker_secret_key="$(printf '%s_%s_%s' sb secret worker-ci-test-only)"
+
+          test "$(docker image inspect --format '{{.Config.User}}' agentefer-api:ci)" = "node"
+          test "$(docker image inspect --format '{{.Config.User}}' agentefer-worker:ci)" = "node"
+
+          docker run --detach --name "$api_name" \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges=true \
+            --pids-limit 256 \
+            --publish 127.0.0.1::3001 \
+            --env APP_ENV=test \
+            --env LOG_LEVEL=info \
+            --env API_HOST=0.0.0.0 \
+            --env API_PORT=3001 \
+            --env API_PUBLIC_URL=http://127.0.0.1:3001 \
+            --env WEB_PUBLIC_URL=http://127.0.0.1:3000 \
+            --env SUPABASE_URL=http://127.0.0.1:54321 \
+            --env SUPABASE_PROJECT_REF=agentefercitest \
+            --env SUPABASE_PUBLISHABLE_KEY="$publishable_key" \
+            --env SUPABASE_SECRET_KEY="$api_secret_key" \
+            agentefer-api:ci
+
+          docker run --detach --name "$worker_name" \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges=true \
+            --pids-limit 256 \
+            --env APP_ENV=test \
+            --env LOG_LEVEL=info \
+            --env WORKER_HEALTH_HOST=0.0.0.0 \
+            --env WORKER_HEALTH_PORT=3002 \
+            --env SUPABASE_URL=http://127.0.0.1:54321 \
+            --env SUPABASE_PROJECT_REF=agentefercitest \
+            --env SUPABASE_SECRET_KEY="$worker_secret_key" \
+            --env AI_MODEL=future-provider:ci-model \
+            --env AI_MAX_OUTPUT_TOKENS=8192 \
+            --env AI_TURN_TIMEOUT_MS=120000 \
+            --env AI_MAX_TOOL_ROUNDS=12 \
+            --env AI_CACHE_MODE=auto \
+            --env AI_FALLBACK_MODELS='[]' \
+            agentefer-worker:ci
+
+          wait_for_healthy() {
+            container_name="$1"
+            for attempt in $(seq 1 30); do
+              health_status="$(docker inspect --format '{{.State.Health.Status}}' "$container_name")"
+              case "$health_status" in
+                healthy)
+                  return 0
+                  ;;
+                unhealthy)
+                  docker logs "$container_name"
+                  return 1
+                  ;;
+              esac
+              sleep 1
+            done
+            docker logs "$container_name"
+            return 1
+          }
+
+          wait_for_healthy "$api_name"
+          wait_for_healthy "$worker_name"
+
+          api_host_port="$(docker port "$api_name" 3001/tcp)"
+          curl --fail --silent --show-error "http://${api_host_port}/health/ready"
+          test -z "$(docker port "$worker_name")"
+
+          docker stop --time 10 "$api_name" "$worker_name"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$api_name")" = "0"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$worker_name")" = "0"

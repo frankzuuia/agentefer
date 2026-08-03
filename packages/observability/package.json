@@ -4,7 +4,27 @@
   "license": "UNLICENSED",
   "type": "module",
   "description": "Logging, trazas, métricas y correlación con redacción central.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint src test",
+    "test": "vitest run test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
   "engines": {
     "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/core": "2.10.0",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "@opentelemetry/sdk-metrics": "2.10.0"
   }
 }

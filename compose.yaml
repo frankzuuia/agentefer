@@ -1,0 +1,54 @@
+name: agentefer-local
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - ./apps/api/.env.local
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: "3001"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=67108864
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    stop_grace_period: 30s
+    ports:
+      - "127.0.0.1:${AGENTEFER_API_PORT:-3001}:3001"
+    networks:
+      - agentefer
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    env_file:
+      - ./apps/worker/.env.local
+    environment:
+      WORKER_HEALTH_HOST: 0.0.0.0
+      WORKER_HEALTH_PORT: "3002"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=67108864
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    stop_grace_period: 30s
+    networks:
+      - agentefer
+
+networks:
+  agentefer:
+    name: agentefer-local

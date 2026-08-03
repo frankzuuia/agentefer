@@ -58,6 +58,8 @@ La guardia de exposición inspecciona todas las variables `NEXT_PUBLIC_*` presen
 
 | Variable               | Clase   | Obligación  | Regla                                                     |
 | ---------------------- | ------- | ----------- | --------------------------------------------------------- |
+| `WORKER_HEALTH_HOST`   | interna | siempre     | interfaz del health server; no implica exposición pública |
+| `WORKER_HEALTH_PORT`   | interna | siempre     | entero 1–65535; puerto sólo interno                       |
 | `SUPABASE_URL`         | interna | siempre     | coincide con `SUPABASE_PROJECT_REF`                       |
 | `SUPABASE_PROJECT_REF` | interna | siempre     | frontera explícita del proyecto                           |
 | `SUPABASE_SECRET_KEY`  | secreta | siempre     | key exclusiva del worker, distinta a API                  |
