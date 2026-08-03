@@ -114,6 +114,6 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - B1-006 remoto: `Quality` run 30853524915 aprobó el commit `edfe0b0` en `develop` con Actions Node 24 por SHA y 0 annotations.
 - B1-007 completo: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C y métricas aprobados localmente y en el run remoto 30859122936.
 - B1-008 completo: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, 30 pruebas y build/runtime Docker remoto aprobados en `develop`.
-- B1-009 local: política de dependencias y artefactos de seguridad actualizados desde el árbol real; CI remoto pendiente del commit del bloque.
+- B1-009 completo: política de dependencias y artefactos actualizados desde el árbol real; run 30860154280 aprobado sobre `develop`.
 - Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.

@@ -38,7 +38,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B1-006 | BL-025                                        | lint, format, typecheck, unit/integration test y build en CI                                                        | pipeline real en `develop`; fallos bloquean                      | [x]    |
 | B1-007 | BL-021, BL-022                                | logging estructurado, taxonomía de errores, IDs de correlación y métricas base                                      | tests de redacción y correlación API→worker                      | [x]    |
 | B1-008 | BL-023, SC-031, SC-034                        | Dockerfiles no-root, health/readiness y configuración local                                                         | builds reales, health checks y límites documentados              | [x]    |
-| B1-009 | BL-025                                        | artefactos `SECURITY_AUDIT`, `DEPENDENCY_REVIEW` y checklist release iniciales                                      | contenido basado en dependencias/código reales                   | [ ]    |
+| B1-009 | BL-025                                        | artefactos `SECURITY_AUDIT`, `DEPENDENCY_REVIEW` y checklist release iniciales                                      | contenido basado en dependencias/código reales                   | [x]    |
 
 ## Bloque 2 — Modelo de datos Supabase, migraciones y RLS
 
@@ -201,7 +201,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Contrato de contenedores B1-008: `docs/architecture/CONTAINER-RUNTIME-CONTRACT.md`.
 - Auditoría B1-008: `docs/quality/B1-CONTAINER-AUDIT.md` (`COMPLETE`; Docker real verificado en CI).
 - Política de dependencias B1-009: `dependency-policy.json` y `scripts/verify-dependency-policy.mjs`.
-- Auditoría B1-009: `docs/quality/B1-SECURITY-GATE-AUDIT.md` (`COMPLETE` local; CI remoto pendiente).
+- Auditoría B1-009: `docs/quality/B1-SECURITY-GATE-AUDIT.md` (`COMPLETE` local y remoto).
 - B1-001/B1-002: completos documentalmente.
 - B1-003: scaffold estructural verificado.
 - B1-004: runtime, dependencias exactas, lockfile, licencias, firmas y auditorías verificados.
@@ -209,4 +209,4 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - B1-006: gates locales y workflow `Quality` remoto aprobados en `develop`, con Actions Node 24 fijadas por SHA y cero annotations.
 - B1-007: logging/redacción, errores, W3C API→worker y métricas base aprobados; API/worker ya consumen logger/readiness.
 - B1-008: runtime API/worker, Dockerfiles, Compose y gate aprobados; build/run Docker real y shutdown verificados en CI.
-- B1-009: artefactos y política de seguridad aprobados localmente; CI remoto pendiente. No existe despliegue.
+- B1-009: artefactos y política de seguridad aprobados local/remoto. Bloque 1 completo; no existe despliegue.

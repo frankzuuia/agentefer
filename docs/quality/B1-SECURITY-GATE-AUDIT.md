@@ -3,7 +3,7 @@
 Fecha: 2026-08-03.  
 Raíz: `C:/Users/figod/Desktop/agentefer`.  
 Rama: `develop`.  
-Estado: `COMPLETE` local; publicación/CI remoto pendientes.
+Estado: `COMPLETE` local y remoto.
 
 ## Artefactos
 
@@ -66,4 +66,8 @@ La allowlist es una frontera de supply chain. No decide intención, conversació
 - Hallazgos críticos/altos: 0.
 - Excepciones ocultas: 0; lifecycle y licencias recíprocas están documentados.
 - Infraestructura externa mutada: 0.
-- B1-009 se cerrará tras CI remoto verde sobre el commit exacto.
+- Commit: `2d23bd92e327d518dac154a4c2af2c85da1dff9e` en `develop`.
+- CI: [Quality 30860154280](https://github.com/frankzuuia/agentefer/actions/runs/30860154280), conclusión `success`.
+- Job `Verify`: 1m54s; política, gates, pruebas, builds, procesos, auditorías y firmas aprobados.
+- Job `Container runtime`: 53s; imágenes y contratos de runtime aprobados nuevamente.
+- B1-009: completo.

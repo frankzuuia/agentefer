@@ -1,7 +1,7 @@
 # AgenteFer — revisión de dependencias
 
 Fecha: 2026-08-03.  
-Estado: B1-009 verificado localmente; publicación/CI del gate nuevo pendientes.
+Estado: B1-009 verificado localmente y en GitHub Actions.
 
 ## Inventario real
 
@@ -68,7 +68,7 @@ El gate ya es ejecutable mediante `dependency-policy.json` y `scripts/verify-dep
 - Selección de plataforma: documentada en B1-001/B1-002.
 - Scaffold de workspaces: verificado en B1-003.
 - Instalación, lockfile y auditoría inicial: verificados en B1-004.
-- Política automatizada, lifecycle y licencias: verificados localmente en B1-009.
+- Política automatizada, lifecycle y licencias: verificados local/remoto en B1-009, run 30860154280.
 - Evidencia detallada: `docs/quality/B1-DEPENDENCY-AUDIT.md`.
 - Supabase CLI reproducible: pendiente antes de automatizar migraciones/CI.
 - SBOM y auditoría de release: pendientes B8-005.
