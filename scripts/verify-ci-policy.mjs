@@ -93,8 +93,16 @@ assert.ok(
   "database CI must pin the audited Supabase CLI action",
 );
 assert.ok(
+  qualityWorkflow.includes("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"),
+  "database CI must pin the audited artifact action used only for generated type drift",
+);
+assert.ok(
   qualityWorkflow.includes("version: 2.111.0"),
   "database CI must pin the verified Supabase CLI version",
+);
+assert.ok(
+  qualityWorkflow.includes("retention-days: 1"),
+  "generated database type diagnostics must use one-day retention",
 );
 for (const command of [
   "supabase db reset --local --no-seed",

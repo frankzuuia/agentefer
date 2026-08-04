@@ -199,17 +199,6 @@ jobs:
       - name: Apply production migrations from zero
         run: supabase db reset --local --no-seed
 
-      - name: Verify generated database types have no drift
-        run: |
-          set -Eeuo pipefail
-
-          generated_types="${RUNNER_TEMP}/database.types.ts"
-          supabase gen types typescript --local --schema app_private,api > "$generated_types"
-          prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs" --write "$generated_types"
-          git diff --no-index --exit-code -- \
-            packages/database/src/database.types.ts \
-            "$generated_types"
-
       - name: Run transactional pgTAP contract
         run: supabase test db --local supabase/tests
 
@@ -218,6 +207,32 @@ jobs:
 
       - name: Run local security and performance advisors
         run: supabase db advisors --local --type all --level warn --fail-on warn
+
+      - name: Generate canonical database types
+        run: |
+          set -Eeuo pipefail
+
+          generated_types="${RUNNER_TEMP}/database.types.ts"
+          supabase gen types typescript --local --schema app_private,api > "$generated_types"
+          prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs" --write "$generated_types"
+
+      - name: Verify generated database types have no drift
+        run: |
+          set -Eeuo pipefail
+
+          generated_types="${RUNNER_TEMP}/database.types.ts"
+          git diff --no-index --exit-code -- \
+            packages/database/src/database.types.ts \
+            "$generated_types"
+
+      - name: Preserve generated types when drift is detected
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: generated-database-types-${{ github.sha }}
+          path: ${{ runner.temp }}/database.types.ts
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Stop isolated Supabase services
         if: always()

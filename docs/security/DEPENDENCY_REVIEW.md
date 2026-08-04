@@ -29,8 +29,16 @@ La carpeta `supabase/` fue generada por Supabase CLI y no contiene librerías ve
 - Cuatro familias recíprocas revisadas: axe-core, lightningcss, sharp/libvips y binarios sharp Windows/WASM.
 - PostCSS y Sharp están fijados mediante overrides de seguridad acotados; deben revisarse al actualizar Next.js.
 - Zod 4.4.3 se incorporó en B1-005 únicamente para contratos de configuración; es MIT, sin dependencias propias ni lifecycle de instalación y con firma/attestation verificadas.
-- Supabase CLI usado inicialmente mediante `npx ...@latest` aún no está autorizado para automatización; se fijará cuando B2/CI lo incorpore.
+- Supabase CLI está fijado en CI a 2.111.0 mediante `supabase/setup-cli` por SHA firmado; automatización no puede usar `latest`.
 - No se aceptó ningún starter/boilerplate ni código de otro producto.
+
+## Actions de base de datos
+
+- `supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9` instala exclusivamente CLI 2.111.0 después de configurar Node 24.
+- `actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` corresponde a la release oficial v7.0.1, firmada y con runtime Node 24.
+- `upload-artifact` solo preserva por un día el `database.types.ts` generado cuando el chequeo exacto de drift falla; no contiene secretos, bodies, filas ni credenciales.
+- El artefacto diagnóstico no vuelve verde el job, no solicita permisos `write` y permite obtener tipos reales sin aplicar una migración no validada a staging.
+- Ambas Actions están fijadas por SHA completo y el verificador CI rechaza referencias de tag flotantes.
 
 ## Gate para Bloque 1
 
@@ -70,5 +78,5 @@ El gate ya es ejecutable mediante `dependency-policy.json` y `scripts/verify-dep
 - Instalación, lockfile y auditoría inicial: verificados en B1-004.
 - Política automatizada, lifecycle y licencias: verificados local/remoto en B1-009, run 30860154280.
 - Evidencia detallada: `docs/quality/B1-DEPENDENCY-AUDIT.md`.
-- Supabase CLI reproducible: pendiente antes de automatizar migraciones/CI.
+- Supabase CLI y Actions de base reproducibles: fijadas, auditadas y exigidas por política CI.
 - SBOM y auditoría de release: pendientes B8-005.
