@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createCorrelationScope, runWithCorrelation } from "../src/correlation.js";
 import { OperationalError } from "../src/errors.js";
 import { createStructuredLogger } from "../src/logger.js";
+import { LOG_REDACTION_MARKER } from "../src/redaction.js";
 
 class JsonLineDestination extends Writable {
   public readonly lines: string[] = [];
@@ -70,8 +71,14 @@ describe("structured logger", () => {
     expect(record.error_code).toBe("PROVIDER_TEMPORARILY_UNAVAILABLE");
     expect(record.error_category).toBe("dependency");
     expect(record.error_retryable).toBe(true);
+    expect(record.attributes).toEqual({
+      attempt: 2,
+      authorization: LOG_REDACTION_MARKER,
+      customer_phone: LOG_REDACTION_MARKER,
+      raw_body: LOG_REDACTION_MARKER,
+    });
     expect(serialized).not.toContain("provider-secret");
-    expect(serialized).not.toContain("664");
+    expect(serialized).not.toContain(customerPhone);
     expect(serialized).not.toContain("private provider response");
     expect(serialized).not.toContain("Error:");
   });
