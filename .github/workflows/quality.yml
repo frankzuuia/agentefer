@@ -205,7 +205,7 @@ jobs:
 
           generated_types="${RUNNER_TEMP}/database.types.ts"
           supabase gen types typescript --local --schema app_private,api > "$generated_types"
-          prettier --write "$generated_types"
+          prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs" --write "$generated_types"
           git diff --no-index --exit-code -- \
             packages/database/src/database.types.ts \
             "$generated_types"

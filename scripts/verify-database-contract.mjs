@@ -135,6 +135,7 @@ const requiredWorkflowStatements = [
   "version: 2.111.0",
   "supabase db reset --local --no-seed",
   "supabase gen types typescript --local --schema app_private,api",
+  'prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs"',
   "git diff --no-index --exit-code",
   "packages/database/src/database.types.ts",
   "supabase test db --local supabase/tests",
