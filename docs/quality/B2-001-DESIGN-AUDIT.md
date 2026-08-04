@@ -1,7 +1,7 @@
 # AgenteFer — auditoría forense de diseño B2-001
 
 Fecha: 2026-08-03.  
-Alcance: diseño productivo previo a primera migración; no afirma implementación.
+Alcance: diseño, implementación, migración staging y QA productivo de B2-001.
 
 ## Evidencia cruzada
 
@@ -57,11 +57,22 @@ Cubiertos: alta, usuario previo, delete Auth, duplicado, rol/estado inválido, �
 
 No detectado en alcance: Auth → perfil → organización/negocio/membresía → vistas API. Mutaciones permanecen cerradas hasta tool/audit; no se finge un endpoint inexistente.
 
-## Riesgos aceptados temporalmente
+## Evidencia de implementación
+
+- Migración versionada: `20260803233822_b2_001_database_foundation.sql`; SHA-256 aplicado `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
+- Supabase staging: migración remota `20260804001247_b2_001_database_foundation` en `hprdctmblmfcoagugvyp`.
+- Estado remoto posterior: 4 tablas privadas con 0 filas, 4/4 RLS forzado, 4 policies, 4 vistas endurecidas y 0 privilegios `anon`.
+- Security advisors remotos: 0 hallazgos. Performance advisors: únicamente `INFO` de índices aún no usados porque el esquema nació vacío.
+- pgTAP: 49 aserciones reales dentro de `BEGIN/ROLLBACK`, incluyendo Auth trigger, constraints, owner invariant, roles y aislamiento cross-org.
+- CI: [run 30865955556](https://github.com/frankzuuia/agentefer/actions/runs/30865955556) en `develop`; `Verify`, `Database contract` y `Container runtime` concluyeron `success` con 0 annotations.
+- Tipos TypeScript: `@agentefer/database` compila y CI regenera `app_private,api` desde la migración para bloquear drift.
+- Datos persistidos por QA o seed: 0.
+
+## Riesgos/controles pendientes fuera de B2-001
 
 1. Auth productivo aún requiere dominio, SMTP, MFA/CAPTCHA y política de signup; bloquea producción, no la migración base.
-2. Docker no existe localmente; el gate de base de datos se ejecutará en GitHub CI con Docker real antes de staging.
-3. `service_role` bypass RLS; cada workflow server-side deberá revalidar actor/organización y auditar antes de habilitarse.
+2. `service_role` bypass RLS; cada workflow server-side deberá revalidar actor/organización y auditar antes de habilitarse.
+3. El esquema `api` no se expone remotamente hasta que el bloque de Auth/frontend configure y pruebe la superficie Data API.
 
 ## Cross-match
 
@@ -77,7 +88,7 @@ No detectado en alcance: Auth → perfil → organización/negocio/membresía �
 
 ## Veredicto
 
-**GREEN LIGHT para implementar B2-001 conforme a `DATABASE-FOUNDATION-B2-001.md`.**  
+**COMPLETE — B2-001 implementado, migrado y verificado conforme a `DATABASE-FOUNDATION-B2-001.md`.**  
 **INTEGRITY TOTAL** con ADR-009, BL-001/002 y Batch 1.  
 **MATCH PERFECT** entre diseño y tareas B2-001/B2-002.
 

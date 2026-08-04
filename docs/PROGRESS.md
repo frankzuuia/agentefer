@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 completo; Bloque 2 es el siguiente gate funcional y todavía no existe esquema de negocio ni despliegue.  
+Estado global: Bloque 1 completo; B2-001 completado y aplicado en Supabase staging; B2-002 es el siguiente gate. Todavía no existe despliegue de aplicación ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -44,7 +44,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 | ID     | Fuente                                | Entregable real                                                                     | Validación requerida                                      | Estado |
 | ------ | ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------ |
-| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías | migración definitiva, owner invariant, grants/RLS y pruebas cross-org | [ ]    |
+| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías | migración definitiva, owner invariant, grants/RLS y pruebas cross-org | [x]    |
 | B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [ ]    |
 | B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia | categoría nueva sin deploy, unicidad, procedencia y casos multirubro | [ ]    |
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                     | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso | [ ]    |
@@ -213,3 +213,16 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - B1-007: logging/redacción, errores, W3C API→worker y métricas base aprobados; API/worker ya consumen logger/readiness.
 - B1-008: runtime API/worker, Dockerfiles, Compose y gate aprobados; build/run Docker real y shutdown verificados en CI.
 - B1-009: artefactos y política de seguridad aprobados local/remoto. Bloque 1 completo; no existe despliegue.
+
+## Evidencia de B2-001
+
+- Contrato físico: `docs/architecture/DATABASE-FOUNDATION-B2-001.md`.
+- Investigación oficial/estado real: `docs/references/SUPABASE-B2-001-RESEARCH.md`.
+- Migración definitiva: `supabase/migrations/20260803233822_b2_001_database_foundation.sql`; SHA-256 previo a staging `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
+- Migración Supabase staging registrada: versión `20260804001247`, nombre `b2_001_database_foundation`, proyecto `hprdctmblmfcoagugvyp`.
+- Estado remoto: cuatro tablas privadas, cuatro policies, cuatro vistas `security_invoker/security_barrier`, RLS forzado 4/4, acceso `anon` 0 y filas reales 0.
+- Tipos: `packages/database/src/database.types.ts`; CI los regenera desde migraciones y bloquea drift.
+- QA SQL: 49 aserciones pgTAP, lint `app_private,api` y advisors security/performance ejecutados contra PostgreSQL/Supabase real en CI.
+- Advisors remotos: seguridad 0 hallazgos; rendimiento únicamente `INFO unused_index` esperado sobre tablas recién creadas sin filas.
+- CI verificado: run `30865955556` (`Verify` 1m45s, `Database contract` 2m29s, `Container runtime` 53s), conclusión `success`, 0 annotations en los tres jobs.
+- Auditoría final: `docs/quality/B2-001-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).
