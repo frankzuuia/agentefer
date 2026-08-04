@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 completo; B2-001 completado y aplicado en Supabase staging; B2-002 es el siguiente gate. Todavía no existe despliegue de aplicación ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001/B2-002 completos; persistencia de canales y mensajería aplicada en Supabase staging. B2-003 es el siguiente gate. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -42,35 +42,35 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 ## Bloque 2 — Modelo de datos Supabase, migraciones y RLS
 
-| ID     | Fuente                                | Entregable real                                                                     | Validación requerida                                      | Estado |
-| ------ | ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------ |
-| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías | migración definitiva, owner invariant, grants/RLS y pruebas cross-org | [x]    |
-| B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [ ]    |
-| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia | categoría nueva sin deploy, unicidad, procedencia y casos multirubro | [ ]    |
-| B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                     | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso | [ ]    |
-| B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas | concurrencia, paquete/kit declarado y stock nunca negativo | [ ]    |
-| B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas       | pedido ≠ venta, snapshots e idempotencia                  | [ ]    |
-| B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios          | estados, dedupe, cancelación y versionado                 | [ ]    |
-| B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts          | trazabilidad, costo y redacción                           | [ ]    |
-| B2-009 | BL-001, BL-020, BL-021, SC-032        | políticas RLS y grants explícitos para cada entidad                                 | suite positiva/negativa anon/user/owner/cross-org         | [ ]    |
-| B2-010 | BL-008, BL-020, SC-033                | buckets, paths, políticas y ciclo original/derivado                                 | aislamiento, MIME/tamaño y URL firmada                    | [ ]    |
-| B2-011 | BL-025, SC-036                        | validación SQL, advisors, tipos generados y documentación ER                        | reset/migrate/test reproducible y cero hallazgos críticos | [ ]    |
+| ID     | Fuente                                | Entregable real                                                                                            | Validación requerida                                                     | Estado |
+| ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------ |
+| B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías                     | migración definitiva, owner invariant, grants/RLS y pruebas cross-org    | [x]    |
+| B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [x]    |
+| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy, unicidad, procedencia y casos multirubro     | [ ]    |
+| B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso   | [ ]    |
+| B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | concurrencia, paquete/kit declarado y stock nunca negativo               | [ ]    |
+| B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | pedido ≠ venta, snapshots e idempotencia                                 | [ ]    |
+| B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | estados, dedupe, cancelación y versionado                                | [ ]    |
+| B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts                                 | trazabilidad, costo y redacción                                          | [ ]    |
+| B2-009 | BL-001, BL-020, BL-021, SC-032        | políticas RLS y grants explícitos para cada entidad                                                        | suite positiva/negativa anon/user/owner/cross-org                        | [ ]    |
+| B2-010 | BL-008, BL-020, SC-033                | buckets, paths, políticas y ciclo original/derivado                                                        | aislamiento, MIME/tamaño y URL firmada                                   | [ ]    |
+| B2-011 | BL-025, SC-036                        | validación SQL, advisors, tipos generados y documentación ER                                               | reset/migrate/test reproducible y cero hallazgos críticos                | [ ]    |
 
 ## Bloque 3 — Herramientas deterministas y workflows del dominio
 
-| ID     | Fuente                                 | Entregable real                                                     | Validación requerida                                             | Estado |
-| ------ | -------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- | ------ |
-| B3-001 | BL-019, SC-029–SC-030                  | registro de tools con contratos, permisos, idempotencia y auditoría | tool desconocida/argumento inválido/rol incorrecto falla cerrado | [ ]    |
-| B3-002 | BL-002, BL-020, SC-002–SC-003          | resolución de identidad propietario/cliente                         | matriz de canales/roles y spoofing                               | [ ]    |
-| B3-003 | BL-004, BL-005, SC-001, SC-004         | recuperación de contexto publicación-conversación-oferta            | origen válido/roto/múltiple                                      | [ ]    |
-| B3-004 | BL-005, BL-009, BL-014, SC-020, RQ-110 | búsqueda universal de catálogo, candidatos y alternativas           | distintos rubros, sólo activos/stock real y certeza explícita    | [ ]    |
-| B3-005 | BL-008, SC-007, SC-008, SC-009, RQ-110 | ingesta segura y borrador multimodal con categoría/atributos propuestos | cinco imágenes autorizadas, categoría nueva y casos adversarios | [ ]    |
+| ID     | Fuente                                 | Entregable real                                                               | Validación requerida                                              | Estado |
+| ------ | -------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------ |
+| B3-001 | BL-019, SC-029–SC-030                  | registro de tools con contratos, permisos, idempotencia y auditoría           | tool desconocida/argumento inválido/rol incorrecto falla cerrado  | [ ]    |
+| B3-002 | BL-002, BL-020, SC-002–SC-003          | resolución de identidad propietario/cliente                                   | matriz de canales/roles y spoofing                                | [ ]    |
+| B3-003 | BL-004, BL-005, SC-001, SC-004         | recuperación de contexto publicación-conversación-oferta                      | origen válido/roto/múltiple                                       | [ ]    |
+| B3-004 | BL-005, BL-009, BL-014, SC-020, RQ-110 | búsqueda universal de catálogo, candidatos y alternativas                     | distintos rubros, sólo activos/stock real y certeza explícita     | [ ]    |
+| B3-005 | BL-008, SC-007, SC-008, SC-009, RQ-110 | ingesta segura y borrador multimodal con categoría/atributos propuestos       | cinco imágenes autorizadas, categoría nueva y casos adversarios   | [ ]    |
 | B3-006 | BL-009, BL-010, SC-007–SC-010, RQ-110  | alta/actualización universal de categoría-producto-variante-unidad-SKU-precio | categoría nueva sin código, transacción, conflicto SKU y rollback | [ ]    |
-| B3-007 | BL-006, BL-010, SC-011, SC-012, SC-013 | precio pendiente, desambiguación y resolución diferida              | una/múltiples pendientes y fallo de envío                        | [ ]    |
-| B3-008 | BL-011, SC-014, SC-018–SC-019          | adjust/reserve/release/sale/receive                                 | concurrencia, retries y ledger                                   | [ ]    |
-| B3-009 | BL-012, BL-013, SC-015–SC-017          | cálculo servidor, pedido, reserva y notificación                    | canales, consentimiento, duplicado y cambio de precio            | [ ]    |
-| B3-010 | BL-007, SC-011–SC-013                  | calificación, handoff y reanudación                                 | ambos modos y responsable correcto                               | [ ]    |
-| B3-011 | BL-017, BL-018, SC-027–SC-028          | reportes y configuración versionada                                 | zona horaria, definiciones, rollback y permisos                  | [ ]    |
+| B3-007 | BL-006, BL-010, SC-011, SC-012, SC-013 | precio pendiente, desambiguación y resolución diferida                        | una/múltiples pendientes y fallo de envío                         | [ ]    |
+| B3-008 | BL-011, SC-014, SC-018–SC-019          | adjust/reserve/release/sale/receive                                           | concurrencia, retries y ledger                                    | [ ]    |
+| B3-009 | BL-012, BL-013, SC-015–SC-017          | cálculo servidor, pedido, reserva y notificación                              | canales, consentimiento, duplicado y cambio de precio             | [ ]    |
+| B3-010 | BL-007, SC-011–SC-013                  | calificación, handoff y reanudación                                           | ambos modos y responsable correcto                                | [ ]    |
+| B3-011 | BL-017, BL-018, SC-027–SC-028          | reportes y configuración versionada                                           | zona horaria, definiciones, rollback y permisos                   | [ ]    |
 
 ## Bloque 4 — Meta, cola, scheduler e infraestructura staging
 
@@ -89,29 +89,29 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 ## Bloque 5 — Cerebro LLM, voz, visión, memoria y evaluaciones
 
-| ID     | Fuente                               | Entregable real                                                          | Validación requerida                                                  | Estado |
-| ------ | ------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------- | ------ |
-| B5-001 | BL-019, SC-029–SC-031, RQ-107–RQ-109 | adaptadores OpenAI/MiniMax y modelo seleccionado con tool calling nativo | ambas familias reales, cambio por variable, errores, timeout y trazas | [ ]    |
-| B5-002 | BL-019, BL-020                       | política/prompt versionado y exposición dinámica de tools                | owner/cliente/canal/estado reciben tools correctas                    | [ ]    |
-| B5-003 | BL-002, SC-002                       | transcripción de notas de voz y confirmación accesible                   | audio real, ruido, idioma y costo/latencia                            | [ ]    |
+| ID     | Fuente                                | Entregable real                                                             | Validación requerida                                                  | Estado |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------ |
+| B5-001 | BL-019, SC-029–SC-031, RQ-107–RQ-109  | adaptadores OpenAI/MiniMax y modelo seleccionado con tool calling nativo    | ambas familias reales, cambio por variable, errores, timeout y trazas | [ ]    |
+| B5-002 | BL-019, BL-020                        | política/prompt versionado y exposición dinámica de tools                   | owner/cliente/canal/estado reciben tools correctas                    | [ ]    |
+| B5-003 | BL-002, SC-002                        | transcripción de notas de voz y confirmación accesible                      | audio real, ruido, idioma y costo/latencia                            | [ ]    |
 | B5-004 | BL-008, SC-007–SC-009, SC-033, RQ-110 | visión con evidencia, categoría/atributos propuestos, confianza y preguntas | imágenes reales multirubro y prompt injection visual                  | [ ]    |
-| B5-005 | BL-019, SC-029                       | política de memoria, pendientes y configuración durable                  | cliente no envenena memoria/reglas                                    | [ ]    |
-| B5-006 | BL-022, SC-030–SC-031                | budgets, tiers de modelo, cache hash, retry/fallback y alertas           | loop, costo excedido, proveedor caído                                 | [ ]    |
-| B5-007 | BL-005–BL-020, SC-001–SC-033, RQ-110 | suite de evaluaciones cognitivas y de tool safety                        | lenguaje natural, catálogo universal, ambigüedad, ventas y ataques    | [ ]    |
+| B5-005 | BL-019, SC-029                        | política de memoria, pendientes y configuración durable                     | cliente no envenena memoria/reglas                                    | [ ]    |
+| B5-006 | BL-022, SC-030–SC-031                 | budgets, tiers de modelo, cache hash, retry/fallback y alertas              | loop, costo excedido, proveedor caído                                 | [ ]    |
+| B5-007 | BL-005–BL-020, SC-001–SC-033, RQ-110  | suite de evaluaciones cognitivas y de tool safety                           | lenguaje natural, catálogo universal, ambigüedad, ventas y ataques    | [ ]    |
 
 ## Bloque 6 — Catálogo/QR y experiencia administrativa accesible
 
-| ID     | Fuente                        | Entregable real                                                             | Validación requerida                              | Estado |
-| ------ | ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------- | ------ |
-| B6-001 | BL-012, SC-017                | sistema visual responsive/accesible y estados UX                            | móvil/tablet/desktop, teclado, contraste y lector | [ ]    |
+| ID     | Fuente                         | Entregable real                                                             | Validación requerida                                                  | Estado |
+| ------ | ------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------ |
+| B6-001 | BL-012, SC-017                 | sistema visual responsive/accesible y estados UX                            | móvil/tablet/desktop, teclado, contraste y lector                     | [ ]    |
 | B6-002 | BL-012, SC-017, SC-020, RQ-110 | catálogo público universal/filtrable con empty/loading/error                | categoría nueva visible sin deploy, datos reales y RLS pública mínima | [ ]    |
-| B6-003 | BL-012, SC-017, RQ-110         | detalle/galería, opciones, unidad, cantidad y precio dinámico                | rubros distintos, cantidad >4, unidades/atributos dinámicos y agotado | [ ]    |
-| B6-004 | BL-013, SC-015–SC-016         | checkout de solicitud con contacto/consentimiento                           | WhatsApp/Messenger, validación y antiabuso        | [ ]    |
-| B6-005 | BL-012, SC-017                | “consultar precio” con texto/SKU prellenado                                 | URL segura y producto correcto                    | [ ]    |
-| B6-006 | BL-012                        | QR estable y descargable del catálogo                                       | escaneo real y routing                            | [ ]    |
-| B6-007 | BL-017, BL-018, SC-027–SC-028 | panel propietario para catálogo, stock, precios, pendientes y configuración | roles, estados y accesibilidad                    | [ ]    |
-| B6-008 | BL-017                        | reportes interesados/ventas/inventario                                      | definiciones/rangos y exportación autorizada      | [ ]    |
-| B6-009 | BL-025                        | verificación navegador y performance                                        | consola/red, Core Web Vitals objetivo, a11y smoke | [ ]    |
+| B6-003 | BL-012, SC-017, RQ-110         | detalle/galería, opciones, unidad, cantidad y precio dinámico               | rubros distintos, cantidad >4, unidades/atributos dinámicos y agotado | [ ]    |
+| B6-004 | BL-013, SC-015–SC-016          | checkout de solicitud con contacto/consentimiento                           | WhatsApp/Messenger, validación y antiabuso                            | [ ]    |
+| B6-005 | BL-012, SC-017                 | “consultar precio” con texto/SKU prellenado                                 | URL segura y producto correcto                                        | [ ]    |
+| B6-006 | BL-012                         | QR estable y descargable del catálogo                                       | escaneo real y routing                                                | [ ]    |
+| B6-007 | BL-017, BL-018, SC-027–SC-028  | panel propietario para catálogo, stock, precios, pendientes y configuración | roles, estados y accesibilidad                                        | [ ]    |
+| B6-008 | BL-017                         | reportes interesados/ventas/inventario                                      | definiciones/rangos y exportación autorizada                          | [ ]    |
+| B6-009 | BL-025                         | verificación navegador y performance                                        | consola/red, Core Web Vitals objetivo, a11y smoke                     | [ ]    |
 
 ## Bloque 7 — Gobierno de uso; pagos fuera de alcance actual
 
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: no iniciada.
+- Functional implementation: persistencia B2-001/B2-002 implementada y certificada; catálogo, tools, adapters y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -226,3 +226,15 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Advisors remotos: seguridad 0 hallazgos; rendimiento únicamente `INFO unused_index` esperado sobre tablas recién creadas sin filas.
 - CI verificado: run `30865955556` (`Verify` 1m45s, `Database contract` 2m29s, `Container runtime` 53s), conclusión `success`, 0 annotations en los tres jobs.
 - Auditoría final: `docs/quality/B2-001-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).
+
+## Evidencia de B2-002
+
+- Investigación oficial: `docs/references/CHANNELS-B2-002-RESEARCH.md`.
+- Contrato físico: `docs/architecture/CHANNELS-MESSAGING-B2-002.md`.
+- Migración definitiva: `supabase/migrations/20260804011126_b2_002_channels_messaging.sql`; SHA-256 aplicado en staging `BFE2498157AC299C6119786AB9EBEF2A7CD4E379E1534A7DCD04C57256A6D879`.
+- Migración Supabase staging registrada: versión `20260804011126`, nombre `b2_002_channels_messaging`, proyecto `hprdctmblmfcoagugvyp`.
+- Estado remoto acumulado: 14 tablas privadas con RLS forzado 14/14, 12 policies, 12 vistas, acceso `anon` 0 y filas reales B2-002 0.
+- QA SQL: 85 aserciones pgTAP B2-002, 134 acumuladas, migraciones desde cero, lint, advisors y tipos reproducibles sin drift sobre Supabase real aislado.
+- Advisors remotos: dos `INFO rls_enabled_no_policy` intencionales para inbox/outbox privados y `INFO unused_index` esperado sobre tablas sin tráfico; cero hallazgos críticos/altos.
+- CI final verificado: run `30870893413` sobre commit `92a0783eb032c39efd4d6bd09d4d7e02f931798b`; `Verify`, `Container runtime` y `Database contract` concluyeron `success`, con 0 annotations.
+- Auditoría final: `docs/quality/B2-002-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).

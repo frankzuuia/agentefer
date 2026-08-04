@@ -1,6 +1,6 @@
 # AgenteFer — contrato físico de canales y mensajería B2-002
 
-Estado: diseño previo a implementación; requiere veredicto GREEN de `B2-002-DESIGN-AUDIT.md`.  
+Estado: implementado y certificado en `develop` y Supabase staging; no conecta todavía Meta ni autoriza producción.  
 Entorno inicial: Supabase staging `hprdctmblmfcoagugvyp`.  
 Dependencia: B2-001 aplicado y certificado.  
 Investigación: `docs/references/CHANNELS-B2-002-RESEARCH.md`.
@@ -385,3 +385,18 @@ No se añade GIN a JSONB porque B2-002 no consulta por contenido arbitrario. Se 
 - mismo SQL se promueve a producción separada desde `main`, nunca una variante rápida;
 - al ser tablas nuevas sin consumidores, una falla se contiene revocando exposición y aplicando forward-fix; no se borra historia;
 - B4 no empieza hasta que staging confirme conteos, RLS, policies, grants, vistas y cero datos persistidos.
+
+## Certificación de implementación
+
+- Migración: `20260804011126_b2_002_channels_messaging.sql`.
+- SHA-256 aplicado: `BFE2498157AC299C6119786AB9EBEF2A7CD4E379E1534A7DCD04C57256A6D879`.
+- Supabase staging: `hprdctmblmfcoagugvyp`; historial remoto B2-001/B2-002 alineado.
+- Estado remoto acumulado: 14 tablas privadas, RLS forzado 14/14, 12 policies, 12 vistas y cero privilegios `anon`.
+- Datos persistidos por B2-002: cero filas en sus diez tablas.
+- Funciones `SECURITY DEFINER`: exactamente `assert_active_owner`, `assert_open_conversation_primary_participant` y `provision_user_profile`.
+- QA: 85 aserciones pgTAP propias, 134 acumuladas, migración desde cero, lint, advisors y tipos sin drift.
+- CI final: run `30870893413`, commit `92a0783eb032c39efd4d6bd09d4d7e02f931798b`, tres jobs verdes y cero annotations.
+- Advisors de seguridad: los dos `INFO rls_enabled_no_policy` de inbox/outbox son intencionales porque no se otorga lectura autenticada; no se suprimieron ni se sustituyeron por una policy permisiva.
+- Advisors de rendimiento: `INFO unused_index` esperado antes de tráfico; los índices respaldan FKs, lookups y claims definidos por el contrato.
+
+El gate de schema B2-002 queda cerrado. Meta, secretos, webhooks HTTP, adapters y efectos externos siguen perteneciendo a B4.

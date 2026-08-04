@@ -1,8 +1,8 @@
 # AgenteFer — auditoría forense de diseño B2-002
 
-Fecha: 2026-08-03.  
-Alcance: diseño previo a migración de conexiones, identidades, contactos, conversaciones, mensajería, consentimiento, inbox y outbox.  
-Estado de implementación al emitir este documento: ninguna tabla B2-002 creada local o remotamente.
+Fecha de diseño y certificación: 2026-08-03.  
+Alcance: diseño, implementación y certificación de conexiones, identidades, contactos, conversaciones, mensajería, consentimiento, inbox y outbox.  
+Estado: **COMPLETE** en `develop` y Supabase staging; Meta y producción permanecen fuera de alcance.
 
 ## Evidencia cruzada
 
@@ -15,6 +15,18 @@ Estado de implementación al emitir este documento: ninguna tabla B2-002 creada 
 - B2-001: `app_private`, `api`, organizaciones, membresías y owner invariant ya aplicados.
 - investigación oficial: `docs/references/CHANNELS-B2-002-RESEARCH.md`.
 - contrato físico: `docs/architecture/CHANNELS-MESSAGING-B2-002.md`.
+
+## Evidencia de implementación y certificación
+
+- Migración definitiva: `supabase/migrations/20260804011126_b2_002_channels_messaging.sql`.
+- SHA-256 aplicado en staging: `BFE2498157AC299C6119786AB9EBEF2A7CD4E379E1534A7DCD04C57256A6D879`.
+- Supabase staging: proyecto exclusivo AgenteFer `hprdctmblmfcoagugvyp`; versión remota `20260804011126_b2_002_channels_messaging`.
+- CI final: run `30870893413` sobre `92a0783eb032c39efd4d6bd09d4d7e02f931798b`; tres jobs `success`, cero annotations.
+- QA de base: 85 aserciones pgTAP B2-002 y 134 acumuladas, todas transaccionales; migración desde cero, lint, advisors y typegen sin drift.
+- QA de aplicación: `npm run verify` completo, runtime API/worker y auditorías completa/producción con cero vulnerabilidades.
+- Firma remota: 14 tablas privadas, RLS forzado 14/14, 12 policies, 12 vistas, cero privilegios `anon` y exactamente tres funciones `SECURITY DEFINER` auditadas.
+- Persistencia real B2-002: cero filas en sus diez tablas; no se insertaron seeds, fixtures ni datos de Fer.
+- Advisors: dos avisos `INFO` por ausencia intencional de policies en inbox/outbox privados; avisos `unused_index` esperados antes de tráfico. Cero hallazgos críticos o altos.
 
 ## Autopsia de dependencias
 
@@ -182,10 +194,11 @@ Antes de consumidores, rollback operacional es no exponer y aplicar forward-fix.
 4. El reconciliador de estados y policy engine aún no existen; el schema solo garantiza que no se puedan representar combinaciones peligrosas obvias.
 5. `api` continúa sin exposición remota hasta el gate Auth/Data API.
 
-## Veredicto previo
+## Veredicto final
 
-**GREEN LIGHT PARA IMPLEMENTAR B2-002, NO PARA CONECTAR META NI PRODUCCIÓN.**  
-**INTEGRIDAD DE DISEÑO: APROBADA.**  
+**B2-002 COMPLETE EN DEVELOP Y SUPABASE STAGING.**  
+**NO AUTORIZA CONECTAR META NI PROMOVER A PRODUCCIÓN.**  
+**INTEGRIDAD TOTAL: DISEÑO, SQL, RLS, IDEMPOTENCIA, QA Y EVIDENCIA APROBADOS.**  
 **MATCH: B2-002 ↔ BL-002–BL-004 ↔ SC-001–SC-006 COMPLETO.**
 
 Este veredicto se revoca si el SQL:

@@ -1,7 +1,7 @@
 # AgenteFer — auditoría de seguridad
 
 Fecha: 2026-08-03.  
-Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esquema funcional, canal, integración externa ni despliegue.
+Alcance: archivos actuales de AgenteFer hasta B2-002 y firma del Supabase staging; todavía no existe conexión Meta, integración externa ni despliegue de aplicación.
 
 ## Superficies revisadas
 
@@ -21,9 +21,9 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - Git root: `C:/Users/figod/Desktop/agentefer`.
 - Rama: `develop`.
 - Remoto: `https://github.com/frankzuuia/agentefer.git`.
-- Código funcional: configuración, observabilidad y runtimes mínimos API/worker con health; canales y negocio continúan vacíos.
+- Código funcional: configuración, observabilidad, runtimes mínimos API/worker y persistencia B2-001/B2-002; adapters, tools y negocio continúan pendientes.
 - Scaffold: root npm y nueve workspaces privados verificados; cuatro workspaces activos.
-- Migraciones de aplicación: ninguna.
+- Migraciones de aplicación: B2-001 y B2-002 versionadas, probadas desde cero y aplicadas en Supabase staging.
 - Dependencias runtime actuales nuevas en B1-007/B1-008: OpenTelemetry, Pino y Fastify, todas exactas; lockfile y árbol reproducible presentes.
 - Política de dependencias: versiones/orígenes/integrity/licencias/lifecycle verificados automáticamente y fail-closed.
 - Auditoría npm completa/producción: 0 vulnerabilidades.
@@ -45,18 +45,18 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 ### SA-002 — Implementación de controles aún parcial
 
 - Severidad actual: informativa.
-- Evidencia: redacción/correlación/errores/métricas ya están implementados; aplicaciones, DB y canales siguen vacíos.
-- Impacto: RLS, firma de webhooks, rate limits y autorización de tools están especificados pero no probados.
+- Evidencia: redacción/correlación/errores/métricas y RLS/idempotencia de persistencia B2-001/B2-002 están implementados; firma HTTP, rate limits, adapters y autorización de tools siguen pendientes.
+- Impacto: la base rechaza estados y cruces tenant peligrosos, pero todavía no existe perímetro HTTP Meta ni ejecución autorizada de tools.
 - Acción: ejecutar B1–B8 y convertir cada control en prueba/evidencia.
-- Estado: esperado en Bloque 0.
+- Estado: parcialmente mitigado por B1 y B2-001/B2-002; continúa abierto para B2 restante y B3–B8.
 
 ### SA-003 — Supabase CLI no está fijado en el repositorio
 
 - Severidad actual: baja; aumenta para CI/CD reproducible.
-- Evidencia: Supabase se aprovisionó con `npx supabase@latest`; el lockfile actual fija la aplicación pero todavía no incorpora el CLI.
+- Evidencia: CI y operaciones B2 usan explícitamente Supabase CLI `2.111.0`; el workflow rechaza acciones/versiones no fijadas.
 - Impacto: ejecuciones futuras podrían usar una versión diferente.
 - Acción: fijar el CLI y validar su mecanismo de instalación antes de automatizar migraciones en B2/CI; no reutilizar `@latest`.
-- Estado: abierto.
+- Estado: mitigado para B2/CI mediante versión exacta; revisar la versión conscientemente al actualizar.
 
 ### SA-004 — Overrides temporales de seguridad en Next.js
 
@@ -96,7 +96,7 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - Evidencia: RQ-110 y ADR-011 permiten categorías extensibles como datos, pero separan expresamente capacidad de modelado, activación pública y autorización de canal.
 - Impacto: una categoría universal sin validación de legalidad/política podría intentar ofrecer mercancía prohibida por el negocio, la ley o Meta.
 - Acción: B2 conserva estado privado/publicable; B3 autoriza tools; B4 aplica capability/policy antes de publicación; B8 prueba bypass, prompt injection y categorías bloqueadas.
-- Estado: control arquitectónico definido; implementación pendiente porque todavía no existe esquema, catálogo funcional ni adaptador Meta.
+- Estado: control arquitectónico definido; B2-002 ya implementa el policy gate del outbox, mientras el esquema de catálogo, catálogo funcional y adaptador Meta siguen pendientes.
 
 ## Controles que ya existen como política
 
@@ -123,6 +123,9 @@ Alcance: archivos actuales de AgenteFer durante B1-009; todavía no existe esque
 - B1-007 completo: Pino/OpenTelemetry neutral, redacción, taxonomía, correlación W3C y métricas aprobados localmente y en el run remoto 30859122936.
 - B1-008 completo: API/worker health real por TCP, Dockerfiles no-root, Compose endurecido, 30 pruebas y build/runtime Docker remoto aprobados en `develop`.
 - B1-009 completo: política de dependencias y artefactos actualizados desde el árbol real; run 30860154280 aprobado sobre `develop`.
+- B2-001 completo: organizaciones, perfiles y membresías aplicados en staging con RLS forzado, pruebas cross-org y cero datos reales.
+- B2-002 completo: canales/mensajería aplicados en staging; 14/14 tablas privadas con RLS forzado, 12 policies, 12 vistas, cero acceso `anon`, cero filas nuevas y 134 aserciones pgTAP acumuladas.
+- CI B2-002 final: run 30870893413 aprobado sobre `92a0783eb032c39efd4d6bd09d4d7e02f931798b`, tres jobs verdes y cero annotations.
 - Aclaración RQ-110: catálogo universal y separación de policy formalizados en ADR-011; gate documental automatizado incorporado al pipeline local/CI.
 - Integraciones externas: todavía no existen ni han sido validadas.
 - Producción: no apta.
