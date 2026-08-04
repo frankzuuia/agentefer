@@ -187,3 +187,5 @@ Las filas de prueba usan IDs reservados dentro de `BEGIN` y finalizan con `ROLLB
 6. Migración remota registrada, no SQL suelto sin historia.
 7. Advisors y validación cross-org remotos verdes.
 8. Tipos TypeScript generados desde el esquema aplicado.
+
+Los tipos versionados viven en `packages/database/src/database.types.ts`. CI regenera `app_private,api` desde una base local creada exclusivamente por la historia de migraciones, formatea con la versión fijada y compara ambos archivos de forma exacta. Cualquier drift bloquea `develop` antes de despliegue.

@@ -98,6 +98,8 @@ assert.ok(
 );
 for (const command of [
   "supabase db reset --local --no-seed",
+  "supabase gen types typescript --local --schema app_private,api",
+  "git diff --no-index --exit-code",
   "supabase test db --local supabase/tests",
   "supabase db lint --local --schema app_private,api --level warning --fail-on error",
   "supabase db advisors --local --type all --level warn --fail-on warn",

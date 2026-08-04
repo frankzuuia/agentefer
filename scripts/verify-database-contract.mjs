@@ -30,6 +30,18 @@ const qualityWorkflow = await readFile(
   path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
   "utf8",
 );
+const generatedTypes = await readFile(
+  path.join(repositoryRoot, "packages", "database", "src", "database.types.ts"),
+  "utf8",
+);
+const databaseIndex = await readFile(
+  path.join(repositoryRoot, "packages", "database", "src", "index.ts"),
+  "utf8",
+);
+const databaseManifest = JSON.parse(
+  await readFile(path.join(repositoryRoot, "packages", "database", "package.json"), "utf8"),
+);
+const eslintConfiguration = await readFile(path.join(repositoryRoot, "eslint.config.mjs"), "utf8");
 
 assert.ok(migration.startsWith("begin;\n"), "the migration must be atomic");
 assert.ok(migration.trimEnd().endsWith("commit;"), "the migration must commit atomically");
@@ -122,6 +134,9 @@ const requiredWorkflowStatements = [
   "supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1",
   "version: 2.111.0",
   "supabase db reset --local --no-seed",
+  "supabase gen types typescript --local --schema app_private,api",
+  "git diff --no-index --exit-code",
+  "packages/database/src/database.types.ts",
   "supabase test db --local supabase/tests",
   "supabase db lint --local --schema app_private,api --level warning --fail-on error",
   "supabase db advisors --local --type all --level warn --fail-on warn",
@@ -131,6 +146,37 @@ for (const statement of requiredWorkflowStatements) {
   assert.ok(qualityWorkflow.includes(statement), `database CI must include: ${statement}`);
 }
 
+for (const schema of ["api", "app_private"]) {
+  assert.ok(generatedTypes.includes(`  ${schema}: {`), `generated types must include ${schema}`);
+}
+assert.equal(
+  generatedTypes.includes("  public: {"),
+  false,
+  "generated application types cannot silently fall back to public",
+);
+for (const exportedType of [
+  "CompositeTypes",
+  "Database",
+  "Enums",
+  "Json",
+  "Tables",
+  "TablesInsert",
+  "TablesUpdate",
+]) {
+  assert.ok(databaseIndex.includes(exportedType), `database package must export ${exportedType}`);
+}
+for (const scriptName of ["build", "lint", "typecheck"]) {
+  assert.equal(
+    typeof databaseManifest.scripts?.[scriptName],
+    "string",
+    `database package must define ${scriptName}`,
+  );
+}
+assert.ok(
+  eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
+  "only the canonical generated type file may bypass stylistic lint",
+);
+
 console.log(
-  `Database contract verified: ${migrationEntries.length} production migration, 4 forced-RLS tables, 49 pgTAP assertions.`,
+  `Database contract verified: ${migrationEntries.length} production migration, 4 forced-RLS tables, 49 pgTAP assertions, generated TypeScript schemas locked.`,
 );

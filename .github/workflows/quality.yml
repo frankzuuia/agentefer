@@ -175,14 +175,40 @@ jobs:
         with:
           version: 2.111.0
 
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Install exact type formatter toolchain
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm install --global npm@11.16.0 --ignore-scripts
+          npm install --global prettier@3.9.6 --ignore-scripts
+
       - name: Report database toolchain
-        run: supabase --version
+        run: |
+          supabase --version
+          node --version
+          npm --version
+          prettier --version
 
       - name: Start isolated Supabase database
         run: supabase db start
 
       - name: Apply production migrations from zero
         run: supabase db reset --local --no-seed
+
+      - name: Verify generated database types have no drift
+        run: |
+          set -Eeuo pipefail
+
+          generated_types="${RUNNER_TEMP}/database.types.ts"
+          supabase gen types typescript --local --schema app_private,api > "$generated_types"
+          prettier --write "$generated_types"
+          git diff --no-index --exit-code -- \
+            packages/database/src/database.types.ts \
+            "$generated_types"
 
       - name: Run transactional pgTAP contract
         run: supabase test db --local supabase/tests
