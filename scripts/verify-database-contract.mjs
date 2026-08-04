@@ -131,7 +131,7 @@ assert.ok(pgdeltaSection.includes("enabled = false"), "experimental pgdelta must
 
 const requiredWorkflowStatements = [
   "database:\n    name: Database contract",
-  "supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1",
+  "supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9",
   "version: 2.111.0",
   "supabase db reset --local --no-seed",
   "supabase gen types typescript --local --schema app_private,api",

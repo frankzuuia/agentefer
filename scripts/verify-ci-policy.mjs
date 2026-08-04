@@ -89,7 +89,7 @@ assert.ok(
   "CI must define the isolated database contract job",
 );
 assert.ok(
-  qualityWorkflow.includes("supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1"),
+  qualityWorkflow.includes("supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9"),
   "database CI must pin the audited Supabase CLI action",
 );
 assert.ok(

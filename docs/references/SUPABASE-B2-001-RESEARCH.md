@@ -20,6 +20,7 @@ Regla: staging ejecuta la misma migración destinada a producción; no existe un
 - `pgtap` 1.3.3 está disponible pero no instalado.
 - UUIDv7 no está disponible como extensión en este proyecto; no se inventará esa capacidad.
 - CLI verificado por `--help`: 2.111.0.
+- Acción oficial `supabase/setup-cli` fijada al commit firmado `6ffe784b57613e98e0c04651e5fde0cec28cb1c9`, que usa una acción compuesta compatible con Node 24.
 - Docker local: no disponible; la validación local reproducible se ejecutará en CI con Docker real antes de aplicar staging.
 
 ## Hallazgo de privilegios

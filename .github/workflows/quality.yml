@@ -170,15 +170,15 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Set up pinned Supabase CLI
-        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1
-        with:
-          version: 2.111.0
-
       - name: Set up pinned Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .node-version
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9 # verified 2026-07-17
+        with:
+          version: 2.111.0
 
       - name: Install exact type formatter toolchain
         working-directory: ${{ runner.temp }}
