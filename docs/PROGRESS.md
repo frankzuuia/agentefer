@@ -218,7 +218,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 - Contrato físico: `docs/architecture/DATABASE-FOUNDATION-B2-001.md`.
 - Investigación oficial/estado real: `docs/references/SUPABASE-B2-001-RESEARCH.md`.
-- Migración definitiva: `supabase/migrations/20260803233822_b2_001_database_foundation.sql`; SHA-256 previo a staging `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
+- Migración definitiva: `supabase/migrations/20260804001247_b2_001_database_foundation.sql`; SHA-256 aplicado en staging `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
 - Migración Supabase staging registrada: versión `20260804001247`, nombre `b2_001_database_foundation`, proyecto `hprdctmblmfcoagugvyp`.
 - Estado remoto: cuatro tablas privadas, cuatro policies, cuatro vistas `security_invoker/security_barrier`, RLS forzado 4/4, acceso `anon` 0 y filas reales 0.
 - Tipos: `packages/database/src/database.types.ts`; CI los regenera desde migraciones y bloquea drift.

@@ -16,7 +16,7 @@ const migrationEntries = (await readdir(migrationDirectory, { withFileTypes: tru
 
 assert.deepEqual(
   migrationEntries,
-  ["20260803233822_b2_001_database_foundation.sql", "20260804011126_b2_002_channels_messaging.sql"],
+  ["20260804001247_b2_001_database_foundation.sql", "20260804011126_b2_002_channels_messaging.sql"],
   "B2-001 and B2-002 must remain ordered, reviewable production migrations",
 );
 

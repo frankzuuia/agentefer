@@ -59,7 +59,7 @@ No detectado en alcance: Auth → perfil → organización/negocio/membresía �
 
 ## Evidencia de implementación
 
-- Migración versionada: `20260803233822_b2_001_database_foundation.sql`; SHA-256 aplicado `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
+- Migración versionada: `20260804001247_b2_001_database_foundation.sql`; SHA-256 aplicado `2C7C1DDC89992562F1BE0C280CE89DA2041CBBFC85E0644B6896B8D191880313`.
 - Supabase staging: migración remota `20260804001247_b2_001_database_foundation` en `hprdctmblmfcoagugvyp`.
 - Estado remoto posterior: 4 tablas privadas con 0 filas, 4/4 RLS forzado, 4 policies, 4 vistas endurecidas y 0 privilegios `anon`.
 - Security advisors remotos: 0 hallazgos. Performance advisors: únicamente `INFO` de índices aún no usados porque el esquema nació vacío.
