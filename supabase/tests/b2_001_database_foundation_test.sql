@@ -12,7 +12,7 @@ create function pg_temp.throws_sqlstate(
 returns text
 language plpgsql
 security invoker
-set search_path = ''
+set search_path = extensions, pg_catalog
 as $$
 declare
   actual_sqlstate text;
