@@ -124,7 +124,7 @@ const requiredWorkflowStatements = [
   "supabase db reset --local --no-seed",
   "supabase test db --local supabase/tests",
   "supabase db lint --local --schema app_private,api --level warning --fail-on error",
-  "supabase db advisors --local --type all --level warning --fail-on error",
+  "supabase db advisors --local --type all --level warn --fail-on warn",
 ];
 
 for (const statement of requiredWorkflowStatements) {

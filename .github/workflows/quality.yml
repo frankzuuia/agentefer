@@ -191,7 +191,7 @@ jobs:
         run: supabase db lint --local --schema app_private,api --level warning --fail-on error
 
       - name: Run local security and performance advisors
-        run: supabase db advisors --local --type all --level warning --fail-on error
+        run: supabase db advisors --local --type all --level warn --fail-on warn
 
       - name: Stop isolated Supabase services
         if: always()
