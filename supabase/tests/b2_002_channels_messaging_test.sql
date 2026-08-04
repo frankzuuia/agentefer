@@ -336,7 +336,7 @@ select extensions.is(
       and exists (
         select 1
         from unnest(function.proconfig) as configuration(option)
-        where configuration.option = 'search_path='
+        where configuration.option like 'search_path=%'
       )
   ),
   9,

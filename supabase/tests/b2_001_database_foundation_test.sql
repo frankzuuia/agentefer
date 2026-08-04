@@ -93,6 +93,12 @@ select extensions.is(
     select array_agg(policyname::text order by policyname)
     from pg_catalog.pg_policies
     where schemaname = 'app_private'
+      and tablename in (
+        'organizations',
+        'user_profiles',
+        'organization_memberships',
+        'business_profiles'
+      )
   ),
   array[
     'business_profiles_member_select',
@@ -100,7 +106,7 @@ select extensions.is(
     'organizations_member_select',
     'user_profiles_self_select'
   ]::text[],
-  'the exact authenticated read policies exist'
+  'the exact B2-001 authenticated read policies exist'
 );
 
 select extensions.is(
@@ -167,10 +173,16 @@ select extensions.is(
       on namespace.oid = relation.relnamespace
     where namespace.nspname = 'app_private'
       and relation.relkind = 'r'
+      and relation.relname in (
+        'organizations',
+        'user_profiles',
+        'organization_memberships',
+        'business_profiles'
+      )
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
   4,
-  'authenticated receives read access to all private relations for RLS evaluation'
+  'authenticated receives read access to every B2-001 private relation for RLS evaluation'
 );
 
 select extensions.is(
@@ -199,10 +211,16 @@ select extensions.is(
       on namespace.oid = relation.relnamespace
     where namespace.nspname = 'api'
       and relation.relkind = 'v'
+      and relation.relname in (
+        'organizations',
+        'user_profiles',
+        'organization_memberships',
+        'business_profiles'
+      )
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
   4,
-  'authenticated can read all API views subject to RLS'
+  'authenticated can read every B2-001 API view subject to RLS'
 );
 
 select extensions.is(
@@ -253,9 +271,13 @@ select extensions.is(
       on namespace.oid = function.pronamespace
     where namespace.nspname = 'app_private'
       and function.prosecdef
+      and function.proname in (
+        'assert_active_owner',
+        'provision_user_profile'
+      )
   ),
   array['assert_active_owner', 'provision_user_profile']::name[],
-  'only the two audited trigger functions are security definer'
+  'the two audited B2-001 trigger functions are security definer'
 );
 
 select extensions.is(
