@@ -1,7 +1,8 @@
 import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
 
 import { expect, it } from "vitest";
+
+import type { ApiRuntime } from "../src/runtime.js";
 
 const reservePort = async (): Promise<number> => {
   const server = createServer();
@@ -25,26 +26,12 @@ const reservePort = async (): Promise<number> => {
   return address.port;
 };
 
-const waitForReady = async (url: string): Promise<void> => {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // The real process adapter may still be binding its TCP listener.
-    }
-    await delay(10);
-  }
-  throw new Error("API main module did not become ready");
-};
-
 it("boots the real API entrypoint and handles its registered termination signal", async () => {
   const port = await reservePort();
   const originalEnvironment = { ...process.env };
   const previousSigint = new Set(process.listeners("SIGINT"));
   const previousSigterm = new Set(process.listeners("SIGTERM"));
+  let runtime: ApiRuntime | undefined;
 
   Object.assign(process.env, {
     APP_ENV: "test",
@@ -60,9 +47,16 @@ it("boots the real API entrypoint and handles its registered termination signal"
   });
 
   try {
-    await import("../src/main.js");
+    const entrypoint = await import("../src/main.js");
+    runtime = await entrypoint.apiRuntimePromise;
+    if (runtime === undefined) {
+      throw new Error("API entrypoint failed to start");
+    }
+
     const readyUrl = `http://127.0.0.1:${String(port)}/health/ready`;
-    await waitForReady(readyUrl);
+    const readyResponse = await fetch(readyUrl, { signal: AbortSignal.timeout(1_000) });
+    expect(readyResponse.status).toBe(200);
+    await readyResponse.arrayBuffer();
 
     const terminationListener = process
       .listeners("SIGTERM")
@@ -72,8 +66,12 @@ it("boots the real API entrypoint and handles its registered termination signal"
     }
 
     terminationListener("SIGTERM");
-    await expect(waitForReady(readyUrl)).rejects.toThrow("did not become ready");
+    await runtime.shutdown("SIGTERM");
+    await expect(
+      fetch(readyUrl, { signal: AbortSignal.timeout(1_000) }),
+    ).rejects.toThrow();
   } finally {
+    await runtime?.shutdown("SIGTERM");
     for (const listener of process.listeners("SIGINT")) {
       if (!previousSigint.has(listener)) {
         process.removeListener("SIGINT", listener);

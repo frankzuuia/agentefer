@@ -18,12 +18,14 @@ function registerSignalHandler(
 
 const logger = bootstrapLogger;
 
-void startWorker(process.env)
+export const workerRuntimePromise = startWorker(process.env)
   .then((runtime) => {
     registerSignalHandler("SIGINT", () => runtime.shutdown("SIGINT"));
     registerSignalHandler("SIGTERM", () => runtime.shutdown("SIGTERM"));
+    return runtime;
   })
   .catch((error: unknown) => {
     logger.error("worker.bootstrap.failed", error);
     process.exitCode = 1;
+    return undefined;
   });

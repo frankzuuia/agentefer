@@ -316,7 +316,7 @@ for (const statement of requiredMessagingTestStatements) {
 }
 
 const requiredCatalogTestStatements = [
-  "select extensions.plan(74);",
+  "select extensions.plan(75);",
   "set constraints all immediate;",
   "set local role authenticated;",
   "set local role anon;",
@@ -426,5 +426,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 30 forced-RLS tables, 208 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 30 forced-RLS tables, 209 pgTAP assertions, generated TypeScript schemas locked.`,
 );

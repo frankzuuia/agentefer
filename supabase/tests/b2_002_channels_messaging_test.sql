@@ -350,6 +350,11 @@ select extensions.is(
     inner join pg_catalog.pg_namespace as namespace
       on namespace.oid = function.pronamespace
     where namespace.nspname = 'app_private'
+      and function.proname in (
+        'assert_active_owner',
+        'assert_open_conversation_primary_participant',
+        'provision_user_profile'
+      )
       and function.prosecdef
   ),
   array[
@@ -357,7 +362,7 @@ select extensions.is(
     'assert_open_conversation_primary_participant',
     'provision_user_profile'
   ]::name[],
-  'only the three audited trigger functions are security definer'
+  'the three audited cross-table trigger functions remain security definer'
 );
 
 select extensions.is(

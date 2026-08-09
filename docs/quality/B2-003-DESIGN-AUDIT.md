@@ -12,12 +12,13 @@ Estado: **IMPLEMENTED** y certificado contra Supabase AgenteFer; cierre CI final
 - Hardening: `20260809101909_b2_003_catalog_trigger_hardening.sql`, SHA-256 `91C76E8E789926E52CBB15CFA53ABEAA2C6BF006F69E8B4BEA91540326B8DCAB`.
 - Proyecto exclusivo verificado por CLI: `AgenteFer`, ref `hprdctmblmfcoagugvyp`.
 - Remoto: versiones `20260809095510` y `20260809101909` aplicadas.
-- SQL: 74/74 pgTAP mediante Management API, transacción con rollback.
+- SQL: 75/75 pgTAP mediante Management API, transacción con rollback.
 - Esquema: lint sin errores; advisors security/performance sin hallazgos.
 - Tipos: generados desde remoto para `app_private,api`; `public` ausente.
-- Código antes de cierre CI: 81 tests; 93.93% líneas, 93.74% statements, 92.95% funciones, 89.01% ramas; 37/37 mutantes eliminados.
+- Código antes de cierre CI: 81 tests; 93.66% líneas, 93.47% statements, 92.95% funciones, 89.01% ramas; 37/37 mutantes eliminados.
 - Dependencias: exactas; `npm audit` 0 vulnerabilidades; 546 firmas de registro y 145 attestations verificadas.
 - Aceptación: 7 escenarios Gherkin parseados sin errores.
+- Lifecycle TCP: entrypoints API/worker sincronizados con su promesa real; 20/20 corridas de estrés conjuntas.
 
 ## Autopsia de regresión real
 
@@ -34,6 +35,29 @@ Corrección enterprise:
 7. la regresión quedó cubierta por activación, pausa y aplicación de borrador.
 
 No se borró historial ni se deshabilitó una constraint para obtener verde.
+
+## Autopsia del primer run CI
+
+El run `31324097783` aplicó las cuatro migraciones desde cero y aprobó B2-001 y B2-003, pero B2-002 falló en su aserción 31. Esa prueba histórica enumeraba globalmente todas las funciones `SECURITY DEFINER` de `app_private` y esperaba exactamente tres; al agregar B2-003, el conjunto legítimo creció a once.
+
+Corrección de regresión:
+
+1. B2-002 ahora valida por nombre que sus tres funciones privilegiadas permanezcan `SECURITY DEFINER`;
+2. B2-003 añadió una aserción global que exige `search_path=""` en toda función `SECURITY DEFINER` presente o futura;
+3. el contrato acumulado pasó de 208 a 209 aserciones;
+4. la verificación enlazada quedó verde con B2-002 85/85 y B2-003 75/75.
+
+## Autopsia de carrera del lifecycle
+
+Una repetición local integral expuso que el test del entrypoint API podía agotar 5 segundos bajo carga. Los entrypoints descartaban con `void` la promesa real de arranque y las pruebas inferían arranque/cierre mediante polling HTTP, sin consumir el body y sin timeout por petición. La prueba podía dejar trabajo pendiente durante el cierre.
+
+Corrección de regresión:
+
+1. API y worker conservan y exportan su promesa real de runtime sin cambiar el autoarranque productivo;
+2. las pruebas esperan el arranque real, consumen la respuesta de readiness y esperan el cierre idempotente;
+3. `finally` cierra siempre el runtime antes de restaurar proceso y listeners;
+4. no se elevó el timeout global;
+5. 20/20 ejecuciones conjuntas de ambos entrypoints pasaron antes de repetir la puerta integral.
 
 ## Cross-match
 
@@ -63,7 +87,7 @@ No se borró historial ni se deshabilitó una constraint para obtener verde.
 GitHub Actions debe ejecutar sobre PostgreSQL local aislado:
 
 - migraciones desde cero;
-- las 208 pgTAP acumuladas;
+- las 209 pgTAP acumuladas;
 - dos sesiones concurrentes para el mismo SKU;
 - 3 mutantes de esquema con 100% eliminados;
 - type drift, lint, advisors, cobertura, mutation testing de código, contenedores y auditoría de supply chain.

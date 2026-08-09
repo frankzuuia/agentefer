@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(74);
+select extensions.plan(75);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -1125,6 +1125,22 @@ select pg_temp.throws_sqlstate(
 );
 
 set local role service_role;
+
+select extensions.is(
+  (
+    select count(*)::integer
+    from pg_catalog.pg_proc as function
+    inner join pg_catalog.pg_namespace as namespace
+      on namespace.oid = function.pronamespace
+    where namespace.nspname = 'app_private'
+      and function.prosecdef
+      and not (
+        'search_path=""' = any(coalesce(function.proconfig, '{}'::text[]))
+      )
+  ),
+  0,
+  'all app_private security definer functions pin an empty search_path'
+);
 
 select pg_temp.throws_sqlstate(
   $$delete from app_private.products

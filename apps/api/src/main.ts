@@ -15,12 +15,14 @@ function registerSignalHandler(signal: ApiTerminationSignal, shutdown: () => Pro
 
 const logger = bootstrapLogger;
 
-void startApi(process.env)
+export const apiRuntimePromise = startApi(process.env)
   .then((runtime) => {
     registerSignalHandler("SIGINT", () => runtime.shutdown("SIGINT"));
     registerSignalHandler("SIGTERM", () => runtime.shutdown("SIGTERM"));
+    return runtime;
   })
   .catch((error: unknown) => {
     logger.error("api.bootstrap.failed", error);
     process.exitCode = 1;
+    return undefined;
   });
