@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+
+import { buildLinkedPgtapCollector, splitSqlStatements } from "../src/linked-pgtap.js";
+
+describe("linked pgTAP SQL lexer", () => {
+  it("splits only semicolons outside SQL quoting and comments", () => {
+    const sql = `
+      begin;
+      select 'a;''b';
+      select "quoted;identifier";
+      /* outer; /* nested; */ done; */
+      create function pg_temp.example() returns text language sql as $body$
+        select 'inside;dollar';
+      $body$;
+      -- line; comment
+      rollback;
+    `;
+
+    expect(splitSqlStatements(sql)).toEqual([
+      "begin",
+      "select 'a;''b'",
+      'select "quoted;identifier"',
+      "/* outer; /* nested; */ done; */\n      create function pg_temp.example() returns text language sql as $body$\n        select 'inside;dollar';\n      $body$",
+      "-- line; comment\n      rollback",
+    ]);
+  });
+
+  it.each([
+    "begin; select 'unterminated; rollback;",
+    'begin; select "unterminated; rollback;',
+    "begin; /* unterminated; rollback;",
+    "begin; select $body$unterminated; rollback;",
+  ])("rejects malformed lexical input: %s", (sql) => {
+    expect(() => splitSqlStatements(sql)).toThrow("unterminated");
+  });
+});
+
+describe("linked pgTAP collector", () => {
+  it("collects every TAP-producing statement and preserves transactional rollback", () => {
+    const transformed = buildLinkedPgtapCollector(`
+      begin;
+      create extension if not exists pgtap with schema extensions;
+      select extensions.plan(2);
+      -- assertion with leading context
+      select extensions.ok(true, 'passes');
+      select set_config('request.jwt.claim.sub', 'subject', true);
+      select pg_temp.throws_sqlstate('select 1', '00000', 'diagnostic');
+      select * from extensions.finish();
+      rollback;
+    `);
+
+    expect(transformed).toContain("create temp table pg_temp.linked_tap_results");
+    expect(transformed).toContain("create temp sequence pg_temp.linked_tap_sequence");
+    expect(transformed).toContain(
+      "grant insert, select on pg_temp.linked_tap_results to anon, authenticated, service_role",
+    );
+    expect(transformed).toContain(
+      "insert into pg_temp.linked_tap_results (result) -- assertion with leading context\n      select extensions.ok",
+    );
+    expect(transformed).toContain(
+      "insert into pg_temp.linked_tap_results (result) select pg_temp.throws_sqlstate",
+    );
+    expect(transformed).toContain("select set_config");
+    expect(transformed).toContain(
+      "select result from pg_temp.linked_tap_results order by sequence;\n\nrollback;",
+    );
+  });
+
+  it("refuses a source that could persist test fixtures", () => {
+    expect(() => buildLinkedPgtapCollector("select extensions.ok(true);")).toThrow(
+      "linked pgTAP source must start with BEGIN",
+    );
+    expect(() => buildLinkedPgtapCollector("begin; select extensions.ok(true); commit;")).toThrow(
+      "linked pgTAP source must end with ROLLBACK",
+    );
+  });
+});

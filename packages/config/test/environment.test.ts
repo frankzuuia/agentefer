@@ -56,7 +56,6 @@ const validWorkerEnvironment = (): RawEnvironment => ({
   AI_MODEL: "openai:gpt-5.6-luna",
   AI_VISION_MODEL: "minimax:MiniMax-M3",
   AI_REASONING_EFFORT: "medium",
-  AI_MAX_OUTPUT_TOKENS: "8192",
   AI_TURN_TIMEOUT_MS: "120000",
   AI_MAX_TOOL_ROUNDS: "12",
   AI_CACHE_MODE: "auto",
@@ -226,6 +225,54 @@ describe("worker environment", () => {
     expect(() => parseWorkerEnvironment(environment)).toThrow("AI_FALLBACK_MODELS");
   });
 
+  it.each([":missing-provider", "missing-model:", "bad provider:model", "bad!provider:model"])(
+    "rejects an invalid provider:model selector: %s",
+    (model) => {
+      const environment = {
+        ...validWorkerEnvironment(),
+        AI_MODEL: model,
+      };
+
+      expect(() => parseWorkerEnvironment(environment)).toThrow("AI_MODEL");
+    },
+  );
+
+  it("normalizes only the provider identifier while preserving the exact model ID", () => {
+    const configuration = parseWorkerEnvironment({
+      ...validWorkerEnvironment(),
+      AI_MODEL: "FutureProvider:Case-Sensitive-Model",
+      AI_VISION_MODEL: "",
+      AI_FALLBACK_MODELS: "",
+      OPENAI_API_KEY: "",
+      MINIMAX_API_KEY: "",
+    });
+
+    expect(configuration.ai.model.canonical).toBe("futureprovider:Case-Sensitive-Model");
+  });
+
+  it("rejects a structurally invalid selector inside valid fallback JSON", () => {
+    const environment = {
+      ...validWorkerEnvironment(),
+      AI_FALLBACK_MODELS: '["missing-separator"]',
+    };
+
+    expect(() => parseWorkerEnvironment(environment)).toThrow("AI_FALLBACK_MODELS");
+  });
+
+  it("requires the OpenAI credential when it is selected only as fallback", () => {
+    const environment = {
+      ...validWorkerEnvironment(),
+      AI_MODEL: "minimax:MiniMax-M2.7-highspeed",
+      AI_VISION_MODEL: "",
+      AI_FALLBACK_MODELS: '["openai:gpt-5.6-luna"]',
+      OPENAI_API_KEY: "",
+    };
+
+    expect(() => parseWorkerEnvironment(environment)).toThrow(
+      "OPENAI_API_KEY: is required because an OpenAI model is selected",
+    );
+  });
+
   it("rejects limits above the absolute safety ceiling", () => {
     const environment = {
       ...validWorkerEnvironment(),
@@ -244,5 +291,69 @@ describe("worker environment", () => {
     expect(serialized).not.toContain("openai-unit-test-key");
     expect(serialized).not.toContain("minimax-unit-test-key");
     expect(serialized).not.toContain(workerSupabaseTestSecret);
+  });
+});
+
+describe("shared environment boundary validation", () => {
+  it.each(["short", "UPPERCASEPROJECT", "invalid-project!", "a".repeat(41)])(
+    "rejects an invalid Supabase project ref: %s",
+    (invalidProjectRef) => {
+      expect(() =>
+        parseApiEnvironment({
+          ...validApiEnvironment(),
+          SUPABASE_PROJECT_REF: invalidProjectRef,
+        }),
+      ).toThrow("SUPABASE_PROJECT_REF");
+    },
+  );
+
+  it("requires deployment metadata outside local and test", () => {
+    expect(() =>
+      parseApiEnvironment({
+        ...validApiEnvironment(),
+        DEPLOYMENT_COMMIT_SHA: "",
+      }),
+    ).toThrow("DEPLOYMENT_COMMIT_SHA: is required in staging and production");
+
+    expect(() =>
+      parseApiEnvironment({
+        ...validApiEnvironment(),
+        DEPLOYMENT_COMMIT_SHA: "not-a-full-sha",
+      }),
+    ).toThrow("must be a full 40-character Git commit SHA");
+  });
+
+  it.each(["0", "-1", "1.5", String(Number.MAX_SAFE_INTEGER + 1)])(
+    "rejects a non-positive-safe integer port: %s",
+    (port) => {
+      expect(() =>
+        parseApiEnvironment({
+          ...validApiEnvironment(),
+          API_PORT: port,
+        }),
+      ).toThrow("must be a positive safe integer");
+    },
+  );
+
+  it("rejects an absolute URL with a non-HTTP transport", () => {
+    expect(() =>
+      parseApiEnvironment({
+        ...validApiEnvironment(),
+        API_PUBLIC_URL: "ftp://api.example.test",
+      }),
+    ).toThrow("must use http or https");
+  });
+
+  it("allows local HTTP and ignores blank public variables", () => {
+    const configuration = parseWebEnvironment({
+      ...validWebEnvironment(),
+      APP_ENV: "local",
+      DEPLOYMENT_COMMIT_SHA: "",
+      NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000",
+      NEXT_PUBLIC_API_URL: "http://127.0.0.1:3001",
+      NEXT_PUBLIC_UNUSED_SECRET: "",
+    });
+
+    expect(configuration.runtime.environment).toBe("local");
   });
 });

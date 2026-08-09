@@ -26,7 +26,6 @@ export interface ModelSelector {
 }
 
 export const aiSafetyCeilings = Object.freeze({
-  maxOutputTokens: 1_000_000,
   turnTimeoutMs: 600_000,
   maxToolRounds: 64,
   maxFallbackModels: 8,
@@ -113,7 +112,6 @@ export const workerEnvironmentVariables = [
   "AI_MODEL",
   "AI_VISION_MODEL",
   "AI_REASONING_EFFORT",
-  "AI_MAX_OUTPUT_TOKENS",
   "AI_TURN_TIMEOUT_MS",
   "AI_MAX_TOOL_ROUNDS",
   "AI_CACHE_MODE",
@@ -140,10 +138,6 @@ const workerEnvironmentSchema = z
     AI_MODEL: modelSelectorSchema,
     AI_VISION_MODEL: optionalModelSelectorSchema,
     AI_REASONING_EFFORT: optionalTextSchema,
-    AI_MAX_OUTPUT_TOKENS: positiveIntegerSchema.refine(
-      (value) => value <= aiSafetyCeilings.maxOutputTokens,
-      "exceeds the absolute safety ceiling",
-    ),
     AI_TURN_TIMEOUT_MS: positiveIntegerSchema.refine(
       (value) => value <= aiSafetyCeilings.turnTimeoutMs,
       "exceeds the absolute safety ceiling",
@@ -227,7 +221,6 @@ const workerEnvironmentSchema = z
         cacheMode: environment.AI_CACHE_MODE,
         fallbackModels: environment.AI_FALLBACK_MODELS,
         limits: {
-          maxOutputTokens: environment.AI_MAX_OUTPUT_TOKENS,
           turnTimeoutMs: environment.AI_TURN_TIMEOUT_MS,
           maxToolRounds: environment.AI_MAX_TOOL_ROUNDS,
         },

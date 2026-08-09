@@ -25,6 +25,7 @@
     "packages/*"
   ],
   "overrides": {
+    "qs": "6.15.3",
     "next": {
       "postcss": "8.5.25",
       "sharp": "0.35.3"
@@ -33,8 +34,9 @@
   "scripts": {
     "audit": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=high",
     "build": "npm run prepare:internal && npm run build --workspaces --if-present",
-    "format": "prettier --write package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
-    "format:check": "prettier --check package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "database:types:linked": "node ./scripts/sync-linked-database-types.mjs",
+    "format": "prettier --write package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs vitest.config.ts stryker.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs vitest.config.ts stryker.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
     "lint": "npm run prepare:internal && eslint --no-error-on-unmatched-pattern eslint.config.mjs prettier.config.mjs \"scripts/**/*.mjs\" \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
     "prepare:internal": "node ./scripts/prepare-workspace-dependencies.mjs",
     "typecheck": "npm run prepare:internal && npm run typecheck --workspaces --if-present",
@@ -43,7 +45,11 @@
     "verify:documentation-contract": "node ./scripts/verify-documentation-contract.mjs",
     "verify:workspace-gates": "node ./scripts/verify-workspace-gates.mjs",
     "verify:workspaces": "node ./scripts/verify-workspaces.mjs",
-    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:container-contract && npm run verify:database-contract && npm run verify:dependency-policy && npm run test --workspaces --if-present",
+    "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:acceptance-contract && npm run verify:container-contract && npm run verify:database-contract && npm run verify:dependency-policy && npm run test:coverage && npm run test:mutation",
+    "test:coverage": "vitest run --coverage",
+    "test:database:linked": "npm run build --workspace @agentefer/database && node ./scripts/run-linked-pgtap.mjs",
+    "test:mutation": "stryker run",
+    "verify:acceptance-contract": "node ./scripts/verify-acceptance-contract.mjs",
     "verify:container-contract": "node ./scripts/verify-container-contract.mjs",
     "verify:database-contract": "node ./scripts/verify-database-contract.mjs",
     "verify:dependency-policy": "node ./scripts/verify-dependency-policy.mjs",
@@ -51,7 +57,11 @@
     "verify:workspace-build-graph": "node ./scripts/prepare-workspace-dependencies.mjs --verify"
   },
   "devDependencies": {
+    "@cucumber/gherkin": "42.0.1",
+    "@cucumber/messages": "34.2.1",
     "@eslint/js": "9.39.5",
+    "@stryker-mutator/core": "9.6.1",
+    "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "24.13.3",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.5",

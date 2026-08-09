@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001/B2-002 completos; persistencia de canales y mensajería aplicada en Supabase staging. B2-003 es el siguiente gate. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001/B2-002 completos; B2-003 implementado y certificado en Supabase AgenteFer con CI final pendiente. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -46,7 +46,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------ |
 | B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías                     | migración definitiva, owner invariant, grants/RLS y pruebas cross-org    | [x]    |
 | B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [x]    |
-| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy, unicidad, procedencia y casos multirubro     | [ ]    |
+| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy; 74/74 pgTAP; CI final pendiente              | [ ]    |
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso   | [ ]    |
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | concurrencia, paquete/kit declarado y stock nunca negativo               | [ ]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | pedido ≠ venta, snapshots e idempotencia                                 | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: persistencia B2-001/B2-002 implementada y certificada; catálogo, tools, adapters y UI todavía pendientes.
+- Functional implementation: B2-003 aplicado y 74/74 pgTAP remotas aprobadas; cierre final espera CI aislado de concurrencia/mutación. Tools, adapters y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -238,3 +238,15 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Advisors remotos: dos `INFO rls_enabled_no_policy` intencionales para inbox/outbox privados y `INFO unused_index` esperado sobre tablas sin tráfico; cero hallazgos críticos/altos.
 - CI final verificado: run `30870893413` sobre commit `92a0783eb032c39efd4d6bd09d4d7e02f931798b`; `Verify`, `Container runtime` y `Database contract` concluyeron `success`, con 0 annotations.
 - Auditoría final: `docs/quality/B2-002-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).
+
+## Evidencia provisional de B2-003
+
+- Contrato físico: `docs/architecture/UNIVERSAL-CATALOG-B2-003.md`.
+- Migración base: `supabase/migrations/20260809095510_b2_003_universal_catalog.sql`; SHA-256 `D754E2067D02DA1FAE1C4C92E950E4B53C58B4C8BDE98AF59C5E9D28784CA884`.
+- Hardening de regresión: `supabase/migrations/20260809101909_b2_003_catalog_trigger_hardening.sql`; SHA-256 `91C76E8E789926E52CBB15CFA53ABEAA2C6BF006F69E8B4BEA91540326B8DCAB`.
+- Supabase AgenteFer: proyecto enlazado `hprdctmblmfcoagugvyp`; ambas versiones remotas registradas.
+- Estado remoto acumulado: 30 tablas privadas con RLS forzado; B2-003 aporta 16 tablas, 16 policies y 14 vistas seguras.
+- QA remoto: 74/74 pgTAP transaccionales, linter `app_private,api` sin errores y advisors sin hallazgos.
+- QA de código provisional: 81 pruebas, 93.93% líneas, 93.74% statements, 92.95% funciones y 89.01% ramas; 37/37 mutantes de código eliminados. CI final vuelve a ejecutar estas puertas antes del cierre.
+- CI B2-003: pendiente del primer push de `develop`; hasta entonces B2-003 no cambia a `[x]`.
+- Auditoría: `docs/quality/B2-003-DESIGN-AUDIT.md` (`IMPLEMENTED`, cierre CI pendiente).

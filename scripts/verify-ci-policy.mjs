@@ -109,6 +109,8 @@ for (const command of [
   "supabase gen types typescript --local --schema app_private,api",
   "git diff --no-index --exit-code",
   "supabase test db --local supabase/tests",
+  "node ./scripts/verify-database-concurrency.mjs",
+  "node ./scripts/verify-database-mutations.mjs",
   "supabase db lint --local --schema app_private,api --level warning --fail-on error",
   "supabase db advisors --local --type all --level warn --fail-on warn",
 ]) {

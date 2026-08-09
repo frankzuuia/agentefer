@@ -17,6 +17,8 @@ const files = {
   progress: "docs/PROGRESS.md",
   systemContext: "docs/architecture/SYSTEM_CONTEXT.md",
   universalCatalogAdr: "docs/architecture/ADR-011-UNIVERSAL-CATALOG.md",
+  universalCatalogPhysical: "docs/architecture/UNIVERSAL-CATALOG-B2-003.md",
+  universalCatalogAudit: "docs/quality/B2-003-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -73,6 +75,25 @@ const requiredStatements = new Map([
       "Núcleo agnóstico a categoría",
       "Catálogo universal no significa publicación irrestricta",
       "no modifica migraciones, código ni artefactos desplegados",
+    ],
+  ],
+  [
+    "universalCatalogPhysical",
+    [
+      "PostgreSQL no interpreta lenguaje, fotos ni intención",
+      "precios, monedas, tiers y `on_request`: B2-004",
+      "stock, paquetes, kits, movimientos y reservas: B2-005",
+      "buckets, objetos, variantes derivadas y URLs firmadas: B2-010",
+      "forward-only y atómica",
+    ],
+  ],
+  [
+    "universalCatalogAudit",
+    [
+      "74/74 pgTAP",
+      "runner pgTAP enlazado, probado y con guard de proyecto",
+      "No se borró historial ni se deshabilitó una constraint",
+      "este documento no usa `COMPLETE`",
     ],
   ],
 ]);

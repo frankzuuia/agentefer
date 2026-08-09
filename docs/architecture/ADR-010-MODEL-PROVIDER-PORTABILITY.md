@@ -19,7 +19,6 @@ La arquitectura también debe permitir incorporar un modelo o proveedor futuro c
 | AI_MODEL             | sí en worker             | proveedor:modelo exacto para conversación y tool calling             |
 | AI_VISION_MODEL      | no                       | proveedor:modelo para entradas visuales; hereda AI_MODEL si se omite |
 | AI_REASONING_EFFORT  | no                       | preferencia genérica; valor inicial medium                           |
-| AI_MAX_OUTPUT_TOKENS | sí                       | límite duro por generación                                           |
 | AI_TURN_TIMEOUT_MS   | sí                       | timeout por llamada                                                  |
 | AI_MAX_TOOL_ROUNDS   | sí                       | límite duro del ciclo de tools                                       |
 | AI_CACHE_MODE        | sí                       | off, auto o explicit según capacidades verificadas                   |
@@ -46,6 +45,8 @@ Reglas:
 5. AI_REASONING_EFFORT sólo se transmite cuando el adaptador declara una semántica compatible. Si no aplica, se registra como not_applied; no se inventa una equivalencia.
 6. Una credencial faltante o modelo inválido vuelve readiness no apta y no genera una respuesta ficticia.
 7. Los cambios de variables sólo aplican al nuevo proceso/despliegue, conforme al comportamiento de EasyPanel/Vercel.
+8. El runtime no impone un límite fijo de salida por configuración comercial: omite el parámetro cuando la API lo permite y, cuando el proveedor lo exige, usa el máximo seguro verificado para el modelo/capacidad seleccionados.
+9. Toda terminación por límite de salida o contexto se normaliza, mide y continúa desde estado persistido sin repetir tools ni perder hechos ya confirmados.
 
 ## Diseño del runtime de IA
 
@@ -56,6 +57,7 @@ packages/ai tendrá un contrato interno estable:
 - solicitud normalizada con actor, canal, mensajes, contenidos y tools permitidas;
 - respuesta normalizada con texto, tool calls, finish reason, uso, latencia y estado del proveedor;
 - estado opaco del proveedor para continuidad;
+- política de salida resuelta por capacidades verificadas, nunca por una constante global arbitraria;
 - errores normalizados sin perder código/request ID seguro del proveedor;
 - eventos de cache, costo y rate limit.
 
@@ -166,6 +168,7 @@ Todo adaptador/modelo seleccionado debe pasar el mismo contrato:
 10. cancelación y máximo de rondas;
 11. redacción de logs;
 12. no duplicación tras retry/fallback.
+13. terminación por salida/contexto y continuación idempotente.
 
 Además debe ejecutar evals representativas de AgenteFer: precio pendiente, ambigüedad entre IDs, alta multimodal de categorías conocidas y nuevas, atributos/unidades dinámicos, llanta con/sin rin y tiers 1–4 como fixtures, cantidades mayores, inventario, handoff, asesoría y publicaciones.
 

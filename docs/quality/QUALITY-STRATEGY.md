@@ -20,6 +20,9 @@ Todo cambio de código debe ejecutar, según alcance:
 10. contract/eval si afecta IA o proveedor;
 11. Playwright/accesibilidad si afecta web;
 12. build/scan de contenedor si afecta API/worker.
+13. escenarios Gherkin parseados y vinculados al flujo si cambia negocio;
+14. mutation testing sobre código y constraints críticos;
+15. concurrencia real si existe unicidad, saldo, reserva, lease o idempotencia disputable.
 
 No se cierran gates omitiendo una suite fallida. Un skip exige motivo, alcance y aprobador documentados.
 
@@ -34,6 +37,8 @@ No se cierran gates omitiendo una suite fallida. Un skip exige motivo, alcance y
 - transformación de contratos de proveedor.
 
 No reemplazan una integración real con mocks. Los adaptadores externos necesitan su contract test real.
+
+Mutation testing es obligatorio sobre el código crítico modificado. La suite no se considera fuerte si un mutante equivalente al defecto que pretende prevenir sobrevive sin una excepción explícita revisada.
 
 ### Integración
 
@@ -126,6 +131,8 @@ Después se fijan presupuestos y alertas mediante ADR/runbook.
 | Web          | component/integration, Playwright, a11y, mobile, headers    |
 | Contenedor   | build, non-root, health/readiness, scan                     |
 | Deploy       | rama/destino, smoke, rollback, correlación a commit         |
+
+Para SQL/RLS, CI ejecuta además mutación de constraints/policies/triggers y carreras PostgreSQL reales cuando el modelo depende de unicidad o serialización. Los tests remotos usan transacciones con `ROLLBACK`; no dejan fixtures.
 
 Fixtures oficiales sirven para reproducir formatos; no demuestran que una credencial o permiso real funcione. La aceptación externa exige prueba staging.
 

@@ -66,7 +66,6 @@ La guardia de exposición inspecciona todas las variables `NEXT_PUBLIC_*` presen
 | `AI_MODEL`             | interna | siempre     | `provider:model` exacto; modelo no enumerado              |
 | `AI_VISION_MODEL`      | interna | opcional    | hereda `AI_MODEL`; no cambia de proveedor silenciosamente |
 | `AI_REASONING_EFFORT`  | interna | opcional    | preferencia transmitida sólo si el adapter la soporta     |
-| `AI_MAX_OUTPUT_TOKENS` | interna | siempre     | entero positivo, techo absoluto 1,000,000                 |
 | `AI_TURN_TIMEOUT_MS`   | interna | siempre     | entero positivo, techo absoluto 600,000 ms                |
 | `AI_MAX_TOOL_ROUNDS`   | interna | siempre     | entero positivo, techo absoluto 64                        |
 | `AI_CACHE_MODE`        | interna | siempre     | `off`, `auto` o `explicit`                                |

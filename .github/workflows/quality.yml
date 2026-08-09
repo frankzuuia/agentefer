@@ -51,6 +51,17 @@ jobs:
       - name: Run complete quality gate
         run: npm run verify
 
+      - name: Preserve coverage and mutation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: code-quality-evidence-${{ github.sha }}
+          path: |
+            coverage
+            reports/mutation
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Verify registry signatures and attestations
         run: npm audit signatures
 
@@ -120,7 +131,6 @@ jobs:
             --env SUPABASE_PROJECT_REF=agentefercitest \
             --env SUPABASE_SECRET_KEY="$worker_secret_key" \
             --env AI_MODEL=future-provider:ci-model \
-            --env AI_MAX_OUTPUT_TOKENS=8192 \
             --env AI_TURN_TIMEOUT_MS=120000 \
             --env AI_MAX_TOOL_ROUNDS=12 \
             --env AI_CACHE_MODE=auto \
@@ -202,6 +212,12 @@ jobs:
       - name: Run transactional pgTAP contract
         run: supabase test db --local supabase/tests
 
+      - name: Verify concurrent SKU uniqueness
+        run: node ./scripts/verify-database-concurrency.mjs
+
+      - name: Run database mutation gate
+        run: node ./scripts/verify-database-mutations.mjs
+
       - name: Lint application schemas
         run: supabase db lint --local --schema app_private,api --level warning --fail-on error
 
@@ -233,6 +249,15 @@ jobs:
           path: ${{ runner.temp }}/database.types.ts
           if-no-files-found: ignore
           retention-days: 1
+
+      - name: Preserve database quality evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: database-quality-evidence-${{ github.sha }}
+          path: reports/database-quality
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Stop isolated Supabase services
         if: always()

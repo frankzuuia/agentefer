@@ -167,7 +167,6 @@ await verifyRuntime({
     SUPABASE_PROJECT_REF: "agenteferprocesstest",
     SUPABASE_SECRET_KEY: ["sb", "secret", "worker", "process", "test", "only"].join("_"),
     AI_MODEL: "future-provider:process-test-model",
-    AI_MAX_OUTPUT_TOKENS: "8192",
     AI_TURN_TIMEOUT_MS: "120000",
     AI_MAX_TOOL_ROUNDS: "12",
     AI_CACHE_MODE: "auto",

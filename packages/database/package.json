@@ -12,7 +12,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "lint": "eslint src",
+    "lint": "eslint src test",
+    "test": "vitest run --root ../.. --config vitest.config.ts packages/database/test",
     "typecheck": "tsc -p tsconfig.json"
   },
   "engines": {

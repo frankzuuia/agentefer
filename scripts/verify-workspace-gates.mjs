@@ -47,6 +47,9 @@ const requiredRootScripts = [
   "verify",
   "verify:ci-policy",
   "verify:documentation-contract",
+  "verify:acceptance-contract",
+  "test:coverage",
+  "test:mutation",
 ];
 
 for (const scriptName of requiredRootScripts) {
@@ -60,6 +63,18 @@ for (const scriptName of requiredRootScripts) {
 assert.ok(
   rootManifest.scripts.test.includes("npm run verify:documentation-contract"),
   "the root test pipeline must execute the documentation contract",
+);
+assert.ok(
+  rootManifest.scripts.test.includes("npm run verify:acceptance-contract"),
+  "the root test pipeline must execute the Gherkin acceptance contract",
+);
+assert.ok(
+  rootManifest.scripts.test.includes("npm run test:coverage"),
+  "the root test pipeline must enforce measured coverage",
+);
+assert.ok(
+  rootManifest.scripts.test.includes("npm run test:mutation"),
+  "the root test pipeline must enforce mutation testing",
 );
 
 const activeWorkspaces = [];
