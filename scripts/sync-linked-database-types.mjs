@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { format } from "prettier";
 
+import { normalizeGeneratedDatabaseTypes } from "../packages/database/dist/type-normalizer.js";
 import prettierConfiguration from "../prettier.config.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -54,7 +55,7 @@ const generatedTypes = runSupabase([
   "app_private,api",
 ]);
 const targetPath = path.join(repositoryRoot, "packages", "database", "src", "database.types.ts");
-const formattedTypes = await format(generatedTypes, {
+const formattedTypes = await format(normalizeGeneratedDatabaseTypes(generatedTypes), {
   ...prettierConfiguration,
   filepath: targetPath,
 });

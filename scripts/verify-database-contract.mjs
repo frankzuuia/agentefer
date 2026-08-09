@@ -372,6 +372,7 @@ const requiredWorkflowStatements = [
   "version: 2.111.0",
   "supabase db reset --local --no-seed",
   "supabase gen types typescript --local --schema app_private,api",
+  'node ./scripts/normalize-database-types.mjs "$generated_types"',
   'prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs"',
   "git diff --no-index --exit-code",
   "packages/database/src/database.types.ts",
@@ -397,6 +398,11 @@ assert.equal(
   false,
   "generated application types cannot silently fall back to public",
 );
+assert.equal(
+  generatedTypes.includes("  __InternalSupabase: {"),
+  false,
+  "canonical database types cannot couple schema drift to the PostgREST runtime version",
+);
 for (const exportedType of [
   "CompositeTypes",
   "Database",
@@ -408,6 +414,10 @@ for (const exportedType of [
 ]) {
   assert.ok(databaseIndex.includes(exportedType), `database package must export ${exportedType}`);
 }
+assert.ok(
+  databaseIndex.includes("normalizeGeneratedDatabaseTypes"),
+  "database package must export its shared generated-type normalizer",
+);
 for (const scriptName of ["build", "lint", "test", "typecheck"]) {
   assert.equal(
     typeof databaseManifest.scripts?.[scriptName],
@@ -417,7 +427,7 @@ for (const scriptName of ["build", "lint", "test", "typecheck"]) {
 }
 assert.equal(
   rootManifest.scripts?.["database:types:linked"],
-  "node ./scripts/sync-linked-database-types.mjs",
+  "npm run build --workspace @agentefer/database && node ./scripts/sync-linked-database-types.mjs",
   "root package must expose controlled linked type synchronization",
 );
 assert.ok(

@@ -111,6 +111,7 @@ for (const command of [
   "supabase test db --local supabase/tests",
   "node ./scripts/verify-database-concurrency.mjs",
   "node ./scripts/verify-database-mutations.mjs",
+  'node ./scripts/normalize-database-types.mjs "$generated_types"',
   "supabase db lint --local --schema app_private,api --level warning --fail-on error",
   "supabase db advisors --local --type all --level warn --fail-on warn",
 ]) {

@@ -1,4 +1,5 @@
 export { Constants } from "./database.types.js";
+export { normalizeGeneratedDatabaseTypes } from "./type-normalizer.js";
 export type {
   CompositeTypes,
   Database,

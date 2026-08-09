@@ -1,6 +1,10 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
-  mutate: ["packages/ai/src/**/*.ts", "!packages/ai/src/index.ts"],
+  mutate: [
+    "packages/ai/src/**/*.ts",
+    "!packages/ai/src/index.ts",
+    "packages/database/src/type-normalizer.ts",
+  ],
   ignorePatterns: [
     ".npm/**",
     ".stryker-tmp/**",
@@ -9,7 +13,7 @@ export default {
     "docs/**",
     "supabase/**",
   ],
-  disableTypeChecks: "packages/ai/src/**/*.ts",
+  disableTypeChecks: "packages/{ai,database}/src/**/*.ts",
   testRunner: "vitest",
   vitest: {
     configFile: "vitest.config.ts",

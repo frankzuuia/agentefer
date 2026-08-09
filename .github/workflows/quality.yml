@@ -196,6 +196,11 @@ jobs:
           npm install --global npm@11.16.0 --ignore-scripts
           npm install --global prettier@3.9.6 --ignore-scripts
 
+      - name: Install and build shared database type contract
+        run: |
+          npm ci --ignore-scripts
+          npm run build --workspace @agentefer/database
+
       - name: Report database toolchain
         run: |
           supabase --version
@@ -230,6 +235,7 @@ jobs:
 
           generated_types="${RUNNER_TEMP}/database.types.ts"
           supabase gen types typescript --local --schema app_private,api > "$generated_types"
+          node ./scripts/normalize-database-types.mjs "$generated_types"
           prettier --config "${GITHUB_WORKSPACE}/prettier.config.mjs" --write "$generated_types"
 
       - name: Verify generated database types have no drift

@@ -247,6 +247,6 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Supabase AgenteFer: proyecto enlazado `hprdctmblmfcoagugvyp`; ambas versiones remotas registradas.
 - Estado remoto acumulado: 30 tablas privadas con RLS forzado; B2-003 aporta 16 tablas, 16 policies y 14 vistas seguras.
 - QA remoto: 75/75 pgTAP transaccionales, linter `app_private,api` sin errores y advisors sin hallazgos.
-- QA de código provisional: 81 pruebas, 93.66% líneas, 93.47% statements, 92.95% funciones y 89.01% ramas; 37/37 mutantes de código eliminados; 20/20 corridas de estrés de entrypoints. CI final vuelve a ejecutar estas puertas antes del cierre.
+- QA de código provisional: 90 pruebas, 93.94% líneas, 93.75% statements, 93.05% funciones y 89.57% ramas; 112/112 mutantes de código eliminados; 20/20 corridas de estrés de entrypoints. CI final vuelve a ejecutar estas puertas antes del cierre.
 - CI B2-003: pendiente del primer push de `develop`; hasta entonces B2-003 no cambia a `[x]`.
 - Auditoría: `docs/quality/B2-003-DESIGN-AUDIT.md` (`IMPLEMENTED`, cierre CI pendiente).

@@ -15,7 +15,7 @@ Estado: **IMPLEMENTED** y certificado contra Supabase AgenteFer; cierre CI final
 - SQL: 75/75 pgTAP mediante Management API, transacción con rollback.
 - Esquema: lint sin errores; advisors security/performance sin hallazgos.
 - Tipos: generados desde remoto para `app_private,api`; `public` ausente.
-- Código antes de cierre CI: 81 tests; 93.66% líneas, 93.47% statements, 92.95% funciones, 89.01% ramas; 37/37 mutantes eliminados.
+- Código antes de cierre CI: 90 tests; 93.94% líneas, 93.75% statements, 93.05% funciones, 89.57% ramas; 112/112 mutantes eliminados.
 - Dependencias: exactas; `npm audit` 0 vulnerabilidades; 546 firmas de registro y 145 attestations verificadas.
 - Aceptación: 7 escenarios Gherkin parseados sin errores.
 - Lifecycle TCP: entrypoints API/worker sincronizados con su promesa real; 20/20 corridas de estrés conjuntas.
@@ -58,6 +58,18 @@ Corrección de regresión:
 3. `finally` cierra siempre el runtime antes de restaurar proceso y listeners;
 4. no se elevó el timeout global;
 5. 20/20 ejecuciones conjuntas de ambos entrypoints pasaron antes de repetir la puerta integral.
+
+## Autopsia del segundo run CI
+
+El run `31324792990` aprobó migraciones desde cero, 209 pgTAP, concurrencia, tres mutantes de esquema, lint y advisors. El drift final de tipos falló porque el remoto generaba `__InternalSupabase.PostgrestVersion: "14.15"`, mientras la imagen local no emitía ese metadato. El contrato relacional era idéntico; la comparación estaba acoplada a una versión operativa de PostgREST.
+
+Corrección de regresión:
+
+1. un normalizador compartido elimina únicamente `__InternalSupabase` y sus comentarios generados;
+2. remoto y CI local usan la misma función tipada;
+3. el normalizador falla cerrado ante bloques duplicados o incompletos;
+4. tablas, vistas, relaciones, enums y funciones continúan comparándose byte por byte;
+5. el normalizador queda bajo pruebas unitarias, cobertura y mutation testing.
 
 ## Cross-match
 

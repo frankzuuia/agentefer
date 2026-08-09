@@ -10,7 +10,7 @@ export default defineConfig({
         "apps/worker/src/**/*.ts",
         "packages/ai/src/**/*.ts",
         "packages/config/src/**/*.ts",
-        "packages/database/src/linked-pgtap.ts",
+        "packages/database/src/{linked-pgtap,type-normalizer}.ts",
         "packages/observability/src/**/*.ts",
       ],
       exclude: ["**/*.d.ts"],

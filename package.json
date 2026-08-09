@@ -34,7 +34,7 @@
   "scripts": {
     "audit": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=high",
     "build": "npm run prepare:internal && npm run build --workspaces --if-present",
-    "database:types:linked": "node ./scripts/sync-linked-database-types.mjs",
+    "database:types:linked": "npm run build --workspace @agentefer/database && node ./scripts/sync-linked-database-types.mjs",
     "format": "prettier --write package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs vitest.config.ts stryker.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
     "format:check": "prettier --check package.json dependency-policy.json tsconfig.base.json eslint.config.mjs prettier.config.mjs vitest.config.ts stryker.config.mjs compose.yaml \".github/**/*.{yml,yaml}\" \"apps/**/package.json\" \"packages/**/*.{json,ts,tsx}\" \"scripts/**/*.mjs\"",
     "lint": "npm run prepare:internal && eslint --no-error-on-unmatched-pattern eslint.config.mjs prettier.config.mjs \"scripts/**/*.mjs\" \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
