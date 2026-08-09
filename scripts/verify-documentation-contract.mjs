@@ -93,7 +93,8 @@ const requiredStatements = new Map([
       "75/75 pgTAP",
       "runner pgTAP enlazado, probado y con guard de proyecto",
       "No se borró historial ni se deshabilitó una constraint",
-      "este documento no usa `COMPLETE`",
+      "Estado: **COMPLETE**, **INTEGRITY TOTAL** y **MATCH PERFECT**",
+      "run `31325637856`",
     ],
   ],
 ]);

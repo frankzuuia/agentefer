@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001/B2-002 completos; B2-003 implementado y certificado en Supabase AgenteFer con CI final pendiente. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001/B2-002/B2-003 completos; B2-003 está certificado en Supabase AgenteFer y en CI aislado. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -46,7 +46,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------ |
 | B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías                     | migración definitiva, owner invariant, grants/RLS y pruebas cross-org    | [x]    |
 | B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [x]    |
-| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy; 75/75 pgTAP; CI final pendiente              | [ ]    |
+| B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy; 75/75 pgTAP; CI `31325637856` verde           | [x]    |
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | cantidades arbitrarias, unidades distintas, vigencias y dinero preciso   | [ ]    |
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | concurrencia, paquete/kit declarado y stock nunca negativo               | [ ]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | pedido ≠ venta, snapshots e idempotencia                                 | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003 aplicado y 75/75 pgTAP remotas aprobadas; cierre final espera CI aislado de concurrencia/mutación. Tools, adapters y UI todavía pendientes.
+- Functional implementation: B2-003 completo; 75/75 pgTAP remotas y CI aislado de concurrencia/mutación aprobados. Precios B2-004, stock B2-005, tools, adapters y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -187,7 +187,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Baseline técnico aceptado: `docs/architecture/ADR-009-TECHNICAL-BASELINE.md`.
 - Portabilidad OpenAI/MiniMax aceptada: `docs/architecture/ADR-010-MODEL-PROVIDER-PORTABILITY.md`.
 - Catálogo universal data-driven aceptado: `docs/architecture/ADR-011-UNIVERSAL-CATALOG.md`.
-- Auditoría RQ-110: `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` (`MATCH PERFECT` documental; implementación B2 pendiente).
+- Auditoría RQ-110: `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` (`MATCH PERFECT` documental; núcleo B2-003 completo y precios/stock B2-004/B2-005 pendientes).
 - Onboarding de modelos futuros: `docs/operations/MODEL-ONBOARDING-PLAYBOOK.md`.
 - Gates de QA: `docs/quality/QUALITY-STRATEGY.md`.
 - Auditoría reproducible: `docs/quality/B1-DOCUMENTATION-AUDIT.md`.
@@ -239,7 +239,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - CI final verificado: run `30870893413` sobre commit `92a0783eb032c39efd4d6bd09d4d7e02f931798b`; `Verify`, `Container runtime` y `Database contract` concluyeron `success`, con 0 annotations.
 - Auditoría final: `docs/quality/B2-002-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).
 
-## Evidencia provisional de B2-003
+## Evidencia de B2-003
 
 - Contrato físico: `docs/architecture/UNIVERSAL-CATALOG-B2-003.md`.
 - Migración base: `supabase/migrations/20260809095510_b2_003_universal_catalog.sql`; SHA-256 `D754E2067D02DA1FAE1C4C92E950E4B53C58B4C8BDE98AF59C5E9D28784CA884`.
@@ -247,6 +247,8 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Supabase AgenteFer: proyecto enlazado `hprdctmblmfcoagugvyp`; ambas versiones remotas registradas.
 - Estado remoto acumulado: 30 tablas privadas con RLS forzado; B2-003 aporta 16 tablas, 16 policies y 14 vistas seguras.
 - QA remoto: 75/75 pgTAP transaccionales, linter `app_private,api` sin errores y advisors sin hallazgos.
-- QA de código provisional: 90 pruebas, 93.94% líneas, 93.75% statements, 93.05% funciones y 89.57% ramas; 112/112 mutantes de código eliminados; 20/20 corridas de estrés de entrypoints. CI final vuelve a ejecutar estas puertas antes del cierre.
-- CI B2-003: pendiente del primer push de `develop`; hasta entonces B2-003 no cambia a `[x]`.
-- Auditoría: `docs/quality/B2-003-DESIGN-AUDIT.md` (`IMPLEMENTED`, cierre CI pendiente).
+- QA de código final: 90 pruebas, 93.94% líneas, 93.75% statements, 93.05% funciones y 89.57% ramas; 112/112 mutantes de código eliminados; 20/20 corridas de estrés de entrypoints y 3/3 suites completas posteriores a la regresión del harness.
+- CI final verificado: run `31325637856` sobre commit `e17b7463e4fa40dae4a2a8018906574f09d19524`; `Verify` (`93275431303`), `Database contract` (`93275639641`) y `Container runtime` (`93275639658`) concluyeron `success`.
+- Contrato DB en CI: cuatro migraciones desde cero, 209 pgTAP acumuladas, carrera de SKU, 3/3 mutantes de esquema eliminados, lint/advisors y tipos normalizados sin drift.
+- Supply chain en CI: `npm audit` sin vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
+- Auditoría final: `docs/quality/B2-003-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).

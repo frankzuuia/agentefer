@@ -2,7 +2,7 @@
 
 Fecha: 2026-08-09.  
 Alcance: catálogo universal, ingesta/evidencia cognitiva, producto/variante/SKU y seguridad tenant-aware.  
-Estado: **IMPLEMENTED** y certificado contra Supabase AgenteFer; cierre CI final pendiente.
+Estado: **COMPLETE**, **INTEGRITY TOTAL** y **MATCH PERFECT**; certificado contra Supabase AgenteFer y CI aislado.
 
 ## Evidencia
 
@@ -15,10 +15,11 @@ Estado: **IMPLEMENTED** y certificado contra Supabase AgenteFer; cierre CI final
 - SQL: 75/75 pgTAP mediante Management API, transacción con rollback.
 - Esquema: lint sin errores; advisors security/performance sin hallazgos.
 - Tipos: generados desde remoto para `app_private,api`; `public` ausente.
-- Código antes de cierre CI: 90 tests; 93.94% líneas, 93.75% statements, 93.05% funciones, 89.57% ramas; 112/112 mutantes eliminados.
+- Código final: 90 tests; 93.94% líneas, 93.75% statements, 93.05% funciones, 89.57% ramas; 112/112 mutantes eliminados.
 - Dependencias: exactas; `npm audit` 0 vulnerabilidades; 546 firmas de registro y 145 attestations verificadas.
 - Aceptación: 7 escenarios Gherkin parseados sin errores.
-- Lifecycle TCP: entrypoints API/worker sincronizados con su promesa real; 20/20 corridas de estrés conjuntas.
+- Lifecycle TCP: entrypoints API/worker sincronizados con su promesa real; 20/20 corridas de estrés conjuntas y 3/3 suites completas de cobertura después de la regresión del harness.
+- CI final: run `31325637856` sobre `e17b7463e4fa40dae4a2a8018906574f09d19524`; jobs `Verify` (`93275431303`), `Database contract` (`93275639641`) y `Container runtime` (`93275639658`) en `success`.
 
 ## Autopsia de regresión real
 
@@ -59,6 +60,10 @@ Corrección de regresión:
 4. no se elevó el timeout global;
 5. 20/20 ejecuciones conjuntas de ambos entrypoints pasaron antes de repetir la puerta integral.
 
+Una repetición integral posterior confirmó que la importación dinámica instrumentada todavía podía consumir el presupuesto de 5 segundos del propio caso cuando competía con los otros 13 archivos. API y worker aislados completaron su lifecycle real en 759 ms y 475 ms; el mismo caso API, bajo instrumentación paralela, agotó 6.6 segundos antes de ejecutar sus aserciones.
+
+La preparación real del proceso y su limpieza se movieron a `beforeAll`/`afterAll`, sin mocks ni aumento de timeouts. El caso conserva HTTP TCP real, listener real `SIGTERM`, cierre idempotente y verificación del puerto cerrado. Después del ajuste, los cuerpos de los casos consumieron 40 ms/32 ms y tres suites completas consecutivas aprobaron 270/270 ejecuciones.
+
 ## Autopsia del segundo run CI
 
 El run `31324792990` aprobó migraciones desde cero, 209 pgTAP, concurrencia, tres mutantes de esquema, lint y advisors. El drift final de tipos falló porque el remoto generaba `__InternalSupabase.PostgrestVersion: "14.15"`, mientras la imagen local no emitía ese metadato. El contrato relacional era idéntico; la comparación estaba acoplada a una versión operativa de PostgREST.
@@ -94,14 +99,14 @@ Corrección de regresión:
 - No se cargaron las cinco imágenes ni catálogo real.
 - No se conectó Meta, EasyPanel, Cloudflare o Vercel.
 
-## Gate pendiente
+## Gate final
 
-GitHub Actions debe ejecutar sobre PostgreSQL local aislado:
+GitHub Actions ejecutó sobre PostgreSQL local aislado:
 
 - migraciones desde cero;
 - las 209 pgTAP acumuladas;
 - dos sesiones concurrentes para el mismo SKU;
 - 3 mutantes de esquema con 100% eliminados;
-- type drift, lint, advisors, cobertura, mutation testing de código, contenedores y auditoría de supply chain.
+- type drift normalizado, lint, advisors, cobertura, mutation testing de código, contenedores y auditoría de supply chain.
 
-Hasta que ese run sea verde, este documento no usa `COMPLETE` ni cambia B2-003 a `[x]`.
+El run `31325637856` aprobó cada puerta. B2-003 queda `COMPLETE` y cambia a `[x]`; B2-004/B2-005 conservan la propiedad exclusiva de precios y stock.
