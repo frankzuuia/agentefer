@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildLinkedPgtapCollector, splitSqlStatements } from "../src/linked-pgtap.js";
+import {
+  buildLinkedMigrationPgtapCollector,
+  buildLinkedPgtapCollector,
+  splitSqlStatements,
+} from "../src/linked-pgtap.js";
 
 describe("linked pgTAP SQL lexer", () => {
   it("splits only semicolons outside SQL quoting and comments", () => {
@@ -73,5 +77,52 @@ describe("linked pgTAP collector", () => {
     expect(() => buildLinkedPgtapCollector("begin; select extensions.ok(true); commit;")).toThrow(
       "linked pgTAP source must end with ROLLBACK",
     );
+  });
+});
+
+describe("linked migration pgTAP collector", () => {
+  it("rehearses committed migration SQL and pgTAP inside one rolled-back transaction", () => {
+    const transformed = buildLinkedMigrationPgtapCollector(
+      `
+        begin;
+        create table public.rehearsal_table (id bigint primary key);
+        commit;
+      `,
+      `
+        begin;
+        create extension if not exists pgtap with schema extensions;
+        select extensions.plan(1);
+        select extensions.has_table('public', 'rehearsal_table');
+        select * from extensions.finish();
+        rollback;
+      `,
+    );
+
+    expect(transformed).toContain("create table public.rehearsal_table");
+    expect(
+      splitSqlStatements(transformed).some((statement) => statement.toLowerCase() === "commit"),
+    ).toBe(false);
+    expect(transformed.match(/\bbegin\b/gi)).toHaveLength(1);
+    expect(transformed).toContain(
+      "insert into pg_temp.linked_tap_results (result) select extensions.has_table",
+    );
+    expect(transformed.trimEnd().endsWith("rollback;")).toBe(true);
+  });
+
+  it.each([
+    ["select 1; commit;", "begin; select extensions.plan(0); rollback;", "must start with BEGIN"],
+    [
+      "begin; select 1; rollback;",
+      "begin; select extensions.plan(0); rollback;",
+      "must end with COMMIT",
+    ],
+    ["begin; select 1; commit;", "select extensions.plan(0); rollback;", "must start with BEGIN"],
+    [
+      "begin; select 1; commit;",
+      "begin; select extensions.plan(0); commit;",
+      "must end with ROLLBACK",
+    ],
+  ])("rejects unsafe transaction boundaries", (migrationSql, pgtapSql, message) => {
+    expect(() => buildLinkedMigrationPgtapCollector(migrationSql, pgtapSql)).toThrow(message);
   });
 });

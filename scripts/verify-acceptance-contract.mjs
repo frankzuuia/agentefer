@@ -55,6 +55,12 @@ for (const featureEntry of featureEntries) {
     assert.ok(pickles.length >= 7, "B2-003 must preserve all critical acceptance scenarios");
   }
 
+  if (featureEntry === "b2_004_pricing.feature") {
+    const rules = document.feature.children.filter((child) => child.rule !== undefined);
+    assert.ok(rules.length >= 6, "B2-004 must preserve its six pricing acceptance rules");
+    assert.ok(pickles.length >= 8, "B2-004 must preserve all critical pricing scenarios");
+  }
+
   totalPickles += pickles.length;
 }
 

@@ -67,6 +67,45 @@ values (
   'Concurrent item',
   'active'
 );
+insert into app_private.catalog_units (
+  id, organization_id, code, name_singular, name_plural,
+  quantity_kind, decimal_scale, status, created_by_user_id
+)
+values (
+  '33000000-0000-4000-8000-000000000110',
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent_unit',
+  'Concurrent unit',
+  'Concurrent units',
+  'count',
+  0,
+  'active',
+  '33000000-0000-4000-8000-000000000001'
+);
+insert into app_private.catalog_evidence (
+  id, organization_id, evidence_kind, content, created_by_user_id
+)
+values (
+  '33000000-0000-4000-8000-000000000180',
+  '33000000-0000-4000-8000-000000000010',
+  'owner_confirmation',
+  '{"source":"B2-004 concurrency gate"}'::jsonb,
+  '33000000-0000-4000-8000-000000000001'
+);
+insert into app_private.price_books (
+  id, organization_id, code, name, currency_code,
+  status, is_default, created_by_user_id
+)
+values (
+  '33000000-0000-4000-8000-000000000200',
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent_book',
+  'Concurrent price book',
+  'MXN',
+  'active',
+  true,
+  '33000000-0000-4000-8000-000000000001'
+);
 insert into app_private.products (id, organization_id, category_id, name)
 values
   (
@@ -134,43 +173,118 @@ const runSync = (sql, capture = false) => {
 
 runSync(fixtureSql);
 
-const firstWrite = runCaptured(`
-begin;
-set local role service_role;
-insert into app_private.variant_skus (organization_id, variant_id, sku)
-values (
-  '33000000-0000-4000-8000-000000000010',
-  '33000000-0000-4000-8000-000000000160',
-  'CONCURRENT-SKU'
-);
-select pg_sleep(2);
-commit;
-`);
+const verifyRace = async ({ label, firstSql, secondSql, countSql, failureMarker }) => {
+  const firstWrite = runCaptured(firstSql);
 
-await new Promise((resolve) => setTimeout(resolve, 250));
+  await new Promise((resolve) => setTimeout(resolve, 250));
 
-const secondWrite = runCaptured(`
-begin;
-set local role service_role;
-insert into app_private.variant_skus (organization_id, variant_id, sku)
-values (
-  '33000000-0000-4000-8000-000000000010',
-  '33000000-0000-4000-8000-000000000161',
-  'concurrent-sku'
-);
-commit;
-`);
+  const secondWrite = runCaptured(secondSql);
+  const results = await Promise.all([firstWrite, secondWrite]);
+  const successfulWrites = results.filter((result) => result.status === 0).length;
+  const failedWrites = results.filter((result) => result.status !== 0).length;
+  const failedDiagnostic = results
+    .filter((result) => result.status !== 0)
+    .map((result) => `${result.stdout}\n${result.stderr}`)
+    .join("\n");
+  const countResult = runSync(countSql, true);
+  const persistedRows = Number.parseInt(countResult.stdout.trim(), 10);
 
-const results = await Promise.all([firstWrite, secondWrite]);
-const successfulWrites = results.filter((result) => result.status === 0).length;
-const failedWrites = results.filter((result) => result.status !== 0).length;
-const countResult = runSync(
-  `select count(*) from app_private.variant_skus
+  assert.equal(successfulWrites, 1, `exactly one concurrent ${label} write must commit`);
+  assert.equal(failedWrites, 1, `exactly one concurrent ${label} write must conflict`);
+  assert.equal(persistedRows, 1, `${label} conflict must leave exactly one row`);
+  assert.ok(
+    failedDiagnostic.includes(failureMarker),
+    `${label} conflict must come from ${failureMarker}`,
+  );
+
+  return {
+    successfulWrites,
+    failedWrites,
+    persistedRows,
+    results: results.map((result) => ({
+      status: result.status,
+      diagnostic: `${result.stdout}\n${result.stderr}`.trim().split("\n").slice(-20).join("\n"),
+    })),
+  };
+};
+
+const skuRace = await verifyRace({
+  label: "SKU",
+  firstSql: `
+    begin;
+    set local role service_role;
+    insert into app_private.variant_skus (organization_id, variant_id, sku)
+    values (
+      '33000000-0000-4000-8000-000000000010',
+      '33000000-0000-4000-8000-000000000160',
+      'CONCURRENT-SKU'
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    insert into app_private.variant_skus (organization_id, variant_id, sku)
+    values (
+      '33000000-0000-4000-8000-000000000010',
+      '33000000-0000-4000-8000-000000000161',
+      'concurrent-sku'
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.variant_skus
     where organization_id = '33000000-0000-4000-8000-000000000010'
       and lower(sku) = 'concurrent-sku';`,
-  true,
-);
-const persistedRows = Number.parseInt(countResult.stdout.trim(), 10);
+  failureMarker: "variant_skus_organization_sku_unique",
+});
+
+const priceRace = await verifyRace({
+  label: "price tier",
+  firstSql: `
+    begin;
+    set local role service_role;
+    insert into app_private.price_tiers (
+      organization_id, price_book_id, variant_id, unit_id,
+      quantity_min, quantity_max, pricing_status, calculation_method,
+      price_amount, valid_from, valid_until, evidence_id
+    ) values (
+      '33000000-0000-4000-8000-000000000010',
+      '33000000-0000-4000-8000-000000000200',
+      '33000000-0000-4000-8000-000000000160',
+      '33000000-0000-4000-8000-000000000110',
+      1, 4, 'priced', 'per_unit',
+      1000, '2026-01-01 00:00:00+00', '2027-01-01 00:00:00+00',
+      '33000000-0000-4000-8000-000000000180'
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    insert into app_private.price_tiers (
+      organization_id, price_book_id, variant_id, unit_id,
+      quantity_min, quantity_max, pricing_status, calculation_method,
+      price_amount, valid_from, valid_until, evidence_id
+    ) values (
+      '33000000-0000-4000-8000-000000000010',
+      '33000000-0000-4000-8000-000000000200',
+      '33000000-0000-4000-8000-000000000160',
+      '33000000-0000-4000-8000-000000000110',
+      2, 3, 'priced', 'per_unit',
+      2500, '2026-06-01 00:00:00+00', '2026-12-01 00:00:00+00',
+      '33000000-0000-4000-8000-000000000180'
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.price_tiers
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and price_book_id = '33000000-0000-4000-8000-000000000200'
+      and variant_id = '33000000-0000-4000-8000-000000000160'
+      and unit_id = '33000000-0000-4000-8000-000000000110';`,
+  failureMarker: "price_tiers_no_current_overlap",
+});
 
 await mkdir(reportDirectory, { recursive: true });
 await writeFile(
@@ -178,13 +292,8 @@ await writeFile(
   `${JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
-      successfulWrites,
-      failedWrites,
-      persistedRows,
-      results: results.map((result) => ({
-        status: result.status,
-        diagnostic: `${result.stdout}\n${result.stderr}`.trim().split("\n").slice(-20).join("\n"),
-      })),
+      sku: skuRace,
+      pricing: priceRace,
     },
     null,
     2,
@@ -192,8 +301,6 @@ await writeFile(
   "utf8",
 );
 
-assert.equal(successfulWrites, 1, "exactly one concurrent SKU write must commit");
-assert.equal(failedWrites, 1, "exactly one concurrent SKU write must conflict");
-assert.equal(persistedRows, 1, "concurrent conflict must leave exactly one SKU row");
-
-console.log("Database concurrency verified: one commit, one conflict, one persisted SKU.");
+console.log(
+  "Database concurrency verified: SKU and price overlap each produced one commit and one conflict.",
+);

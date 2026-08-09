@@ -1140,6 +1140,203 @@ export type Database = {
         };
         Relationships: [];
       };
+      price_books: {
+        Row: {
+          code: string | null;
+          created_at: string | null;
+          currency_code: string | null;
+          id: string | null;
+          is_default: boolean | null;
+          name: string | null;
+          organization_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          code?: string | null;
+          created_at?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          is_default?: boolean | null;
+          name?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          code?: string | null;
+          created_at?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          is_default?: boolean | null;
+          name?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "price_books_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      price_tier_changes: {
+        Row: {
+          changed_at: string | null;
+          created_by_user_id: string | null;
+          evidence_id: string | null;
+          new_calculation_method: string | null;
+          new_price_amount: number | null;
+          new_pricing_status: string | null;
+          new_quantity_max: number | null;
+          new_quantity_min: number | null;
+          new_valid_from: string | null;
+          new_valid_until: string | null;
+          organization_id: string | null;
+          previous_calculation_method: string | null;
+          previous_price_amount: number | null;
+          previous_price_tier_id: string | null;
+          previous_pricing_status: string | null;
+          previous_quantity_max: number | null;
+          previous_quantity_min: number | null;
+          previous_valid_from: string | null;
+          previous_valid_until: string | null;
+          price_book_id: string | null;
+          price_tier_id: string | null;
+          unit_id: string | null;
+          variant_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "price_tiers_price_book_fk";
+            columns: ["organization_id", "price_book_id"];
+            isOneToOne: false;
+            referencedRelation: "price_books";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      price_tiers: {
+        Row: {
+          calculation_method: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          evidence_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          price_amount: number | null;
+          price_book_id: string | null;
+          pricing_status: string | null;
+          quantity_max: number | null;
+          quantity_min: number | null;
+          superseded_at: string | null;
+          supersedes_price_tier_id: string | null;
+          unit_id: string | null;
+          valid_from: string | null;
+          valid_until: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          calculation_method?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          evidence_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          price_book_id?: string | null;
+          pricing_status?: string | null;
+          quantity_max?: number | null;
+          quantity_min?: number | null;
+          superseded_at?: string | null;
+          supersedes_price_tier_id?: string | null;
+          unit_id?: string | null;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          calculation_method?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          evidence_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          price_book_id?: string | null;
+          pricing_status?: string | null;
+          quantity_max?: number | null;
+          quantity_min?: number | null;
+          superseded_at?: string | null;
+          supersedes_price_tier_id?: string | null;
+          unit_id?: string | null;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "price_tiers_price_book_fk";
+            columns: ["organization_id", "price_book_id"];
+            isOneToOne: false;
+            referencedRelation: "price_books";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_supersedes_fk";
+            columns: ["organization_id", "supersedes_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "previous_price_tier_id"];
+          },
+          {
+            foreignKeyName: "price_tiers_supersedes_fk";
+            columns: ["organization_id", "supersedes_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "price_tier_id"];
+          },
+          {
+            foreignKeyName: "price_tiers_supersedes_fk";
+            columns: ["organization_id", "supersedes_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       product_attribute_values: {
         Row: {
           attribute_definition_id: string | null;
@@ -1476,7 +1673,31 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      resolve_price_quote: {
+        Args: {
+          target_at?: string;
+          target_price_book_id: string;
+          target_quantity: number;
+          target_unit_id: string;
+          target_variant_id: string;
+        };
+        Returns: {
+          calculation_method: string;
+          currency_code: string;
+          evidence_id: string;
+          organization_id: string;
+          price_amount: number;
+          price_book_id: string;
+          price_tier_id: string;
+          pricing_status: string;
+          requested_quantity: number;
+          total_amount: number;
+          unit_id: string;
+          valid_from: string;
+          valid_until: string;
+          variant_id: string;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -2980,6 +3201,155 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "messages";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      price_books: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          currency_code: string;
+          id: string;
+          is_default: boolean;
+          name: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          currency_code: string;
+          id?: string;
+          is_default?: boolean;
+          name: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          currency_code?: string;
+          id?: string;
+          is_default?: boolean;
+          name?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "price_books_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      price_tiers: {
+        Row: {
+          calculation_method: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          evidence_id: string;
+          id: string;
+          organization_id: string;
+          price_amount: number | null;
+          price_book_id: string;
+          pricing_status: string;
+          quantity_max: number | null;
+          quantity_min: number;
+          quantity_range: unknown;
+          superseded_at: string | null;
+          supersedes_price_tier_id: string | null;
+          unit_id: string;
+          valid_during: unknown;
+          valid_from: string;
+          valid_until: string | null;
+          variant_id: string;
+        };
+        Insert: {
+          calculation_method?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          evidence_id: string;
+          id?: string;
+          organization_id: string;
+          price_amount?: number | null;
+          price_book_id: string;
+          pricing_status: string;
+          quantity_max?: number | null;
+          quantity_min: number;
+          quantity_range?: unknown;
+          superseded_at?: string | null;
+          supersedes_price_tier_id?: string | null;
+          unit_id: string;
+          valid_during?: unknown;
+          valid_from: string;
+          valid_until?: string | null;
+          variant_id: string;
+        };
+        Update: {
+          calculation_method?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          evidence_id?: string;
+          id?: string;
+          organization_id?: string;
+          price_amount?: number | null;
+          price_book_id?: string;
+          pricing_status?: string;
+          quantity_max?: number | null;
+          quantity_min?: number;
+          quantity_range?: unknown;
+          superseded_at?: string | null;
+          supersedes_price_tier_id?: string | null;
+          unit_id?: string;
+          valid_during?: unknown;
+          valid_from?: string;
+          valid_until?: string | null;
+          variant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "price_tiers_evidence_fk";
+            columns: ["organization_id", "evidence_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_evidence";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_price_book_fk";
+            columns: ["organization_id", "price_book_id"];
+            isOneToOne: false;
+            referencedRelation: "price_books";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_supersedes_fk";
+            columns: ["organization_id", "supersedes_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };

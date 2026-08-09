@@ -21,8 +21,10 @@ assert.deepEqual(
     "20260804011126_b2_002_channels_messaging.sql",
     "20260809095510_b2_003_universal_catalog.sql",
     "20260809101909_b2_003_catalog_trigger_hardening.sql",
+    "20260809200347_b2_004_pricing.sql",
+    "20260809201842_b2_004_monotonic_updated_at.sql",
   ],
-  "B2-001 through B2-003 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-004 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -38,6 +40,11 @@ const catalogTriggerHardeningMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[3]),
   "utf8",
 );
+const pricingMigration = await readFile(path.join(migrationDirectory, migrationEntries[4]), "utf8");
+const pricingTimestampHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[5]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -48,6 +55,10 @@ const messagingDatabaseTest = await readFile(
 );
 const catalogDatabaseTest = await readFile(
   path.join(testDirectory, "b2_003_universal_catalog_test.sql"),
+  "utf8",
+);
+const pricingDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_004_pricing_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -74,6 +85,8 @@ for (const [name, migration] of [
   ["B2-002", messagingMigration],
   ["B2-003", catalogMigration],
   ["B2-003 trigger hardening", catalogTriggerHardeningMigration],
+  ["B2-004", pricingMigration],
+  ["B2-004 timestamp hardening", pricingTimestampHardeningMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -274,6 +287,81 @@ for (const statement of requiredCatalogTriggerHardeningStatements) {
   );
 }
 
+const requiredPricingMigrationStatements = [
+  "create extension if not exists btree_gist with schema extensions;",
+  "create table app_private.price_books (",
+  "create table app_private.price_tiers (",
+  "create unique index price_books_one_active_default_per_organization",
+  "constraint price_tiers_no_current_overlap",
+  "deferrable initially immediate",
+  "create function app_private.validate_price_tier()",
+  "create trigger price_tiers_validate",
+  "create policy price_books_member_select",
+  "create policy price_tiers_member_select",
+  "create view api.price_books",
+  "create view api.price_tiers",
+  "create view api.price_tier_changes",
+  "create function api.resolve_price_quote(",
+  "pricing tiers are rows, never fixed quantity columns",
+  "price interpretation belongs to LLM tool calling",
+  "stock and package composition belong to B2-005",
+  "from public, anon, authenticated, service_role;",
+];
+
+for (const statement of requiredPricingMigrationStatements) {
+  assert.ok(
+    pricingMigration.includes(statement),
+    `B2-004 database migration must include: ${statement}`,
+  );
+}
+
+assert.equal(
+  pricingMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  3,
+  "all three B2-004 API views must preserve caller RLS",
+);
+assert.equal(
+  pricingMigration.split("force row level security;").length - 1,
+  2,
+  "both B2-004 private relations must force RLS",
+);
+assert.equal(
+  pricingMigration.split("create policy ").length - 1,
+  2,
+  "both B2-004 private relations must define an authenticated read policy",
+);
+assert.equal(
+  pricingMigration.includes("to anon"),
+  false,
+  "B2-004 cannot grant application access to anon",
+);
+for (const forbiddenFixedPriceColumn of [
+  "price_for_one",
+  "price_for_two",
+  "price_for_three",
+  "price_for_four",
+  "single_price",
+  "package_price",
+]) {
+  assert.equal(
+    pricingMigration.includes(forbiddenFixedPriceColumn),
+    false,
+    `B2-004 pricing cannot compile fixed commercial columns: ${forbiddenFixedPriceColumn}`,
+  );
+}
+
+for (const statement of [
+  "create or replace function app_private.set_updated_at()",
+  "pg_catalog.clock_timestamp()",
+  "old.updated_at + interval '1 microsecond'",
+  "strictly monotonic row update timestamp",
+]) {
+  assert.ok(
+    pricingTimestampHardeningMigration.includes(statement),
+    `B2-004 timestamp hardening must include: ${statement}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -337,10 +425,32 @@ for (const statement of requiredCatalogTestStatements) {
   );
 }
 
+const requiredPricingTestStatements = [
+  "select extensions.plan(65);",
+  "set local role authenticated;",
+  "set local role anon;",
+  "set local role service_role;",
+  "four-unit package keeps its explicit total instead of deriving 6800",
+  "open quantity tier supports arbitrary permitted quantities",
+  "overlapping quantity and validity are rejected without priority guessing",
+  "typed audit view preserves the previous amount",
+  "anonymous quote resolution remains disabled before B6",
+  "service role cannot erase price tier history",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredPricingTestStatements) {
+  assert.ok(
+    pricingDatabaseTest.includes(statement),
+    `B2-004 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
   ["B2-003", catalogDatabaseTest],
+  ["B2-004", pricingDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -430,11 +540,16 @@ assert.equal(
   "npm run build --workspace @agentefer/database && node ./scripts/sync-linked-database-types.mjs",
   "root package must expose controlled linked type synchronization",
 );
+assert.equal(
+  rootManifest.scripts?.["test:database:linked:rehearsal"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-migration.mjs",
+  "root package must expose controlled linked migration rehearsal",
+);
 assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 30 forced-RLS tables, 209 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 32 forced-RLS tables, 274 pgTAP assertions, generated TypeScript schemas locked.`,
 );

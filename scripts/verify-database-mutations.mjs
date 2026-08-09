@@ -19,21 +19,38 @@ assert.equal(
 );
 
 const containerName = "supabase_db_agentefer";
-const databaseTest = "supabase/tests/b2_003_universal_catalog_test.sql";
 const reportDirectory = path.join(repositoryRoot, "reports", "database-quality");
 const reportPath = path.join(reportDirectory, "mutation-summary.json");
 const mutants = [
   {
     name: "remove organization-wide SKU uniqueness",
     sql: "drop index app_private.variant_skus_organization_sku_unique;",
+    test: "supabase/tests/b2_003_universal_catalog_test.sql",
   },
   {
     name: "remove product tenant read policy",
     sql: "drop policy products_member_select on app_private.products;",
+    test: "supabase/tests/b2_003_universal_catalog_test.sql",
   },
   {
     name: "remove variant activation validator",
     sql: "drop trigger product_variants_validate_activation on app_private.product_variants;",
+    test: "supabase/tests/b2_003_universal_catalog_test.sql",
+  },
+  {
+    name: "remove current price overlap exclusion",
+    sql: "alter table app_private.price_tiers drop constraint price_tiers_no_current_overlap;",
+    test: "supabase/tests/b2_004_pricing_test.sql",
+  },
+  {
+    name: "remove price tier tenant read policy",
+    sql: "drop policy price_tiers_member_select on app_private.price_tiers;",
+    test: "supabase/tests/b2_004_pricing_test.sql",
+  },
+  {
+    name: "remove price tier semantic validator",
+    sql: "drop trigger price_tiers_validate on app_private.price_tiers;",
+    test: "supabase/tests/b2_004_pricing_test.sql",
   },
 ];
 
@@ -77,7 +94,7 @@ try {
       mutant.sql,
     ]);
 
-    const testResult = run("supabase", ["test", "db", "--local", databaseTest], true);
+    const testResult = run("supabase", ["test", "db", "--local", mutant.test], true);
     const killed = testResult.status !== 0;
     const diagnostic = `${testResult.stdout ?? ""}\n${testResult.stderr ?? ""}`
       .trim()
@@ -85,14 +102,14 @@ try {
       .slice(-30)
       .join("\n");
 
-    outcomes.push({ name: mutant.name, killed, diagnostic });
+    outcomes.push({ name: mutant.name, test: mutant.test, killed, diagnostic });
   }
 } catch (error) {
   executionError = error;
 } finally {
   try {
     requireSuccess("supabase", ["db", "reset", "--local", "--no-seed"]);
-    requireSuccess("supabase", ["test", "db", "--local", databaseTest]);
+    requireSuccess("supabase", ["test", "db", "--local", "supabase/tests"]);
   } catch (error) {
     recoveryError = error;
   }

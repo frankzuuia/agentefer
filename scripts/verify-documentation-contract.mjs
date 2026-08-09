@@ -19,6 +19,9 @@ const files = {
   universalCatalogAdr: "docs/architecture/ADR-011-UNIVERSAL-CATALOG.md",
   universalCatalogPhysical: "docs/architecture/UNIVERSAL-CATALOG-B2-003.md",
   universalCatalogAudit: "docs/quality/B2-003-DESIGN-AUDIT.md",
+  pricingResearch: "docs/references/PRICING-B2-004-RESEARCH.md",
+  pricingPhysical: "docs/architecture/PRICING-B2-004.md",
+  pricingAudit: "docs/quality/B2-004-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -97,6 +100,37 @@ const requiredStatements = new Map([
       "run `31325637856`",
     ],
   ],
+  [
+    "pricingResearch",
+    [
+      "`numeric`/`decimal` como tipos exactos",
+      "`EXCLUDE` para restricciones entre filas",
+      "`btree_gist` combina igualdad escalar con rangos",
+      "impiden cantidades arbitrarias",
+    ],
+  ],
+  [
+    "pricingPhysical",
+    [
+      "B2-004 no decide qué quiso decir Fer",
+      "libro, variante, unidad, cantidad y vigencia",
+      "`fixed_total`",
+      "`per_unit`",
+      "forward-only y atómica",
+    ],
+  ],
+  [
+    "pricingAudit",
+    [
+      "CANDIDATE — PENDING ISOLATED CI",
+      "65/65 pgTAP",
+      "hprdctmblmfcoagugvyp",
+      "price_tiers_no_current_overlap",
+      "timestamp en regresión acumulada",
+      "274/274 pgTAP",
+      "No se deshabilitó ninguna constraint",
+    ],
+  ],
 ]);
 
 for (const [documentName, statements] of requiredStatements) {
@@ -136,5 +170,5 @@ for (const prohibitedColumn of prohibitedFixedColumns) {
 }
 
 console.log(
-  `AgenteFer universal catalog documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
+  `AgenteFer catalog and pricing documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
 );

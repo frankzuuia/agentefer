@@ -219,3 +219,41 @@ export const buildLinkedPgtapCollector = (sql: string): string => {
   transformed.push("select result from pg_temp.linked_tap_results order by sequence", "rollback");
   return `${transformed.join(";\n\n")};\n`;
 };
+
+export const buildLinkedMigrationPgtapCollector = (
+  migrationSql: string,
+  pgtapSql: string,
+): string => {
+  const migrationStatements = splitSqlStatements(migrationSql);
+  assert.equal(
+    migrationStatements[0]?.toLowerCase(),
+    "begin",
+    "linked migration source must start with BEGIN",
+  );
+  assert.equal(
+    migrationStatements.at(-1)?.toLowerCase(),
+    "commit",
+    "linked migration source must end with COMMIT",
+  );
+
+  const pgtapStatements = splitSqlStatements(pgtapSql);
+  assert.equal(
+    pgtapStatements[0]?.toLowerCase(),
+    "begin",
+    "linked migration pgTAP source must start with BEGIN",
+  );
+  assert.equal(
+    pgtapStatements.at(-1)?.toLowerCase(),
+    "rollback",
+    "linked migration pgTAP source must end with ROLLBACK",
+  );
+
+  const rehearsalStatements = [
+    "begin",
+    ...migrationStatements.slice(1, -1),
+    ...pgtapStatements.slice(1, -1),
+    "rollback",
+  ];
+
+  return buildLinkedPgtapCollector(`${rehearsalStatements.join(";\n\n")};\n`);
+};

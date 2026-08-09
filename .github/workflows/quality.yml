@@ -217,7 +217,7 @@ jobs:
       - name: Run transactional pgTAP contract
         run: supabase test db --local supabase/tests
 
-      - name: Verify concurrent SKU uniqueness
+      - name: Verify concurrent catalog and pricing constraints
         run: node ./scripts/verify-database-concurrency.mjs
 
       - name: Run database mutation gate
