@@ -4,7 +4,7 @@ Fecha: 2026-08-03.
 Alcance: aclaración de producto, arquitectura documental y gate de regresión previos a B2.  
 Excluido: migraciones, datos comerciales, catálogo funcional, despliegues e integraciones externas; todavía no existen.
 
-Actualización acumulada 2026-08-10: la exclusión anterior describe el gate documental original. B2-003 implementa y certifica el núcleo universal; B2-004 tiene precios aplicados y está pendiente de su CI final de index hardening. B2-005 conserva stock/composición y las publicaciones/integraciones siguen pendientes.
+Actualización acumulada 2026-08-10: la exclusión anterior describe el gate documental original. B2-003 implementa y certifica el núcleo universal; B2-004 implementa y certifica precios universales e index hardening. B2-005 conserva stock/composición y las publicaciones/integraciones siguen pendientes.
 
 ## Corrección solicitada
 
@@ -67,4 +67,4 @@ El gate se ejecuta como `npm run verify:documentation-contract`, forma parte de 
 
 **Veredicto original: MATCH PERFECT documental para RQ-110.** En la fecha de esta auditoría la implementación funcional continuaba pendiente de los gates de B2; aquel veredicto no afirmaba que ya existieran catálogo, esquema o publicación real.
 
-Estado funcional acumulado: B2-003 está `COMPLETE`, `INTEGRITY TOTAL` y `MATCH PERFECT`; B2-004 es candidato final y B2-005/tools/UI/publicación/integraciones permanecen pendientes.
+Estado funcional acumulado: B2-003 y B2-004 están `COMPLETE`, `INTEGRITY TOTAL` y `MATCH PERFECT`; B2-005/tools/UI/publicación/integraciones permanecen pendientes.

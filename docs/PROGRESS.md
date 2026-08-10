@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001/B2-002/B2-003 completos; B2-004 está aplicado 7/7 y validado 275/275 en Supabase AgenteFer, con index hardening pendiente de CI final. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001/B2-002/B2-003/B2-004 completos; precios universales e index hardening están aplicados 7/7 y certificados 275/275 en Supabase AgenteFer y CI aislado. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -47,7 +47,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B2-001 | BL-001, BL-002, SC-002–SC-003, SC-032 | endurecimiento de privileges, organizaciones, perfiles de usuario/negocio y membresías                     | migración definitiva, owner invariant, grants/RLS y pruebas cross-org    | [x]    |
 | B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [x]    |
 | B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy; 75/75 pgTAP; CI `31325637856` verde          | [x]    |
-| B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | 66/66 pgTAP; séptimo mutante/índice FK pendientes de CI final            | [ ]    |
+| B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | 66/66 pgTAP; CI `31407961615`; 7/7 mutantes y concurrencia verdes        | [x]    |
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | concurrencia, paquete/kit declarado y stock nunca negativo               | [ ]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | pedido ≠ venta, snapshots e idempotencia                                 | [ ]    |
 | B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | estados, dedupe, cancelación y versionado                                | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003 completo; B2-004 aplicado con 275/275 pgTAP remotas y candidato pendiente del séptimo mutante/CI final. Stock B2-005, tools, adapters y UI todavía pendientes.
+- Functional implementation: B2-003/B2-004 completos; precios aplicados con 275/275 pgTAP y CI final verde. Stock B2-005, tools, adapters y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -187,7 +187,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Baseline técnico aceptado: `docs/architecture/ADR-009-TECHNICAL-BASELINE.md`.
 - Portabilidad OpenAI/MiniMax aceptada: `docs/architecture/ADR-010-MODEL-PROVIDER-PORTABILITY.md`.
 - Catálogo universal data-driven aceptado: `docs/architecture/ADR-011-UNIVERSAL-CATALOG.md`.
-- Auditoría RQ-110: `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` (`MATCH PERFECT` documental; núcleo B2-003 completo, precios B2-004 candidatos finales y stock B2-005 pendiente).
+- Auditoría RQ-110: `docs/quality/UNIVERSAL-CATALOG-AUDIT.md` (`MATCH PERFECT`; núcleo B2-003 y precios B2-004 completos, stock B2-005 pendiente).
 - Onboarding de modelos futuros: `docs/operations/MODEL-ONBOARDING-PLAYBOOK.md`.
 - Gates de QA: `docs/quality/QUALITY-STRATEGY.md`.
 - Auditoría reproducible: `docs/quality/B1-DOCUMENTATION-AUDIT.md`.
@@ -253,7 +253,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Supply chain en CI: `npm audit` sin vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
 - Auditoría final: `docs/quality/B2-003-DESIGN-AUDIT.md` (`COMPLETE`, `INTEGRITY TOTAL`, `MATCH PERFECT`).
 
-## Evidencia candidata de B2-004
+## Evidencia final de B2-004
 
 - Investigación oficial: `docs/references/PRICING-B2-004-RESEARCH.md`.
 - Contrato físico: `docs/architecture/PRICING-B2-004.md`.
@@ -266,6 +266,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Tipos: regenerados desde remoto para `app_private,api` con libros, tiers, historial tipado y resolver exacto.
 - QA de código final: 95 pruebas, 94.02% líneas, 93.83% statements, 93.10% funciones y 89.57% ramas; 112/112 mutantes de código eliminados.
 - Contrato DB previo al index hardening: run `31334187729` verde con seis migraciones, 274 pgTAP, carreras SKU/precio y 6/6 mutantes.
-- Gate pendiente: nuevo CI aislado con siete migraciones, 275 pgTAP y 7/7 mutantes de esquema.
+- Gate final: run `31407961615` sobre `4c6796037d7cb45a83d9b7e11942dc2c0ba66f04`; `Verify` `93518794936`, `Database contract` `93519526341` y `Container runtime` `93519526510`, todos `success` y con 0 annotations.
+- Base aislada final: siete migraciones desde cero, 275/275 pgTAP, SKU/precio con un commit y un conflicto, 7/7 mutantes eliminados, lint/advisors y tipos sin drift.
 - Supply chain: 0 vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
-- Auditoría candidata: `docs/quality/B2-004-DESIGN-AUDIT.md` (`CANDIDATE — PENDING FINAL CI`).
+- Auditoría final: `docs/quality/B2-004-DESIGN-AUDIT.md` (`COMPLETE — INTEGRITY TOTAL — MATCH PERFECT`).

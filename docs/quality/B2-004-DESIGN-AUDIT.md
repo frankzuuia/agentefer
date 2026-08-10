@@ -2,7 +2,7 @@
 
 Fecha de cierre: 2026-08-10.  
 Alcance: libros y tiers de precio universales, moneda, unidad, cantidad, vigencia, `on_request`, historial y resolución exacta.  
-Estado: **CANDIDATE — PENDING FINAL CI**; siete migraciones y 275/275 pgTAP verificadas contra Supabase AgenteFer, index hardening pendiente de CI aislado.
+Estado: **COMPLETE — INTEGRITY TOTAL — MATCH PERFECT**; siete migraciones, 275/275 pgTAP y el index hardening están certificados contra Supabase AgenteFer y CI aislado.
 
 ## Evidencia final
 
@@ -24,6 +24,8 @@ Estado: **CANDIDATE — PENDING FINAL CI**; siete migraciones y 275/275 pgTAP ve
 - Código del runner: 21/21 unit tests del paquete database, compilación, tipos, lint y formato verdes.
 - Código final: 95/95 tests; 94.02% líneas, 93.83% statements, 93.10% funciones y 89.57% ramas; 112/112 mutantes de código eliminados.
 - CI candidato previo al index hardening: run `31334187729` sobre `fa5ac860a330d6eb959f3a7ae1fbfb5a8c66bd1d`; jobs `Verify` (`93297206821`), `Database contract` (`93297438027`) y `Container runtime` (`93297438029`) en `success`, con 0 annotations.
+- CI final: run `31407961615` sobre `4c6796037d7cb45a83d9b7e11942dc2c0ba66f04`; jobs `Verify` (`93518794936`), `Database contract` (`93519526341`) y `Container runtime` (`93519526510`) en `success`, con 0 annotations.
+- Evidencia DB aislada final: siete migraciones desde cero; 275/275 pgTAP; carreras SKU/precio con un commit y un conflicto; 7/7 mutantes eliminados; lint/advisors verdes y tipos sin drift.
 - Supply chain: 0 vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
 - Changelog oficial Supabase revisado al cierre; ningún breaking change vigente afecta el contrato B2-004.
 
@@ -70,11 +72,11 @@ Durante el preflight se ejecutaron por error dos comandos linked en paralelo. Am
 - B6 decidirá la proyección pública autorizada; B2-004 no expone precios a `anon`.
 - No se cargaron productos ni precios reales y no se conectó Meta, EasyPanel, Cloudflare o Vercel.
 
-## Gate pendiente
+## Gate final
 
 El equipo local no tiene Docker/Podman instalado. El ensayo remoto transaccional con guard exacto de nombre/ref validó SQL real sin persistencia; GitHub Actions aportó después el PostgreSQL/Supabase aislado que faltaba.
 
-El run `31334187729` demostró el contrato previo. El CI final del index hardening debe demostrar:
+El run `31334187729` demostró el contrato previo. El run final `31407961615` demostró:
 
 - las siete migraciones desde cero;
 - las 275 pgTAP acumuladas;
@@ -83,4 +85,4 @@ El run `31334187729` demostró el contrato previo. El CI final del index hardeni
 - tipos sin drift, lint y advisors;
 - gates generales de cobertura, mutation testing de código, contenedores y supply chain.
 
-B2-004 no cambia a `[x]` hasta que ese nuevo run concluya `success`; B2-005 conserva la propiedad exclusiva de stock/composición.
+B2-004 queda en `[x]` porque el run final concluyó `success` sin annotations. B2-005 conserva la propiedad exclusiva de stock/composición.
