@@ -11,6 +11,7 @@ Alcance: dinero exacto, rangos de cantidad/vigencia, exclusión concurrente y co
 - Los range types y el operador de solapamiento `&&` permiten impedir intervalos coincidentes; `btree_gist` combina igualdad escalar con rangos: <https://www.postgresql.org/docs/17/rangetypes.html>.
 - `btree_gist` es una extensión trusted y aporta clases GiST para `uuid`, `numeric` y `timestamptz`: <https://www.postgresql.org/docs/17/btree-gist.html>.
 - Las constraints `EXCLUDE` pueden ser `DEFERRABLE`; `SET CONSTRAINTS` controla su comprobación transaccional: <https://www.postgresql.org/docs/17/sql-set-constraints.html>.
+- El changelog Supabase se revisó nuevamente al cierre: los cambios vigentes sobre `logs.all`, versiones explícitas de extensiones, gateway self-hosted, Realtime y autoexposición de `public` no afectan B2-004; este bloque no usa esos endpoints/schemas, no fija versión de extensión y expone únicamente `api` con grants/RLS explícitos: <https://supabase.com/changelog>.
 
 ## Decisiones ratificadas
 

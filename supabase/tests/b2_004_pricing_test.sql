@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(65);
+select extensions.plan(66);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -126,6 +126,30 @@ select extensions.is(
   ),
   3,
   'money and quantities use exact numeric columns'
+);
+
+select extensions.is(
+  (
+    select count(*)::integer
+    from pg_catalog.pg_constraint as foreign_key
+    where foreign_key.contype = 'f'
+      and foreign_key.conrelid in (
+        'app_private.price_books'::regclass,
+        'app_private.price_tiers'::regclass
+      )
+      and not exists (
+        select 1
+        from pg_catalog.pg_index as index_value
+        where index_value.indrelid = foreign_key.conrelid
+          and index_value.indisvalid
+          and index_value.indisready
+          and (
+            string_to_array(index_value.indkey::text, ' ')::smallint[]
+          )[1:cardinality(foreign_key.conkey)] = foreign_key.conkey
+      )
+  ),
+  0,
+  'every B2-004 foreign key column is indexed'
 );
 
 select extensions.ok(

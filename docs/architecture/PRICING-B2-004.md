@@ -1,6 +1,6 @@
 # AgenteFer — contrato físico de precios B2-004
 
-Estado: implementado en Supabase AgenteFer; candidato pendiente de CI aislado.  
+Estado: implementado en Supabase AgenteFer; index hardening candidato pendiente de CI final.  
 Requisitos: BL-005/006/010/012, SC-010/SC-013, RQ-031–RQ-033, RQ-046, RQ-051, RQ-053/RQ-054 y RQ-110.  
 Proyecto: Supabase AgenteFer `hprdctmblmfcoagugvyp`.
 

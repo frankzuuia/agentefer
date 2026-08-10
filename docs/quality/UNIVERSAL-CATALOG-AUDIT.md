@@ -4,6 +4,8 @@ Fecha: 2026-08-03.
 Alcance: aclaración de producto, arquitectura documental y gate de regresión previos a B2.  
 Excluido: migraciones, datos comerciales, catálogo funcional, despliegues e integraciones externas; todavía no existen.
 
+Actualización acumulada 2026-08-10: la exclusión anterior describe el gate documental original. B2-003 implementa y certifica el núcleo universal; B2-004 tiene precios aplicados y está pendiente de su CI final de index hardening. B2-005 conserva stock/composición y las publicaciones/integraciones siguen pendientes.
+
 ## Corrección solicitada
 
 Fer puede subir y vender cualquier mercancía u oferta permitida, no sólo llantas. Llantas, rines, tinacos y tambos son ejemplos iniciales; una categoría futura debe poder incorporarse como datos sin migración, edición de código ni despliegue.
@@ -24,14 +26,14 @@ Antes de RQ-110, RQ-004 y RQ-052 ya exigían un catálogo multirubro, pero algun
 
 ## Matriz de trazabilidad
 
-| Fuente | Contrato | Validación futura |
-| ------ | -------- | ----------------- |
-| RQ-110 | categoría/atributos/unidades/opciones/tarifas como datos | categoría nueva sin migración/código/deploy |
-| BL-009 | producto-variante-SKU agnóstico a rubro | llanta/rin, tinaco, tambor, genérico y concurrencia SKU |
-| BL-010 | escalones de precio y unidades arbitrarios | 1–4 como fixture, cantidad mayor y otra unidad |
-| BL-011 | unidad inventariable y paquetes explícitos | concurrencia y consumo declarado |
-| BL-012 | UI/filtros/selectores generados desde datos | categoría recién creada y precio server-side |
-| ADR-011 | límites, alternativas y gates | B2/B3/B5/B6/B9 |
+| Fuente  | Contrato                                                 | Validación futura                                       |
+| ------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| RQ-110  | categoría/atributos/unidades/opciones/tarifas como datos | categoría nueva sin migración/código/deploy             |
+| BL-009  | producto-variante-SKU agnóstico a rubro                  | llanta/rin, tinaco, tambor, genérico y concurrencia SKU |
+| BL-010  | escalones de precio y unidades arbitrarios               | 1–4 como fixture, cantidad mayor y otra unidad          |
+| BL-011  | unidad inventariable y paquetes explícitos               | concurrencia y consumo declarado                        |
+| BL-012  | UI/filtros/selectores generados desde datos              | categoría recién creada y precio server-side            |
+| ADR-011 | límites, alternativas y gates                            | B2/B3/B5/B6/B9                                          |
 
 ## Seguridad
 
@@ -63,4 +65,6 @@ El gate se ejecuta como `npm run verify:documentation-contract`, forma parte de 
 
 ## Veredicto
 
-**MATCH PERFECT documental para RQ-110.** La implementación funcional continúa pendiente de los gates de B2; este veredicto no afirma que exista todavía catálogo, esquema o publicación real.
+**Veredicto original: MATCH PERFECT documental para RQ-110.** En la fecha de esta auditoría la implementación funcional continuaba pendiente de los gates de B2; aquel veredicto no afirmaba que ya existieran catálogo, esquema o publicación real.
+
+Estado funcional acumulado: B2-003 está `COMPLETE`, `INTEGRITY TOTAL` y `MATCH PERFECT`; B2-004 es candidato final y B2-005/tools/UI/publicación/integraciones permanecen pendientes.

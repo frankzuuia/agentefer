@@ -69,7 +69,16 @@ const requiredStatements = new Map([
     "masterSpecification",
     ["RQ-001–RQ-110", "categoría nueva sin migración/despliegue", "cantidad superior a cuatro"],
   ],
-  ["progress", ["RQ-110 → ADR-011", "categoría nueva sin deploy", "cantidad >4"]],
+  [
+    "progress",
+    [
+      "RQ-110 → ADR-011",
+      "categoría nueva sin deploy",
+      "cantidad >4",
+      "B2-004 aplicado con 275/275 pgTAP remotas",
+      "run `31334187729`",
+    ],
+  ],
   ["systemContext", ["categoría nueva es dato de la organización", "ADR-011"]],
   [
     "universalCatalogAdr",
@@ -122,12 +131,14 @@ const requiredStatements = new Map([
   [
     "pricingAudit",
     [
-      "CANDIDATE — PENDING ISOLATED CI",
-      "65/65 pgTAP",
+      "Estado: **CANDIDATE — PENDING FINAL CI**",
+      "66/66 pgTAP",
+      "275/275 pgTAP",
       "hprdctmblmfcoagugvyp",
       "price_tiers_no_current_overlap",
       "timestamp en regresión acumulada",
-      "274/274 pgTAP",
+      "7/7 mutantes de esquema",
+      "run `31334187729`",
       "No se deshabilitó ninguna constraint",
     ],
   ],

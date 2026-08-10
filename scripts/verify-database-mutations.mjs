@@ -52,6 +52,11 @@ const mutants = [
     sql: "drop trigger price_tiers_validate on app_private.price_tiers;",
     test: "supabase/tests/b2_004_pricing_test.sql",
   },
+  {
+    name: "remove price book creator foreign-key index",
+    sql: "drop index app_private.price_books_created_by_user_idx;",
+    test: "supabase/tests/b2_004_pricing_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {

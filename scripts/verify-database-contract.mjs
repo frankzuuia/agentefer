@@ -23,6 +23,7 @@ assert.deepEqual(
     "20260809101909_b2_003_catalog_trigger_hardening.sql",
     "20260809200347_b2_004_pricing.sql",
     "20260809201842_b2_004_monotonic_updated_at.sql",
+    "20260810155350_b2_004_price_book_creator_index.sql",
   ],
   "B2-001 through B2-004 must remain ordered, reviewable production migrations",
 );
@@ -43,6 +44,10 @@ const catalogTriggerHardeningMigration = await readFile(
 const pricingMigration = await readFile(path.join(migrationDirectory, migrationEntries[4]), "utf8");
 const pricingTimestampHardeningMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[5]),
+  "utf8",
+);
+const pricingIndexHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[6]),
   "utf8",
 );
 const foundationDatabaseTest = await readFile(
@@ -87,6 +92,7 @@ for (const [name, migration] of [
   ["B2-003 trigger hardening", catalogTriggerHardeningMigration],
   ["B2-004", pricingMigration],
   ["B2-004 timestamp hardening", pricingTimestampHardeningMigration],
+  ["B2-004 index hardening", pricingIndexHardeningMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -362,6 +368,18 @@ for (const statement of [
   );
 }
 
+for (const statement of [
+  "create index price_books_created_by_user_idx",
+  "on app_private.price_books (created_by_user_id)",
+  "where created_by_user_id is not null",
+  "without scanning every price book",
+]) {
+  assert.ok(
+    pricingIndexHardeningMigration.includes(statement),
+    `B2-004 index hardening must include: ${statement}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -426,7 +444,7 @@ for (const statement of requiredCatalogTestStatements) {
 }
 
 const requiredPricingTestStatements = [
-  "select extensions.plan(65);",
+  "select extensions.plan(66);",
   "set local role authenticated;",
   "set local role anon;",
   "set local role service_role;",
@@ -436,6 +454,7 @@ const requiredPricingTestStatements = [
   "typed audit view preserves the previous amount",
   "anonymous quote resolution remains disabled before B6",
   "service role cannot erase price tier history",
+  "every B2-004 foreign key column is indexed",
   "select * from extensions.finish();",
 ];
 
@@ -551,5 +570,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 32 forced-RLS tables, 274 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 32 forced-RLS tables, 275 pgTAP assertions, generated TypeScript schemas locked.`,
 );

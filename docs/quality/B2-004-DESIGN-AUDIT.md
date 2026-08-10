@@ -1,10 +1,10 @@
 # AgenteFer — auditoría forense B2-004
 
-Fecha: 2026-08-09.  
+Fecha de cierre: 2026-08-10.  
 Alcance: libros y tiers de precio universales, moneda, unidad, cantidad, vigencia, `on_request`, historial y resolución exacta.  
-Estado: **CANDIDATE — PENDING ISOLATED CI**; aplicado y probado contra Supabase AgenteFer, sin declarar todavía el gate local-Docker de CI.
+Estado: **CANDIDATE — PENDING FINAL CI**; siete migraciones y 275/275 pgTAP verificadas contra Supabase AgenteFer, index hardening pendiente de CI aislado.
 
-## Evidencia disponible
+## Evidencia final
 
 - Requisitos: BL-010, SC-010, SC-013, RQ-031–RQ-033, RQ-046, RQ-051, RQ-053/RQ-054 y RQ-110.
 - Investigación oficial: `docs/references/PRICING-B2-004-RESEARCH.md`.
@@ -12,14 +12,20 @@ Estado: **CANDIDATE — PENDING ISOLATED CI**; aplicado y probado contra Supabas
 - Aceptación: `features/b2_004_pricing.feature`, con 8 escenarios y 6 reglas.
 - Migración: `20260809200347_b2_004_pricing.sql`, SHA-256 `61FFDC0FA104BDB236B8F38C2226816A71DFFF22659F4C1ABB1D80077BCF065C`.
 - Hardening: `20260809201842_b2_004_monotonic_updated_at.sql`, SHA-256 `0BF40BF2F60FD3A1EF88B638F7CE4F1534EE4EB20BFA036AF4F2E96B6E19BF1B`.
-- pgTAP: `b2_004_pricing_test.sql`, SHA-256 `6F5F7CFC15BE6F3705410C01A5CEC1C84590A3E1E8EC65B35F75D46DAF8AA4AC`.
+- Index hardening: `20260810155350_b2_004_price_book_creator_index.sql`, SHA-256 `74D669CE1E102156ACB8CD76C5F6B03A94B6E953F63B66A87CADB67A91D53E87`.
+- pgTAP: `b2_004_pricing_test.sql`, SHA-256 `4A36A0B9E1205C77EE6561C2AAA22E11F89D1EC6B033D9EBDA2C3B4831620F0F`.
 - Proyecto exclusivo verificado por CLI: `AgenteFer`, ref `hprdctmblmfcoagugvyp`.
-- Remoto: versiones `20260809200347` y `20260809201842` aplicadas; historial local/remoto sincronizado 6/6.
-- Ensayo previo: migración completa y 65/65 pgTAP en una única transacción con `ROLLBACK`.
-- Esquema persistido: 274/274 pgTAP acumuladas mediante Management API; fixtures con `ROLLBACK`.
+- Remoto: versiones `20260809200347`, `20260809201842` y `20260810155350` aplicadas; historial local/remoto sincronizado 7/7.
+- Ensayos previos: cada hardening y su pgTAP se ejecutaron en una única transacción con `ROLLBACK`.
+- Esquema persistido: 275/275 pgTAP acumuladas mediante Management API; fixtures con `ROLLBACK`.
+- Suite B2-004 vigente: 66/66 pgTAP, incluida cobertura genérica de índices FK.
 - Tipos: regenerados desde remoto para `app_private,api`; incluyen tablas, vistas y `resolve_price_quote`.
-- Contrato estático: cinco migraciones, 32 tablas con RLS forzado y 274 pgTAP acumuladas.
+- Contrato estático: siete migraciones, 32 tablas con RLS forzado y 275 pgTAP acumuladas.
 - Código del runner: 21/21 unit tests del paquete database, compilación, tipos, lint y formato verdes.
+- Código final: 95/95 tests; 94.02% líneas, 93.83% statements, 93.10% funciones y 89.57% ramas; 112/112 mutantes de código eliminados.
+- CI candidato previo al index hardening: run `31334187729` sobre `fa5ac860a330d6eb959f3a7ae1fbfb5a8c66bd1d`; jobs `Verify` (`93297206821`), `Database contract` (`93297438027`) y `Container runtime` (`93297438029`) en `success`, con 0 annotations.
+- Supply chain: 0 vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
+- Changelog oficial Supabase revisado al cierre; ningún breaking change vigente afecta el contrato B2-004.
 
 ## Autopsia de la única regresión del ensayo
 
@@ -32,6 +38,12 @@ La corrección fue sobre el fixture, no sobre la constraint: el caso independien
 La primera repetición enlazada de B2-001 sobre el esquema B2-004 falló únicamente en “`updated_at` advances automatically”. El runner Management API envía el archivo como un solo mensaje SQL; PostgreSQL fija `statement_timestamp()` al inicio de ese mensaje. La función histórica `set_updated_at()` podía entonces asignar un instante igual a `created_at`, situación también posible dentro de una tool/RPC con varias operaciones.
 
 La solución no reescribió la migración histórica. Una migración forward-only reemplazó la función compartida por `greatest(clock_timestamp(), old.updated_at + interval '1 microsecond')`, garantizando avance estricto y conservando todos los triggers. El ensayo con migración+49 pgTAP aprobó dentro de rollback; tras aplicarla, las suites B2-001/002/003/004 aprobaron 49/49, 85/85, 75/75 y 65/65 respectivamente.
+
+## Autopsia de índice FK y rol CLI temporal
+
+La revisión con la skill oficial Supabase Postgres Best Practices detectó que `price_books.created_by_user_id` tenía FK `ON DELETE SET NULL` sin índice propio. Aunque los advisors no lo elevaron a warning, una baja de usuario podía escanear todos los libros. Se creó una migración forward-only con índice parcial y una aserción genérica que exige que ninguna columna FK B2-004 quede sin índice; el pgTAP pasó de 65 a 66 y mutation testing de esquema pasa de 6 a 7 mutantes.
+
+Durante el preflight se ejecutaron por error dos comandos linked en paralelo. Ambos inicializan el rol temporal `cli_login_postgres`; una sesión recibió `28P01` mientras la otra completó el dry-run. La repetición secuencial pasó sin cambiar credenciales. Los comandos Supabase linked quedan serializados para evitar rotaciones concurrentes del rol temporal.
 
 ## Cross-match
 
@@ -60,13 +72,15 @@ La solución no reescribió la migración histórica. Una migración forward-onl
 
 ## Gate pendiente
 
-El equipo local no tiene Docker/Podman instalado. Se añadió un ensayo remoto transaccional con guard exacto de nombre/ref para validar SQL real sin persistencia, pero esta evidencia no sustituye el job aislado de CI.
+El equipo local no tiene Docker/Podman instalado. El ensayo remoto transaccional con guard exacto de nombre/ref validó SQL real sin persistencia; GitHub Actions aportó después el PostgreSQL/Supabase aislado que faltaba.
 
-Antes de cambiar B2-004 a `[x]`, GitHub Actions debe demostrar:
+El run `31334187729` demostró el contrato previo. El CI final del index hardening debe demostrar:
 
-- las seis migraciones desde cero;
-- las 274 pgTAP acumuladas;
+- las siete migraciones desde cero;
+- las 275 pgTAP acumuladas;
 - dos sesiones concurrentes para SKU y dos para tiers de precio solapados;
-- 6/6 mutantes de esquema eliminados;
+- 7/7 mutantes de esquema eliminados;
 - tipos sin drift, lint y advisors;
 - gates generales de cobertura, mutation testing de código, contenedores y supply chain.
+
+B2-004 no cambia a `[x]` hasta que ese nuevo run concluya `success`; B2-005 conserva la propiedad exclusiva de stock/composición.
