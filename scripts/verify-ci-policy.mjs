@@ -63,6 +63,10 @@ const qualityWorkflow = await readFile(path.join(workflowDirectory, "quality.yml
 const pushStart = qualityWorkflow.indexOf("  push:\n");
 const pullRequestStart = qualityWorkflow.indexOf("  pull_request:\n");
 assert.ok(
+  qualityWorkflow.includes("  workflow_dispatch:\n"),
+  "quality workflow must expose an auditable recovery dispatch",
+);
+assert.ok(
   pushStart >= 0 && pullRequestStart > pushStart,
   "quality workflow triggers are malformed",
 );
