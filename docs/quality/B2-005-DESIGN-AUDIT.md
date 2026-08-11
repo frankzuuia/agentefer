@@ -17,14 +17,20 @@ Rama: `develop`.
 ## Evidencia aplicada
 
 - SHA-256 de la migración: `9542D6C8878A4115B455A01E66D4D6E13D3AB9895CB3097F1B43B3F15CE4D605`.
-- Ensayo migración + 109 pgTAP contra PostgreSQL real: **109/109**, con rollback certificado.
+- Ensayo migración + 110 pgTAP contra PostgreSQL real: **110/110**, con rollback certificado.
 - Supabase remoto: historial local/remoto **8/8**; sólo se aplicó `20260811214250_b2_005_inventory.sql`, sin seeds ni roles.
-- Regresión remota persistida: **384/384 pgTAP** (`49 + 85 + 75 + 66 + 109`), cada suite transaccional y sin fixtures persistentes.
+- Regresión remota persistida: **385/385 pgTAP** (`49 + 85 + 75 + 66 + 110`), cada suite transaccional y sin fixtures persistentes.
 - Contrato acumulado: 8 migraciones, 44 tablas con RLS forzado y tipos `app_private,api` regenerados sin fallback a `public`.
 - `db lint --linked --schema app_private,api`: cero errores.
 - `db advisors --linked --type all --level warn --fail-on warn`: cero hallazgos.
 - Gate local completo: 95/95 pruebas, 93.83% statements, 89.57% ramas, 93.10% funciones y 94.02% líneas.
 - Mutation testing de código: **112/112**, 100%; auditoría npm: 0 vulnerabilidades.
+
+## Regresión forense de inmutabilidad
+
+El run candidato `31541978097` confirmó migraciones, pgTAP y concurrencia, pero detuvo correctamente la certificación con **13/14** mutantes SQL. Sobrevivió la eliminación de `inventory_reservation_events_reject_update` porque la prueba anterior cambiaba `action` a `release`: aun sin el trigger, `inventory_reservation_events_operation_valid` rechazaba los eventos `consume` y producía el mismo SQLSTATE `23514`. Era una falsa atribución de cobertura.
+
+La regresión ahora cambia `reason` de un único evento por otro valor semánticamente válido, exige el rechazo y confirma que el historial permanece intacto. Sin el trigger, esa escritura es válida y la prueba debe fallar; con la protección productiva, las dos aserciones pasan. El cierre queda condicionado a que un nuevo run demuestre **14/14** mutantes muertos.
 
 ## Controles demostrados
 

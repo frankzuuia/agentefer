@@ -548,7 +548,7 @@ for (const statement of requiredPricingTestStatements) {
 }
 
 const requiredInventoryTestStatements = [
-  "select extensions.plan(109);",
+  "select extensions.plan(110);",
   "set local role authenticated;",
   "set local role service_role;",
   "set local role postgres;",
@@ -691,5 +691,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 44 forced-RLS tables, 384 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 44 forced-RLS tables, 385 pgTAP assertions, generated TypeScript schemas locked.`,
 );

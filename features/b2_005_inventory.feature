@@ -88,6 +88,12 @@ Característica: Inventario transaccional universal
     Entonces PostgreSQL deniega la escritura
     Y sólo las RPC auditadas pueden producir efectos
 
+  Escenario: Mantenimiento privilegiado no puede adulterar eventos de reserva
+    Dado que una reserva conserva eventos históricos con motivos válidos
+    Cuando mantenimiento intenta reemplazar el motivo de un evento existente
+    Entonces PostgreSQL rechaza la actualización aunque el nuevo motivo sea válido
+    Y el evento original permanece sin cambios
+
   Escenario: Pausa comercial independiente del stock
     Dado que una variante pausada conserva existencia positiva
     Cuando se consulta el ledger interno

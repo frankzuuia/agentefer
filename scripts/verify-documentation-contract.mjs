@@ -167,8 +167,8 @@ const requiredStatements = new Map([
     "inventoryAudit",
     [
       "IMPLEMENTED — REMOTE VERIFIED — CI SQL GATES PENDING",
-      "109/109",
-      "384/384 pgTAP",
+      "110/110",
+      "385/385 pgTAP",
       "9542D6C8878A4115B455A01E66D4D6E13D3AB9895CB3097F1B43B3F15CE4D605",
       "14/14",
       "No se deshabilitó ninguna constraint",

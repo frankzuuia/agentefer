@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(109);
+select extensions.plan(110);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -1315,10 +1315,25 @@ select pg_temp.throws_sqlstate(
 );
 select pg_temp.throws_sqlstate(
   $$update app_private.inventory_reservation_events
-    set action = 'release'
-    where organization_id = '51000000-0000-4000-8000-000000000010'$$,
+    set reason = 'tampered reservation history'
+    where id = (
+      select id
+      from app_private.inventory_reservation_events
+      where organization_id = '51000000-0000-4000-8000-000000000010'
+      order by id
+      limit 1
+    )$$,
   '23514',
   'reservation events remain append-only'
+);
+select extensions.is(
+  (
+    select count(*)::integer
+    from app_private.inventory_reservation_events
+    where reason = 'tampered reservation history'
+  ),
+  0,
+  'rejected reservation event mutation leaves history unchanged'
 );
 select pg_temp.throws_sqlstate(
   $$update app_private.inventory_locations
