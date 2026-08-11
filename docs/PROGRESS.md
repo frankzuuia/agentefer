@@ -48,7 +48,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B2-002 | BL-002–BL-004, SC-001–SC-006          | conexiones e identidades de canal, consentimientos, inbox/outbox, conversaciones, participantes y mensajes | identidad siempre scoped a conexión, idempotencia, RLS y estados válidos | [x]    |
 | B2-003 | BL-008, BL-009, SC-007–SC-009, RQ-110 | categorías/atributos tipados configurables, productos, variantes, unidades, SKUs, medios y evidencia       | categoría nueva sin deploy; 75/75 pgTAP; CI `31325637856` verde          | [x]    |
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | 66/66 pgTAP; CI `31407961615`; 7/7 mutantes y concurrencia verdes        | [x]    |
-| B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | 110/110 remoto; paquete/kit y no negativo; concurrencia/mutantes CI pendientes | [ ]    |
+| B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | 110/110 remoto; CI `31543232608`; concurrencia y 14/14 mutantes verdes    | [x]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | pedido ≠ venta, snapshots e idempotencia                                 | [ ]    |
 | B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | estados, dedupe, cancelación y versionado                                | [ ]    |
 | B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts                                 | trazabilidad, costo y redacción                                          | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003/B2-004 completos; núcleo de stock B2-005 aplicado con 385/385 pgTAP remoto y cierre CI pendiente. Tools, adapters y UI todavía pendientes.
+- Functional implementation: B2-003/B2-004/B2-005 completos; inventario aplicado con 385/385 pgTAP remoto y CI aislado verde. Tools, adapters y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -271,7 +271,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Supply chain: 0 vulnerabilidades, 546 firmas de registro y 145 attestations verificadas.
 - Auditoría final: `docs/quality/B2-004-DESIGN-AUDIT.md` (`COMPLETE — INTEGRITY TOTAL — MATCH PERFECT`).
 
-## Evidencia provisional de B2-005 — pendiente de CI
+## Evidencia final de B2-005
 
 - Investigación oficial: `docs/references/INVENTORY-B2-005-RESEARCH.md`.
 - Contrato físico: `docs/architecture/INVENTORY-B2-005.md`; aceptación: `features/b2_005_inventory.feature`.
@@ -281,4 +281,6 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Contrato acumulado: 44 tablas con RLS forzado; 13 vistas B2-005 invoker/barrier; cinco RPC mutadoras sólo para `service_role` y resolver autenticado.
 - Lint y advisors remotos: cero hallazgos; tipos `app_private,api` regenerados.
 - Gate local: 95/95, cobertura 93.83% statements/89.57% ramas/93.10% funciones/94.02% líneas, 112/112 mutantes de código, 0 vulnerabilidades.
-- Auditoría provisional: `docs/quality/B2-005-DESIGN-AUDIT.md`; falta CI Docker para carreras y 14 mutantes SQL antes de marcar `[x]`.
+- CI aislado: run `31543232608` sobre `dd6e40feceac55135705470cc1552145773c01eb`; jobs `Verify` (`93950086145`), `Container runtime` (`93950556743`) y `Database contract` (`93950556798`) en `success`, cada uno con 0 annotations.
+- Evidencia DB CI: ocho migraciones desde cero, 385/385 pgTAP, concurrencia de SKU/precio/reserva/orden inverso, 14/14 mutantes eliminados, lint/advisors verdes y tipos sin drift.
+- Auditoría final: `docs/quality/B2-005-DESIGN-AUDIT.md` (`COMPLETE — INTEGRITY TOTAL — MATCH PERFECT`).

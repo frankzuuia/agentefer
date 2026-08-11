@@ -1,6 +1,6 @@
 # AgenteFer — auditoría B2-005 inventario transaccional
 
-Estado: **IMPLEMENTED — REMOTE VERIFIED — CI SQL GATES PENDING**.  
+Estado: **COMPLETE — INTEGRITY TOTAL — MATCH PERFECT**.  
 Fecha: 2026-08-11.  
 Proyecto exclusivo: `hprdctmblmfcoagugvyp` (`AgenteFer`).  
 Rama: `develop`.
@@ -25,12 +25,15 @@ Rama: `develop`.
 - `db advisors --linked --type all --level warn --fail-on warn`: cero hallazgos.
 - Gate local completo: 95/95 pruebas, 93.83% statements, 89.57% ramas, 93.10% funciones y 94.02% líneas.
 - Mutation testing de código: **112/112**, 100%; auditoría npm: 0 vulnerabilidades.
+- CI aislado: run `31543232608` sobre `dd6e40feceac55135705470cc1552145773c01eb`, conclusión `success`.
+- Jobs: `Verify` (`93950086145`), `Container runtime` (`93950556743`) y `Database contract` (`93950556798`), todos `success` y con 0 annotations.
+- Evidencia del job DB: ocho migraciones desde cero, **385/385** pgTAP, concurrencia verde, **14/14** mutantes eliminados, lint/advisors verdes y tipos sin drift.
 
 ## Regresión forense de inmutabilidad
 
 El run candidato `31541978097` confirmó migraciones, pgTAP y concurrencia, pero detuvo correctamente la certificación con **13/14** mutantes SQL. Sobrevivió la eliminación de `inventory_reservation_events_reject_update` porque la prueba anterior cambiaba `action` a `release`: aun sin el trigger, `inventory_reservation_events_operation_valid` rechazaba los eventos `consume` y producía el mismo SQLSTATE `23514`. Era una falsa atribución de cobertura.
 
-La regresión ahora cambia `reason` de un único evento por otro valor semánticamente válido, exige el rechazo y confirma que el historial permanece intacto. Sin el trigger, esa escritura es válida y la prueba debe fallar; con la protección productiva, las dos aserciones pasan. El cierre queda condicionado a que un nuevo run demuestre **14/14** mutantes muertos.
+La regresión ahora cambia `reason` de un único evento por otro valor semánticamente válido, exige el rechazo y confirma que el historial permanece intacto. Sin el trigger, esa escritura es válida y la prueba falla; con la protección productiva, las dos aserciones pasan. El run `31543232608` demostró **14/14** mutantes muertos.
 
 ## Controles demostrados
 
@@ -48,9 +51,9 @@ La regresión ahora cambia `reason` de un único evento por otro valor semántic
 | borrado/rewrite histórico | sin DELETE y triggers append-only | service role y mantenimiento privilegiado rechazados |
 | producto específico | unidad/composición como datos | cero columnas por llanta/rin/tinaco/tambo |
 
-## Mutación y concurrencia pendientes de CI
+## Mutación y concurrencia certificadas en CI
 
-El workflow existente reconstruirá las ocho migraciones desde cero y ejecutará:
+El workflow reconstruyó las ocho migraciones desde cero y ejecutó:
 
 - carrera SKU;
 - carrera de rango de precio;
@@ -58,4 +61,4 @@ El workflow existente reconstruirá las ocho migraciones desde cero y ejecutará
 - movimientos inversos sin deadlock y verificación no negativa;
 - **14/14** mutantes de esquema, incluidos composición, precisión, idempotencia, balance, RLS e inmutabilidad.
 
-B2-005 no se marca completo ni se declara listo hasta que los tres jobs CI estén verdes y sin annotations. No se deshabilitó ninguna constraint, policy, trigger, lint, advisor o prueba para obtener la evidencia local/remota.
+B2-005 queda completo porque los tres jobs CI terminaron verdes y sin annotations. No se deshabilitó ninguna constraint, policy, trigger, lint, advisor o prueba para obtener la evidencia local/remota.
