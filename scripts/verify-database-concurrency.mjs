@@ -134,6 +134,47 @@ values
     '33000000-0000-4000-8000-000000000151',
     'Concurrent variant B'
   );
+insert into app_private.inventory_items (
+  id, organization_id, variant_id, inventory_unit_id
+)
+values
+  (
+    '33000000-0000-4000-8000-000000000250',
+    '33000000-0000-4000-8000-000000000010',
+    '33000000-0000-4000-8000-000000000160',
+    '33000000-0000-4000-8000-000000000110'
+  ),
+  (
+    '33000000-0000-4000-8000-000000000251',
+    '33000000-0000-4000-8000-000000000010',
+    '33000000-0000-4000-8000-000000000161',
+    '33000000-0000-4000-8000-000000000110'
+  );
+insert into app_private.inventory_locations (id, organization_id, code, name)
+values
+  (
+    '33000000-0000-4000-8000-000000000260',
+    '33000000-0000-4000-8000-000000000010',
+    'main',
+    'Main'
+  ),
+  (
+    '33000000-0000-4000-8000-000000000261',
+    '33000000-0000-4000-8000-000000000010',
+    'secondary',
+    'Secondary'
+  );
+select * from api.apply_inventory_movement(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrency-initial-stock',
+  'receipt',
+  'concurrency fixture stock',
+  '[
+    {"inventory_item_id":"33000000-0000-4000-8000-000000000250","location_id":"33000000-0000-4000-8000-000000000260","effect":"delta","quantity":1},
+    {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000260","effect":"delta","quantity":10},
+    {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000261","effect":"delta","quantity":10}
+  ]'::jsonb
+);
 commit;
 `;
 
@@ -286,6 +327,127 @@ const priceRace = await verifyRace({
   failureMarker: "price_tiers_no_current_overlap",
 });
 
+const reservationRace = await verifyRace({
+  label: "last-unit reservation",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.create_inventory_reservation(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-reservation-first',
+      clock_timestamp() + interval '1 hour',
+      '[{"inventory_item_id":"33000000-0000-4000-8000-000000000250","location_id":"33000000-0000-4000-8000-000000000260","quantity":1}]'::jsonb,
+      'first buyer'
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.create_inventory_reservation(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-reservation-second',
+      clock_timestamp() + interval '1 hour',
+      '[{"inventory_item_id":"33000000-0000-4000-8000-000000000250","location_id":"33000000-0000-4000-8000-000000000260","quantity":1}]'::jsonb,
+      'second buyer'
+    );
+    commit;
+  `,
+  countSql: `select count(*)
+    from app_private.inventory_reservation_lines
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and inventory_item_id = '33000000-0000-4000-8000-000000000250';`,
+  failureMarker: "inventory reservation exceeds available stock",
+});
+
+const verifyOrderedInventoryWrites = async () => {
+  const firstWrite = runCaptured(`
+    begin;
+    set local role service_role;
+    select * from api.apply_inventory_movement(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-transfer-first',
+      'transfer',
+      'main to secondary',
+      '[
+        {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000261","effect":"delta","quantity":1},
+        {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000260","effect":"delta","quantity":-1}
+      ]'::jsonb
+    );
+    select pg_sleep(2);
+    commit;
+  `);
+
+  await new Promise((resolve) => setTimeout(resolve, 250));
+
+  const secondWrite = runCaptured(`
+    begin;
+    set local role service_role;
+    select * from api.apply_inventory_movement(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-transfer-second',
+      'transfer',
+      'secondary to main',
+      '[
+        {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000260","effect":"delta","quantity":1},
+        {"inventory_item_id":"33000000-0000-4000-8000-000000000251","location_id":"33000000-0000-4000-8000-000000000261","effect":"delta","quantity":-1}
+      ]'::jsonb
+    );
+    commit;
+  `);
+
+  const results = await Promise.all([firstWrite, secondWrite]);
+  assert.ok(
+    results.every((result) => result.status === 0),
+    `ordered inventory writes must both commit without deadlock: ${results
+      .map((result) => `${result.stdout}\n${result.stderr}`.trim())
+      .join("\n")}`,
+  );
+
+  const finalBalances = runSync(
+    `select location_id::text || ':' || on_hand_quantity::text
+      from app_private.inventory_balances
+      where organization_id = '33000000-0000-4000-8000-000000000010'
+        and inventory_item_id = '33000000-0000-4000-8000-000000000251'
+      order by location_id;`,
+    true,
+  )
+    .stdout.trim()
+    .split("\n");
+
+  assert.deepEqual(finalBalances, [
+    "33000000-0000-4000-8000-000000000260:10",
+    "33000000-0000-4000-8000-000000000261:10",
+  ]);
+
+  return {
+    successfulWrites: 2,
+    finalBalances,
+    results: results.map((result) => ({
+      status: result.status,
+      diagnostic: `${result.stdout}\n${result.stderr}`.trim().split("\n").slice(-20).join("\n"),
+    })),
+  };
+};
+
+const orderedInventoryWrites = await verifyOrderedInventoryWrites();
+const invalidBalanceCount = Number.parseInt(
+  runSync(
+    `select count(*) from app_private.inventory_balances
+      where on_hand_quantity < 0
+        or reserved_quantity < 0
+        or available_quantity < 0;`,
+    true,
+  ).stdout.trim(),
+  10,
+);
+assert.equal(
+  invalidBalanceCount,
+  0,
+  "concurrent inventory writes must preserve nonnegative balances",
+);
+
 await mkdir(reportDirectory, { recursive: true });
 await writeFile(
   reportPath,
@@ -294,6 +456,9 @@ await writeFile(
       generatedAt: new Date().toISOString(),
       sku: skuRace,
       pricing: priceRace,
+      reservation: reservationRace,
+      orderedInventoryWrites,
+      invalidBalanceCount,
     },
     null,
     2,
@@ -302,5 +467,5 @@ await writeFile(
 );
 
 console.log(
-  "Database concurrency verified: SKU and price overlap each produced one commit and one conflict.",
+  "Database concurrency verified: SKU/price conflicts, last-unit reservation, canonical lock order and nonnegative balances.",
 );

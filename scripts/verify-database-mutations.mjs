@@ -57,6 +57,41 @@ const mutants = [
     sql: "drop index app_private.price_books_created_by_user_idx;",
     test: "supabase/tests/b2_004_pricing_test.sql",
   },
+  {
+    name: "remove one-active-composition uniqueness",
+    sql: "drop index app_private.inventory_compositions_one_active_offer_unit;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove composition component precision validator",
+    sql: "drop trigger inventory_composition_components_validate on app_private.inventory_composition_components;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove global inventory idempotency uniqueness",
+    sql: "alter table app_private.inventory_commands drop constraint inventory_commands_idempotency_unique;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove nonnegative balance constraint",
+    sql: "alter table app_private.inventory_balances drop constraint inventory_balances_quantities_valid;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove inventory balance tenant read policy",
+    sql: "drop policy inventory_balances_member_select on app_private.inventory_balances;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove immutable movement trigger",
+    sql: "drop trigger inventory_movements_reject_update on app_private.inventory_movements;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
+  {
+    name: "remove immutable reservation event trigger",
+    sql: "drop trigger inventory_reservation_events_reject_update on app_private.inventory_reservation_events;",
+    test: "supabase/tests/b2_005_inventory_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {

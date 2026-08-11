@@ -22,6 +22,9 @@ const files = {
   pricingResearch: "docs/references/PRICING-B2-004-RESEARCH.md",
   pricingPhysical: "docs/architecture/PRICING-B2-004.md",
   pricingAudit: "docs/quality/B2-004-DESIGN-AUDIT.md",
+  inventoryResearch: "docs/references/INVENTORY-B2-005-RESEARCH.md",
+  inventoryPhysical: "docs/architecture/INVENTORY-B2-005.md",
+  inventoryAudit: "docs/quality/B2-005-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -142,6 +145,35 @@ const requiredStatements = new Map([
       "No se deshabilitó ninguna constraint",
     ],
   ],
+  [
+    "inventoryResearch",
+    [
+      "RLS forzado y privilegio mínimo",
+      "bloqueos de saldos en orden estable",
+      "No se creó una tabla o columna por llantas",
+      "inventory_commands",
+    ],
+  ],
+  [
+    "inventoryPhysical",
+    [
+      "El inventario es un ledger multi-tenant",
+      "stock cero no equivale a pausa manual",
+      "misma clave + misma huella = replay",
+      "B3-008 expondrá las tools cognitivas",
+    ],
+  ],
+  [
+    "inventoryAudit",
+    [
+      "IMPLEMENTED — REMOTE VERIFIED — CI SQL GATES PENDING",
+      "109/109",
+      "384/384 pgTAP",
+      "9542D6C8878A4115B455A01E66D4D6E13D3AB9895CB3097F1B43B3F15CE4D605",
+      "14/14",
+      "No se deshabilitó ninguna constraint",
+    ],
+  ],
 ]);
 
 for (const [documentName, statements] of requiredStatements) {
@@ -181,5 +213,5 @@ for (const prohibitedColumn of prohibitedFixedColumns) {
 }
 
 console.log(
-  `AgenteFer catalog and pricing documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
+  `AgenteFer catalog, pricing and inventory documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
 );

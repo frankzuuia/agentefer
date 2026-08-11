@@ -863,6 +863,696 @@ export type Database = {
           },
         ];
       };
+      inventory_availability: {
+        Row: {
+          available_quantity: number | null;
+          balance_updated_at: string | null;
+          inventory_item_id: string | null;
+          inventory_unit_id: string | null;
+          on_hand_quantity: number | null;
+          organization_id: string | null;
+          reserved_quantity: number | null;
+          variant_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_items_unit_fk";
+            columns: ["organization_id", "inventory_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_items_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: true;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_balances: {
+        Row: {
+          available_quantity: number | null;
+          created_at: string | null;
+          id: string | null;
+          inventory_item_id: string | null;
+          location_id: string | null;
+          on_hand_quantity: number | null;
+          organization_id: string | null;
+          reserved_quantity: number | null;
+          updated_at: string | null;
+          version: number | null;
+        };
+        Insert: {
+          available_quantity?: number | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          on_hand_quantity?: number | null;
+          organization_id?: string | null;
+          reserved_quantity?: number | null;
+          updated_at?: string | null;
+          version?: number | null;
+        };
+        Update: {
+          available_quantity?: number | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          on_hand_quantity?: number | null;
+          organization_id?: string | null;
+          reserved_quantity?: number | null;
+          updated_at?: string | null;
+          version?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_balances_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_availability";
+            referencedColumns: ["organization_id", "inventory_item_id"];
+          },
+          {
+            foreignKeyName: "inventory_balances_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_balances_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_composition_availability: {
+        Row: {
+          available_sale_quantity: number | null;
+          composition_id: string | null;
+          offered_variant_id: string | null;
+          organization_id: string | null;
+          sale_unit_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_compositions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_sale_unit_fk";
+            columns: ["organization_id", "sale_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_variant_fk";
+            columns: ["organization_id", "offered_variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_composition_components: {
+        Row: {
+          composition_id: string | null;
+          created_at: string | null;
+          id: string | null;
+          inventory_item_id: string | null;
+          organization_id: string | null;
+          quantity_per_sale_unit: number | null;
+        };
+        Insert: {
+          composition_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          organization_id?: string | null;
+          quantity_per_sale_unit?: number | null;
+        };
+        Update: {
+          composition_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          organization_id?: string | null;
+          quantity_per_sale_unit?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_composition_components_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_composition_availability";
+            referencedColumns: ["organization_id", "composition_id"];
+          },
+          {
+            foreignKeyName: "inventory_composition_components_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_composition_components_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_availability";
+            referencedColumns: ["organization_id", "inventory_item_id"];
+          },
+          {
+            foreignKeyName: "inventory_composition_components_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_compositions: {
+        Row: {
+          created_at: string | null;
+          effective_at: string | null;
+          evidence_id: string | null;
+          id: string | null;
+          offered_variant_id: string | null;
+          organization_id: string | null;
+          retired_at: string | null;
+          sale_unit_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          effective_at?: string | null;
+          evidence_id?: string | null;
+          id?: string | null;
+          offered_variant_id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          sale_unit_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          effective_at?: string | null;
+          evidence_id?: string | null;
+          id?: string | null;
+          offered_variant_id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          sale_unit_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_compositions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_sale_unit_fk";
+            columns: ["organization_id", "sale_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_variant_fk";
+            columns: ["organization_id", "offered_variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_items: {
+        Row: {
+          created_at: string | null;
+          id: string | null;
+          inventory_unit_id: string | null;
+          organization_id: string | null;
+          retired_at: string | null;
+          status: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_unit_id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_unit_id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_items_unit_fk";
+            columns: ["organization_id", "inventory_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_items_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: true;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_locations: {
+        Row: {
+          code: string | null;
+          created_at: string | null;
+          description: string | null;
+          id: string | null;
+          name: string | null;
+          organization_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          code?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          id?: string | null;
+          name?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          code?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          id?: string | null;
+          name?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_locations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      inventory_movements: {
+        Row: {
+          created_at: string | null;
+          id: string | null;
+          inventory_item_id: string | null;
+          location_id: string | null;
+          on_hand_quantity_after: number | null;
+          operation_id: string | null;
+          organization_id: string | null;
+          quantity_delta: number | null;
+          reserved_quantity_after: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          on_hand_quantity_after?: number | null;
+          operation_id?: string | null;
+          organization_id?: string | null;
+          quantity_delta?: number | null;
+          reserved_quantity_after?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          on_hand_quantity_after?: number | null;
+          operation_id?: string | null;
+          organization_id?: string | null;
+          quantity_delta?: number | null;
+          reserved_quantity_after?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_availability";
+            referencedColumns: ["organization_id", "inventory_item_id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_operation_fk";
+            columns: ["organization_id", "operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_operations: {
+        Row: {
+          composition_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          occurred_at: string | null;
+          operation_code: string | null;
+          organization_id: string | null;
+          reason: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          sale_quantity: number | null;
+        };
+        Insert: {
+          composition_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          operation_code?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          sale_quantity?: number | null;
+        };
+        Update: {
+          composition_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          operation_code?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          sale_quantity?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_operations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_composition_availability";
+            referencedColumns: ["organization_id", "composition_id"];
+          },
+          {
+            foreignKeyName: "inventory_operations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_event_lines: {
+        Row: {
+          created_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          quantity: number | null;
+          reservation_event_id: string | null;
+          reservation_line_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          quantity?: number | null;
+          reservation_event_id?: string | null;
+          reservation_line_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          quantity?: number | null;
+          reservation_event_id?: string | null;
+          reservation_line_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_event_lines_event_fk";
+            columns: ["organization_id", "reservation_event_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservation_events";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_event_lines_reservation_line_fk";
+            columns: ["organization_id", "reservation_line_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservation_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_events: {
+        Row: {
+          action: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          occurred_at: string | null;
+          operation_id: string | null;
+          organization_id: string | null;
+          reason: string | null;
+          reservation_id: string | null;
+        };
+        Insert: {
+          action?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          operation_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reservation_id?: string | null;
+        };
+        Update: {
+          action?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          occurred_at?: string | null;
+          operation_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reservation_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_events_operation_fk";
+            columns: ["organization_id", "operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_events_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_lines: {
+        Row: {
+          consumed_quantity: number | null;
+          created_at: string | null;
+          id: string | null;
+          inventory_item_id: string | null;
+          location_id: string | null;
+          organization_id: string | null;
+          released_quantity: number | null;
+          reservation_id: string | null;
+          reserved_quantity: number | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          consumed_quantity?: number | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          organization_id?: string | null;
+          released_quantity?: number | null;
+          reservation_id?: string | null;
+          reserved_quantity?: number | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          consumed_quantity?: number | null;
+          created_at?: string | null;
+          id?: string | null;
+          inventory_item_id?: string | null;
+          location_id?: string | null;
+          organization_id?: string | null;
+          released_quantity?: number | null;
+          reservation_id?: string | null;
+          reserved_quantity?: number | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_lines_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_availability";
+            referencedColumns: ["organization_id", "inventory_item_id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_lines_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_lines_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_lines_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservations: {
+        Row: {
+          closed_at: string | null;
+          composition_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          expires_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          reason: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          reserved_at: string | null;
+          sale_quantity: number | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          closed_at?: string | null;
+          composition_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          expires_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          reserved_at?: string | null;
+          sale_quantity?: number | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          closed_at?: string | null;
+          composition_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          expires_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          reserved_at?: string | null;
+          sale_quantity?: number | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_composition_availability";
+            referencedColumns: ["organization_id", "composition_id"];
+          },
+          {
+            foreignKeyName: "inventory_reservations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -1673,6 +2363,93 @@ export type Database = {
       };
     };
     Functions: {
+      apply_inventory_composition_movement: {
+        Args: {
+          target_allocations: Json;
+          target_composition_id: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_occurred_at?: string;
+          target_operation_code: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id?: string;
+          target_reference_type?: string;
+          target_sale_quantity: number;
+        };
+        Returns: {
+          operation_id: string;
+          replayed: boolean;
+        }[];
+      };
+      apply_inventory_movement: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_lines: Json;
+          target_occurred_at?: string;
+          target_operation_code: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id?: string;
+          target_reference_type?: string;
+        };
+        Returns: {
+          operation_id: string;
+          replayed: boolean;
+        }[];
+      };
+      create_inventory_composition_reservation: {
+        Args: {
+          target_allocations: Json;
+          target_composition_id: string;
+          target_created_by_user_id?: string;
+          target_expires_at: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id?: string;
+          target_reference_type?: string;
+          target_sale_quantity: number;
+        };
+        Returns: {
+          replayed: boolean;
+          reservation_id: string;
+          reservation_status: string;
+        }[];
+      };
+      create_inventory_reservation: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_expires_at: string;
+          target_idempotency_key: string;
+          target_lines: Json;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id?: string;
+          target_reference_type?: string;
+        };
+        Returns: {
+          replayed: boolean;
+          reservation_id: string;
+          reservation_status: string;
+        }[];
+      };
+      resolve_inventory_requirements: {
+        Args: {
+          target_composition_id: string;
+          target_organization_id: string;
+          target_sale_quantity: number;
+        };
+        Returns: {
+          composition_id: string;
+          inventory_item_id: string;
+          inventory_unit_id: string;
+          offered_variant_id: string;
+          required_quantity: number;
+          sale_unit_id: string;
+        }[];
+      };
       resolve_price_quote: {
         Args: {
           target_at?: string;
@@ -1696,6 +2473,24 @@ export type Database = {
           valid_from: string;
           valid_until: string;
           variant_id: string;
+        }[];
+      };
+      transition_inventory_reservation: {
+        Args: {
+          target_action: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_lines?: Json;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_reservation_id: string;
+        };
+        Returns: {
+          replayed: boolean;
+          reservation_event_id: string;
+          reservation_id: string;
+          reservation_status: string;
         }[];
       };
     };
@@ -2782,6 +3577,667 @@ export type Database = {
           },
         ];
       };
+      inventory_balances: {
+        Row: {
+          available_quantity: number | null;
+          created_at: string;
+          id: string;
+          inventory_item_id: string;
+          location_id: string;
+          on_hand_quantity: number;
+          organization_id: string;
+          reserved_quantity: number;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          available_quantity?: number | null;
+          created_at?: string;
+          id?: string;
+          inventory_item_id: string;
+          location_id: string;
+          on_hand_quantity?: number;
+          organization_id: string;
+          reserved_quantity?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          available_quantity?: number | null;
+          created_at?: string;
+          id?: string;
+          inventory_item_id?: string;
+          location_id?: string;
+          on_hand_quantity?: number;
+          organization_id?: string;
+          reserved_quantity?: number;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_balances_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_balances_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_commands: {
+        Row: {
+          command_code: string;
+          created_at: string;
+          id: string;
+          idempotency_key: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+        };
+        Insert: {
+          command_code: string;
+          created_at?: string;
+          id?: string;
+          idempotency_key: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+        };
+        Update: {
+          command_code?: string;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string;
+          organization_id?: string;
+          request_fingerprint?: string;
+          request_payload?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      inventory_composition_components: {
+        Row: {
+          composition_id: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          inventory_item_id: string;
+          organization_id: string;
+          quantity_per_sale_unit: number;
+        };
+        Insert: {
+          composition_id: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          inventory_item_id: string;
+          organization_id: string;
+          quantity_per_sale_unit: number;
+        };
+        Update: {
+          composition_id?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          inventory_item_id?: string;
+          organization_id?: string;
+          quantity_per_sale_unit?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_composition_components_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_composition_components_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_compositions: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string | null;
+          effective_at: string | null;
+          evidence_id: string | null;
+          id: string;
+          offered_variant_id: string;
+          organization_id: string;
+          retired_at: string | null;
+          sale_unit_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          effective_at?: string | null;
+          evidence_id?: string | null;
+          id?: string;
+          offered_variant_id: string;
+          organization_id: string;
+          retired_at?: string | null;
+          sale_unit_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          effective_at?: string | null;
+          evidence_id?: string | null;
+          id?: string;
+          offered_variant_id?: string;
+          organization_id?: string;
+          retired_at?: string | null;
+          sale_unit_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_compositions_evidence_fk";
+            columns: ["organization_id", "evidence_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_evidence";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_sale_unit_fk";
+            columns: ["organization_id", "sale_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_variant_fk";
+            columns: ["organization_id", "offered_variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_items: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          inventory_unit_id: string;
+          organization_id: string;
+          retired_at: string | null;
+          status: string;
+          updated_at: string;
+          variant_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          inventory_unit_id: string;
+          organization_id: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          variant_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          inventory_unit_id?: string;
+          organization_id?: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          variant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inventory_items_unit_fk";
+            columns: ["organization_id", "inventory_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_items_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: true;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_locations: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          description: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_locations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      inventory_movements: {
+        Row: {
+          created_at: string;
+          id: string;
+          inventory_item_id: string;
+          location_id: string;
+          on_hand_quantity_after: number;
+          operation_id: string;
+          organization_id: string;
+          quantity_delta: number;
+          reserved_quantity_after: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          inventory_item_id: string;
+          location_id: string;
+          on_hand_quantity_after: number;
+          operation_id: string;
+          organization_id: string;
+          quantity_delta: number;
+          reserved_quantity_after: number;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          inventory_item_id?: string;
+          location_id?: string;
+          on_hand_quantity_after?: number;
+          operation_id?: string;
+          organization_id?: string;
+          quantity_delta?: number;
+          reserved_quantity_after?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_movements_operation_fk";
+            columns: ["organization_id", "operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_operations: {
+        Row: {
+          command_id: string;
+          composition_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          occurred_at: string;
+          operation_code: string;
+          organization_id: string;
+          reason: string;
+          reference_id: string | null;
+          reference_type: string | null;
+          sale_quantity: number | null;
+        };
+        Insert: {
+          command_id: string;
+          composition_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          occurred_at?: string;
+          operation_code: string;
+          organization_id: string;
+          reason: string;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          sale_quantity?: number | null;
+        };
+        Update: {
+          command_id?: string;
+          composition_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          occurred_at?: string;
+          operation_code?: string;
+          organization_id?: string;
+          reason?: string;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          sale_quantity?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_operations_command_fk";
+            columns: ["organization_id", "command_id"];
+            isOneToOne: true;
+            referencedRelation: "inventory_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_operations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_event_lines: {
+        Row: {
+          created_at: string;
+          id: string;
+          organization_id: string;
+          quantity: number;
+          reservation_event_id: string;
+          reservation_line_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          quantity: number;
+          reservation_event_id: string;
+          reservation_line_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          quantity?: number;
+          reservation_event_id?: string;
+          reservation_line_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_event_lines_event_fk";
+            columns: ["organization_id", "reservation_event_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservation_events";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_event_lines_reservation_line_fk";
+            columns: ["organization_id", "reservation_line_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservation_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_events: {
+        Row: {
+          action: string;
+          command_id: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          occurred_at: string;
+          operation_id: string | null;
+          organization_id: string;
+          reason: string;
+          reservation_id: string;
+        };
+        Insert: {
+          action: string;
+          command_id: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          occurred_at?: string;
+          operation_id?: string | null;
+          organization_id: string;
+          reason: string;
+          reservation_id: string;
+        };
+        Update: {
+          action?: string;
+          command_id?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          occurred_at?: string;
+          operation_id?: string | null;
+          organization_id?: string;
+          reason?: string;
+          reservation_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_events_command_fk";
+            columns: ["organization_id", "command_id"];
+            isOneToOne: true;
+            referencedRelation: "inventory_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_events_operation_fk";
+            columns: ["organization_id", "operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_events_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservation_lines: {
+        Row: {
+          consumed_quantity: number;
+          created_at: string;
+          id: string;
+          inventory_item_id: string;
+          location_id: string;
+          organization_id: string;
+          released_quantity: number;
+          reservation_id: string;
+          reserved_quantity: number;
+          updated_at: string;
+        };
+        Insert: {
+          consumed_quantity?: number;
+          created_at?: string;
+          id?: string;
+          inventory_item_id: string;
+          location_id: string;
+          organization_id: string;
+          released_quantity?: number;
+          reservation_id: string;
+          reserved_quantity: number;
+          updated_at?: string;
+        };
+        Update: {
+          consumed_quantity?: number;
+          created_at?: string;
+          id?: string;
+          inventory_item_id?: string;
+          location_id?: string;
+          organization_id?: string;
+          released_quantity?: number;
+          reservation_id?: string;
+          reserved_quantity?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservation_lines_item_fk";
+            columns: ["organization_id", "inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_lines_location_fk";
+            columns: ["organization_id", "location_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_locations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservation_lines_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      inventory_reservations: {
+        Row: {
+          closed_at: string | null;
+          composition_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          expires_at: string;
+          id: string;
+          organization_id: string;
+          reason: string;
+          reference_id: string | null;
+          reference_type: string | null;
+          reserved_at: string;
+          sale_quantity: number | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          closed_at?: string | null;
+          composition_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          expires_at: string;
+          id?: string;
+          organization_id: string;
+          reason: string;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          reserved_at?: string;
+          sale_quantity?: number | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          composition_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          expires_at?: string;
+          id?: string;
+          organization_id?: string;
+          reason?: string;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          reserved_at?: string;
+          sale_quantity?: number | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_composition_fk";
+            columns: ["organization_id", "composition_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_compositions";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_reservations_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "inventory_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -3715,6 +5171,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      assert_inventory_actor: {
+        Args: { target_organization_id: string; target_user_id: string };
+        Returns: undefined;
+      };
       assert_product_catalog_ready: {
         Args: { target_organization_id: string; target_product_id: string };
         Returns: undefined;
@@ -3722,6 +5182,49 @@ export type Database = {
       assert_variant_catalog_ready: {
         Args: { target_organization_id: string; target_variant_id: string };
         Returns: undefined;
+      };
+      claim_inventory_command: {
+        Args: {
+          target_command_code: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_request_payload: Json;
+        };
+        Returns: {
+          claimed_command_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      create_inventory_reservation_core: {
+        Args: {
+          target_command_id: string;
+          target_composition_id: string;
+          target_created_by_user_id: string;
+          target_expires_at: string;
+          target_lines: Json;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id: string;
+          target_reference_type: string;
+          target_sale_quantity: number;
+        };
+        Returns: string;
+      };
+      post_inventory_movement: {
+        Args: {
+          target_command_id: string;
+          target_composition_id: string;
+          target_created_by_user_id: string;
+          target_lines: Json;
+          target_occurred_at: string;
+          target_operation_code: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_reference_id: string;
+          target_reference_type: string;
+          target_sale_quantity: number;
+        };
+        Returns: string;
       };
     };
     Enums: {

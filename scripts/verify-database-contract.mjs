@@ -24,8 +24,9 @@ assert.deepEqual(
     "20260809200347_b2_004_pricing.sql",
     "20260809201842_b2_004_monotonic_updated_at.sql",
     "20260810155350_b2_004_price_book_creator_index.sql",
+    "20260811214250_b2_005_inventory.sql",
   ],
-  "B2-001 through B2-004 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-005 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -50,6 +51,10 @@ const pricingIndexHardeningMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[6]),
   "utf8",
 );
+const inventoryMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[7]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -64,6 +69,10 @@ const catalogDatabaseTest = await readFile(
 );
 const pricingDatabaseTest = await readFile(
   path.join(testDirectory, "b2_004_pricing_test.sql"),
+  "utf8",
+);
+const inventoryDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_005_inventory_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -93,6 +102,7 @@ for (const [name, migration] of [
   ["B2-004", pricingMigration],
   ["B2-004 timestamp hardening", pricingTimestampHardeningMigration],
   ["B2-004 index hardening", pricingIndexHardeningMigration],
+  ["B2-005", inventoryMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -380,6 +390,78 @@ for (const statement of [
   );
 }
 
+const requiredInventoryMigrationStatements = [
+  "create table app_private.inventory_items (",
+  "create table app_private.inventory_locations (",
+  "create table app_private.inventory_compositions (",
+  "create table app_private.inventory_composition_components (",
+  "create table app_private.inventory_commands (",
+  "create table app_private.inventory_balances (",
+  "create table app_private.inventory_operations (",
+  "create table app_private.inventory_movements (",
+  "create table app_private.inventory_reservations (",
+  "create table app_private.inventory_reservation_lines (",
+  "create table app_private.inventory_reservation_events (",
+  "create table app_private.inventory_reservation_event_lines (",
+  "available_quantity numeric generated always as",
+  "create unique index inventory_compositions_one_active_offer_unit",
+  "create index inventory_reservations_open_expiration_idx",
+  "create function app_private.claim_inventory_command(",
+  "order by balance.inventory_item_id, balance.location_id",
+  "for update of balance",
+  "create function api.apply_inventory_movement(",
+  "create function api.apply_inventory_composition_movement(",
+  "create function api.create_inventory_reservation(",
+  "create function api.create_inventory_composition_reservation(",
+  "create function api.transition_inventory_reservation(",
+  "create function api.resolve_inventory_requirements(",
+  "create view api.inventory_composition_availability",
+  "inventory idempotency key was reused with a different request",
+  "intent interpretation belongs to LLM tool calling",
+  "from public, anon, authenticated, service_role;",
+];
+
+for (const statement of requiredInventoryMigrationStatements) {
+  assert.ok(
+    inventoryMigration.includes(statement),
+    `B2-005 database migration must include: ${statement}`,
+  );
+}
+
+assert.equal(
+  inventoryMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  13,
+  "all thirteen B2-005 API views must preserve caller RLS",
+);
+assert.equal(
+  inventoryMigration.split("force row level security;").length - 1,
+  12,
+  "all twelve B2-005 private relations must force RLS",
+);
+assert.equal(
+  inventoryMigration.split("create policy ").length - 1,
+  12,
+  "every B2-005 private relation must define an authenticated read policy",
+);
+assert.equal(
+  inventoryMigration.includes("to anon"),
+  false,
+  "B2-005 cannot grant application access to anon",
+);
+for (const forbiddenProductSpecificColumn of [
+  "tire_size",
+  "rim_size",
+  "tank_capacity",
+  "with_rim",
+  "without_rim",
+]) {
+  assert.equal(
+    inventoryMigration.includes(forbiddenProductSpecificColumn),
+    false,
+    `B2-005 inventory cannot compile product-specific column: ${forbiddenProductSpecificColumn}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -465,11 +547,37 @@ for (const statement of requiredPricingTestStatements) {
   );
 }
 
+const requiredInventoryTestStatements = [
+  "select extensions.plan(109);",
+  "set local role authenticated;",
+  "set local role service_role;",
+  "set local role postgres;",
+  "same command replays despite input line order",
+  "movement cannot make stock negative",
+  "package allocation must exactly match every declared component",
+  "absolute count cannot reduce stock below active reservations",
+  "partial reservation consumption commits",
+  "reservation cannot expire before its deadline",
+  "package reservation supports explicit multi-location allocation",
+  "service role cannot edit balance projection directly",
+  "RLS does not leak another organization inventory",
+  "every B2-005 foreign key column is indexed",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredInventoryTestStatements) {
+  assert.ok(
+    inventoryDatabaseTest.includes(statement),
+    `B2-005 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
   ["B2-003", catalogDatabaseTest],
   ["B2-004", pricingDatabaseTest],
+  ["B2-005", inventoryDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -522,6 +630,19 @@ for (const statement of requiredWorkflowStatements) {
 for (const schema of ["api", "app_private"]) {
   assert.ok(generatedTypes.includes(`  ${schema}: {`), `generated types must include ${schema}`);
 }
+for (const generatedInventoryContract of [
+  "inventory_balances: {",
+  "inventory_compositions: {",
+  "inventory_movements: {",
+  "inventory_reservations: {",
+  "apply_inventory_movement: {",
+  "transition_inventory_reservation: {",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedInventoryContract),
+    `generated database types must include B2-005 contract: ${generatedInventoryContract}`,
+  );
+}
 assert.equal(
   generatedTypes.includes("  public: {"),
   false,
@@ -570,5 +691,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 32 forced-RLS tables, 275 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 44 forced-RLS tables, 384 pgTAP assertions, generated TypeScript schemas locked.`,
 );
