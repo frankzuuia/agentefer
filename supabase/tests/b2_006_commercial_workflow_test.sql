@@ -1145,7 +1145,7 @@ select pg_temp.throws_sqlstate(
 );
 select pg_temp.throws_sqlstate(
   $$update app_private.orders
-    set total_amount = 1
+    set customer_note = 'Unauthorized but structurally valid replacement note.'
     where id = (
       select result_id from app_private.commercial_commands where idempotency_key = 'order-priced-a'
     )$$,
