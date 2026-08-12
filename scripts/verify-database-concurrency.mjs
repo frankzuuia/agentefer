@@ -182,12 +182,12 @@ const commercialFixtureSql = `
 begin;
 set local role service_role;
 
-update app_private.product_variants
-set status = 'active'
-where id = '33000000-0000-4000-8000-000000000160';
 update app_private.products
 set status = 'active'
 where id = '33000000-0000-4000-8000-000000000150';
+update app_private.product_variants
+set status = 'active'
+where id = '33000000-0000-4000-8000-000000000160';
 
 insert into app_private.channel_connections (
   id, organization_id, provider, channel, external_app_id, external_account_id,
