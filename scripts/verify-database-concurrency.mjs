@@ -362,7 +362,11 @@ const verifyRace = async ({ label, firstSql, secondSql, countSql, failureMarker 
   assert.equal(persistedRows, 1, `${label} conflict must leave exactly one row`);
   assert.ok(
     failedDiagnostic.includes(failureMarker),
-    `${label} conflict must come from ${failureMarker}`,
+    `${label} conflict must come from ${failureMarker}; diagnostic: ${failedDiagnostic
+      .trim()
+      .split("\n")
+      .slice(-20)
+      .join("\n")}`,
   );
 
   return {
@@ -490,7 +494,7 @@ const pendingResolutionRace = await verifyRace({
       and id = (select result_id from app_private.commercial_commands
         where idempotency_key = 'concurrent-pending-create')
       and status = 'resolved';`,
-  failureMarker: "pending request is not open",
+  failureMarker: "pending request is already closed",
 });
 
 const handoffAcceptanceRace = await verifyRace({
