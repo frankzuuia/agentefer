@@ -639,6 +639,147 @@ export type Database = {
           },
         ];
       };
+      commercial_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          operation: string | null;
+          organization_id: string | null;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commercial_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      commercial_events: {
+        Row: {
+          created_at: string | null;
+          created_by_user_id: string | null;
+          event_payload: Json | null;
+          event_type: string | null;
+          handoff_id: string | null;
+          id: string | null;
+          lead_id: string | null;
+          new_status: string | null;
+          occurred_at: string | null;
+          opportunity_id: string | null;
+          order_id: string | null;
+          organization_id: string | null;
+          pending_request_id: string | null;
+          previous_status: string | null;
+          reason: string | null;
+          sale_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          event_payload?: Json | null;
+          event_type?: string | null;
+          handoff_id?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string | null;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          pending_request_id?: string | null;
+          previous_status?: string | null;
+          reason?: string | null;
+          sale_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          event_payload?: Json | null;
+          event_type?: string | null;
+          handoff_id?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string | null;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          pending_request_id?: string | null;
+          previous_status?: string | null;
+          reason?: string | null;
+          sale_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commercial_events_handoff_fk";
+            columns: ["organization_id", "handoff_id"];
+            isOneToOne: false;
+            referencedRelation: "handoffs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_pending_request_fk";
+            columns: ["organization_id", "pending_request_id"];
+            isOneToOne: false;
+            referencedRelation: "pending_requests";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_sale_fk";
+            columns: ["organization_id", "sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       consents: {
         Row: {
           channel_connection_id: string | null;
@@ -696,6 +837,62 @@ export type Database = {
           },
         ];
       };
+      contact_methods: {
+        Row: {
+          consent_purpose: string | null;
+          consent_source: string | null;
+          consented_at: string | null;
+          contact_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          display_hint: string | null;
+          id: string | null;
+          method_kind: string | null;
+          organization_id: string | null;
+          revoked_at: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          consent_purpose?: string | null;
+          consent_source?: string | null;
+          consented_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          display_hint?: string | null;
+          id?: string | null;
+          method_kind?: string | null;
+          organization_id?: string | null;
+          revoked_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          consent_purpose?: string | null;
+          consent_source?: string | null;
+          consented_at?: string | null;
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          display_hint?: string | null;
+          id?: string | null;
+          method_kind?: string | null;
+          organization_id?: string | null;
+          revoked_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_methods_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       contacts: {
         Row: {
           created_at: string | null;
@@ -731,6 +928,73 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversation_assignments: {
+        Row: {
+          agent_key: string | null;
+          assignee_kind: string | null;
+          channel_connection_id: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          ended_at: string | null;
+          id: string | null;
+          member_user_id: string | null;
+          opportunity_id: string | null;
+          organization_id: string | null;
+          reason: string | null;
+          started_at: string | null;
+        };
+        Insert: {
+          agent_key?: string | null;
+          assignee_kind?: string | null;
+          channel_connection_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          ended_at?: string | null;
+          id?: string | null;
+          member_user_id?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          started_at?: string | null;
+        };
+        Update: {
+          agent_key?: string | null;
+          assignee_kind?: string | null;
+          channel_connection_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          ended_at?: string | null;
+          id?: string | null;
+          member_user_id?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          started_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignments_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "conversation_assignments_member_fk";
+            columns: ["organization_id", "member_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignments_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -860,6 +1124,122 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "channel_identities";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      handoffs: {
+        Row: {
+          accepted_assignment_id: string | null;
+          channel_connection_id: string | null;
+          context_summary: Json | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          decided_at: string | null;
+          decided_by_user_id: string | null;
+          from_assignment_id: string | null;
+          id: string | null;
+          opportunity_id: string | null;
+          organization_id: string | null;
+          reason: string | null;
+          requested_at: string | null;
+          requested_by_user_id: string | null;
+          status: string | null;
+          target_agent_key: string | null;
+          target_kind: string | null;
+          target_member_user_id: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          accepted_assignment_id?: string | null;
+          channel_connection_id?: string | null;
+          context_summary?: Json | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          decided_at?: string | null;
+          decided_by_user_id?: string | null;
+          from_assignment_id?: string | null;
+          id?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          requested_at?: string | null;
+          requested_by_user_id?: string | null;
+          status?: string | null;
+          target_agent_key?: string | null;
+          target_kind?: string | null;
+          target_member_user_id?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          accepted_assignment_id?: string | null;
+          channel_connection_id?: string | null;
+          context_summary?: Json | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          decided_at?: string | null;
+          decided_by_user_id?: string | null;
+          from_assignment_id?: string | null;
+          id?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          reason?: string | null;
+          requested_at?: string | null;
+          requested_by_user_id?: string | null;
+          status?: string | null;
+          target_agent_key?: string | null;
+          target_kind?: string | null;
+          target_member_user_id?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "handoffs_accepted_assignment_fk";
+            columns: ["organization_id", "accepted_assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_assignments";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_decided_by_fk";
+            columns: ["organization_id", "decided_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "handoffs_from_assignment_fk";
+            columns: ["organization_id", "from_assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_assignments";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_requested_by_fk";
+            columns: ["organization_id", "requested_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "handoffs_target_member_fk";
+            columns: ["organization_id", "target_member_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
           },
         ];
       };
@@ -1553,6 +1933,133 @@ export type Database = {
           },
         ];
       };
+      lead_interests: {
+        Row: {
+          captured_context: Json | null;
+          created_at: string | null;
+          id: string | null;
+          lead_id: string | null;
+          organization_id: string | null;
+          requested_quantity: number | null;
+          status: string | null;
+          summary: string | null;
+          unit_id: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          captured_context?: Json | null;
+          created_at?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          organization_id?: string | null;
+          requested_quantity?: number | null;
+          status?: string | null;
+          summary?: string | null;
+          unit_id?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          captured_context?: Json | null;
+          created_at?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          organization_id?: string | null;
+          requested_quantity?: number | null;
+          status?: string | null;
+          summary?: string | null;
+          unit_id?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lead_interests_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "lead_interests_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "lead_interests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      leads: {
+        Row: {
+          captured_at: string | null;
+          channel_connection_id: string | null;
+          closed_at: string | null;
+          contact_id: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          source: string | null;
+          status: string | null;
+          summary: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          captured_at?: string | null;
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          source?: string | null;
+          status?: string | null;
+          summary?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          captured_at?: string | null;
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          source?: string | null;
+          status?: string | null;
+          summary?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leads_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "leads_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -1765,6 +2272,342 @@ export type Database = {
           },
         ];
       };
+      opportunities: {
+        Row: {
+          closed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          currency_code: string | null;
+          estimated_amount: number | null;
+          handling_mode: string | null;
+          id: string | null;
+          lead_id: string | null;
+          opened_at: string | null;
+          organization_id: string | null;
+          stage_code: string | null;
+          status: string | null;
+          title: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          closed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          estimated_amount?: number | null;
+          handling_mode?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          opened_at?: string | null;
+          organization_id?: string | null;
+          stage_code?: string | null;
+          status?: string | null;
+          title?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          closed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          estimated_amount?: number | null;
+          handling_mode?: string | null;
+          id?: string | null;
+          lead_id?: string | null;
+          opened_at?: string | null;
+          organization_id?: string | null;
+          stage_code?: string | null;
+          status?: string | null;
+          title?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      order_lines: {
+        Row: {
+          calculation_method: string | null;
+          created_at: string | null;
+          currency_code: string | null;
+          id: string | null;
+          line_number: number | null;
+          line_total_amount: number | null;
+          offer_snapshot: Json | null;
+          order_id: string | null;
+          organization_id: string | null;
+          price_amount: number | null;
+          price_tier_id: string | null;
+          pricing_status: string | null;
+          product_name_snapshot: string | null;
+          quantity: number | null;
+          quoted_at: string | null;
+          sku_snapshot: string | null;
+          unit_code_snapshot: string | null;
+          unit_id: string | null;
+          variant_id: string | null;
+          variant_name_snapshot: string | null;
+        };
+        Insert: {
+          calculation_method?: string | null;
+          created_at?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          line_number?: number | null;
+          line_total_amount?: number | null;
+          offer_snapshot?: Json | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          price_tier_id?: string | null;
+          pricing_status?: string | null;
+          product_name_snapshot?: string | null;
+          quantity?: number | null;
+          quoted_at?: string | null;
+          sku_snapshot?: string | null;
+          unit_code_snapshot?: string | null;
+          unit_id?: string | null;
+          variant_id?: string | null;
+          variant_name_snapshot?: string | null;
+        };
+        Update: {
+          calculation_method?: string | null;
+          created_at?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          line_number?: number | null;
+          line_total_amount?: number | null;
+          offer_snapshot?: Json | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          price_tier_id?: string | null;
+          pricing_status?: string | null;
+          product_name_snapshot?: string | null;
+          quantity?: number | null;
+          quoted_at?: string | null;
+          sku_snapshot?: string | null;
+          unit_code_snapshot?: string | null;
+          unit_id?: string | null;
+          variant_id?: string | null;
+          variant_name_snapshot?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_lines_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_price_tier_fk";
+            columns: ["organization_id", "price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "previous_price_tier_id"];
+          },
+          {
+            foreignKeyName: "order_lines_price_tier_fk";
+            columns: ["organization_id", "price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "price_tier_id"];
+          },
+          {
+            foreignKeyName: "order_lines_price_tier_fk";
+            columns: ["organization_id", "price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      order_reservation_links: {
+        Row: {
+          created_at: string | null;
+          id: string | null;
+          linked_at: string | null;
+          linked_by_user_id: string | null;
+          order_id: string | null;
+          organization_id: string | null;
+          purpose: string | null;
+          reservation_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string | null;
+          linked_at?: string | null;
+          linked_by_user_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          purpose?: string | null;
+          reservation_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string | null;
+          linked_at?: string | null;
+          linked_by_user_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          purpose?: string | null;
+          reservation_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_reservation_links_linked_by_fk";
+            columns: ["organization_id", "linked_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "order_reservation_links_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_reservation_links_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: true;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      orders: {
+        Row: {
+          channel_connection_id: string | null;
+          closed_at: string | null;
+          contact_id: string | null;
+          contact_snapshot: Json | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          currency_code: string | null;
+          customer_note: string | null;
+          handling_mode: string | null;
+          id: string | null;
+          notification_channel_connection_id: string | null;
+          notification_outbox_event_id: string | null;
+          notification_status: string | null;
+          notified_at: string | null;
+          opportunity_id: string | null;
+          organization_id: string | null;
+          origin: string | null;
+          preferred_contact_method_id: string | null;
+          status: string | null;
+          submitted_at: string | null;
+          subtotal_amount: number | null;
+          total_amount: number | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          contact_snapshot?: Json | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          customer_note?: string | null;
+          handling_mode?: string | null;
+          id?: string | null;
+          notification_channel_connection_id?: string | null;
+          notification_outbox_event_id?: string | null;
+          notification_status?: string | null;
+          notified_at?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          origin?: string | null;
+          preferred_contact_method_id?: string | null;
+          status?: string | null;
+          submitted_at?: string | null;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string | null;
+          contact_snapshot?: Json | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          customer_note?: string | null;
+          handling_mode?: string | null;
+          id?: string | null;
+          notification_channel_connection_id?: string | null;
+          notification_outbox_event_id?: string | null;
+          notification_status?: string | null;
+          notified_at?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string | null;
+          origin?: string | null;
+          preferred_contact_method_id?: string | null;
+          status?: string | null;
+          submitted_at?: string | null;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_contact_method_fk";
+            columns: ["organization_id", "preferred_contact_method_id"];
+            isOneToOne: false;
+            referencedRelation: "contact_methods";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       organization_memberships: {
         Row: {
           created_at: string | null;
@@ -1829,6 +2672,146 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [];
+      };
+      pending_requests: {
+        Row: {
+          channel_connection_id: string | null;
+          collected_context: Json | null;
+          contact_id: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          due_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          request_kind: string | null;
+          requested_fields: Json | null;
+          requested_quantity: number | null;
+          resolution_kind: string | null;
+          resolution_text: string | null;
+          resolved_at: string | null;
+          resolved_by_user_id: string | null;
+          resolved_currency_code: string | null;
+          resolved_price_amount: number | null;
+          responded_at: string | null;
+          response_delivery_status: string | null;
+          response_outbox_event_id: string | null;
+          source_message_id: string | null;
+          status: string | null;
+          unit_id: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          collected_context?: Json | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          due_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          request_kind?: string | null;
+          requested_fields?: Json | null;
+          requested_quantity?: number | null;
+          resolution_kind?: string | null;
+          resolution_text?: string | null;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+          resolved_currency_code?: string | null;
+          resolved_price_amount?: number | null;
+          responded_at?: string | null;
+          response_delivery_status?: string | null;
+          response_outbox_event_id?: string | null;
+          source_message_id?: string | null;
+          status?: string | null;
+          unit_id?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          collected_context?: Json | null;
+          contact_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          due_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          request_kind?: string | null;
+          requested_fields?: Json | null;
+          requested_quantity?: number | null;
+          resolution_kind?: string | null;
+          resolution_text?: string | null;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+          resolved_currency_code?: string | null;
+          resolved_price_amount?: number | null;
+          responded_at?: string | null;
+          response_delivery_status?: string | null;
+          response_outbox_event_id?: string | null;
+          source_message_id?: string | null;
+          status?: string | null;
+          unit_id?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pending_requests_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_resolved_by_fk";
+            columns: ["organization_id", "resolved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "pending_requests_source_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "source_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+          {
+            foreignKeyName: "pending_requests_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
       };
       price_books: {
         Row: {
@@ -2198,6 +3181,195 @@ export type Database = {
           },
         ];
       };
+      sale_lines: {
+        Row: {
+          created_at: string | null;
+          id: string | null;
+          inventory_effect_status: string | null;
+          inventory_operation_id: string | null;
+          line_number: number | null;
+          line_total_amount: number | null;
+          order_line_id: string | null;
+          organization_id: string | null;
+          product_name_snapshot: string | null;
+          quantity: number | null;
+          reverses_sale_line_id: string | null;
+          sale_id: string | null;
+          sku_snapshot: string | null;
+          unit_amount: number | null;
+          unit_code_snapshot: string | null;
+          unit_id: string | null;
+          variant_id: string | null;
+          variant_name_snapshot: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_effect_status?: string | null;
+          inventory_operation_id?: string | null;
+          line_number?: number | null;
+          line_total_amount?: number | null;
+          order_line_id?: string | null;
+          organization_id?: string | null;
+          product_name_snapshot?: string | null;
+          quantity?: number | null;
+          reverses_sale_line_id?: string | null;
+          sale_id?: string | null;
+          sku_snapshot?: string | null;
+          unit_amount?: number | null;
+          unit_code_snapshot?: string | null;
+          unit_id?: string | null;
+          variant_id?: string | null;
+          variant_name_snapshot?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string | null;
+          inventory_effect_status?: string | null;
+          inventory_operation_id?: string | null;
+          line_number?: number | null;
+          line_total_amount?: number | null;
+          order_line_id?: string | null;
+          organization_id?: string | null;
+          product_name_snapshot?: string | null;
+          quantity?: number | null;
+          reverses_sale_line_id?: string | null;
+          sale_id?: string | null;
+          sku_snapshot?: string | null;
+          unit_amount?: number | null;
+          unit_code_snapshot?: string | null;
+          unit_id?: string | null;
+          variant_id?: string | null;
+          variant_name_snapshot?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_lines_inventory_operation_fk";
+            columns: ["organization_id", "inventory_operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_order_line_fk";
+            columns: ["organization_id", "order_line_id"];
+            isOneToOne: false;
+            referencedRelation: "order_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_reverses_sale_line_fk";
+            columns: ["organization_id", "reverses_sale_line_id"];
+            isOneToOne: false;
+            referencedRelation: "sale_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_sale_fk";
+            columns: ["organization_id", "sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      sales: {
+        Row: {
+          contact_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          currency_code: string | null;
+          id: string | null;
+          note: string | null;
+          occurred_at: string | null;
+          opportunity_id: string | null;
+          order_id: string | null;
+          organization_id: string | null;
+          reverses_sale_id: string | null;
+          sale_kind: string | null;
+          source: string | null;
+          subtotal_amount: number | null;
+          total_amount: number | null;
+        };
+        Insert: {
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          note?: string | null;
+          occurred_at?: string | null;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          reverses_sale_id?: string | null;
+          sale_kind?: string | null;
+          source?: string | null;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+        };
+        Update: {
+          contact_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          id?: string | null;
+          note?: string | null;
+          occurred_at?: string | null;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string | null;
+          reverses_sale_id?: string | null;
+          sale_kind?: string | null;
+          source?: string | null;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sales_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_reverses_fk";
+            columns: ["organization_id", "reverses_sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           accessibility_preferences: Json | null;
@@ -2399,6 +3571,24 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      create_handoff: {
+        Args: {
+          target_context_summary: Json;
+          target_idempotency_key: string;
+          target_opportunity_id: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_requested_by_user_id?: string;
+          target_target_agent_key?: string;
+          target_target_kind: string;
+          target_target_member_user_id?: string;
+        };
+        Returns: {
+          handoff_id: string;
+          handoff_status: string;
+          replayed: boolean;
+        }[];
+      };
       create_inventory_composition_reservation: {
         Args: {
           target_allocations: Json;
@@ -2435,6 +3625,180 @@ export type Database = {
           reservation_status: string;
         }[];
       };
+      create_lead: {
+        Args: {
+          target_channel_connection_id?: string;
+          target_contact_id: string;
+          target_conversation_id?: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_interests: Json;
+          target_organization_id: string;
+          target_source: string;
+          target_summary: string;
+        };
+        Returns: {
+          lead_id: string;
+          lead_status: string;
+          replayed: boolean;
+        }[];
+      };
+      create_opportunity: {
+        Args: {
+          target_agent_key?: string;
+          target_assignee_kind: string;
+          target_created_by_user_id?: string;
+          target_currency_code?: string;
+          target_estimated_amount?: number;
+          target_handling_mode: string;
+          target_idempotency_key: string;
+          target_lead_id: string;
+          target_member_user_id?: string;
+          target_organization_id: string;
+          target_stage_code: string;
+          target_title: string;
+        };
+        Returns: {
+          assignment_id: string;
+          opportunity_id: string;
+          opportunity_status: string;
+          replayed: boolean;
+        }[];
+      };
+      create_order: {
+        Args: {
+          target_channel_connection_id?: string;
+          target_contact_id: string;
+          target_conversation_id?: string;
+          target_created_by_user_id?: string;
+          target_customer_note?: string;
+          target_handling_mode: string;
+          target_idempotency_key: string;
+          target_lines: Json;
+          target_opportunity_id?: string;
+          target_organization_id: string;
+          target_origin: string;
+          target_preferred_contact_method_id?: string;
+          target_quoted_at?: string;
+        };
+        Returns: {
+          order_id: string;
+          order_status: string;
+          replayed: boolean;
+          total_amount: number;
+        }[];
+      };
+      create_pending_request: {
+        Args: {
+          target_channel_connection_id: string;
+          target_collected_context: Json;
+          target_contact_id: string;
+          target_conversation_id: string;
+          target_created_by_user_id?: string;
+          target_due_at?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_request_kind: string;
+          target_requested_fields: Json;
+          target_requested_quantity?: number;
+          target_source_message_id?: string;
+          target_unit_id?: string;
+          target_variant_id?: string;
+        };
+        Returns: {
+          pending_request_id: string;
+          pending_status: string;
+          replayed: boolean;
+        }[];
+      };
+      link_order_reservation: {
+        Args: {
+          target_idempotency_key: string;
+          target_linked_by_user_id?: string;
+          target_order_id: string;
+          target_organization_id: string;
+          target_purpose: string;
+          target_reservation_id: string;
+        };
+        Returns: {
+          order_id: string;
+          replayed: boolean;
+          reservation_id: string;
+        }[];
+      };
+      reconcile_sale_inventory: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_inventory_operation_id: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_sale_line_id: string;
+        };
+        Returns: {
+          inventory_effect_status: string;
+          replayed: boolean;
+          sale_line_id: string;
+        }[];
+      };
+      record_commercial_notification: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_outbox_event_id: string;
+          target_subject_id: string;
+          target_subject_type: string;
+        };
+        Returns: {
+          notification_status: string;
+          replayed: boolean;
+          subject_id: string;
+        }[];
+      };
+      record_sale: {
+        Args: {
+          target_contact_id?: string;
+          target_created_by_user_id?: string;
+          target_currency_code: string;
+          target_idempotency_key: string;
+          target_lines: Json;
+          target_note?: string;
+          target_occurred_at?: string;
+          target_opportunity_id?: string;
+          target_order_id?: string;
+          target_organization_id: string;
+          target_reverses_sale_id?: string;
+          target_sale_kind: string;
+          target_source: string;
+        };
+        Returns: {
+          order_status: string;
+          replayed: boolean;
+          sale_id: string;
+        }[];
+      };
+      register_contact_method: {
+        Args: {
+          target_consent_purpose: string;
+          target_consent_source: string;
+          target_consented_at: string;
+          target_contact_id: string;
+          target_created_by_user_id?: string;
+          target_display_hint: string;
+          target_encryption_key_ref: string;
+          target_idempotency_key: string;
+          target_method_kind: string;
+          target_organization_id: string;
+          target_value_ciphertext: string;
+          target_value_fingerprint: string;
+        };
+        Returns: {
+          contact_method_id: string;
+          replayed: boolean;
+        }[];
+      };
       resolve_inventory_requirements: {
         Args: {
           target_composition_id: string;
@@ -2448,6 +3812,26 @@ export type Database = {
           offered_variant_id: string;
           required_quantity: number;
           sale_unit_id: string;
+        }[];
+      };
+      resolve_pending_request: {
+        Args: {
+          target_action: string;
+          target_idempotency_key: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_pending_request_id: string;
+          target_resolution_kind: string;
+          target_resolution_text: string;
+          target_resolved_by_user_id?: string;
+          target_resolved_currency_code?: string;
+          target_resolved_price_amount?: number;
+        };
+        Returns: {
+          pending_request_id: string;
+          pending_status: string;
+          replayed: boolean;
+          response_delivery_status: string;
         }[];
       };
       resolve_price_quote: {
@@ -2475,6 +3859,23 @@ export type Database = {
           variant_id: string;
         }[];
       };
+      transition_handoff: {
+        Args: {
+          target_action: string;
+          target_decided_by_user_id?: string;
+          target_handoff_id: string;
+          target_idempotency_key: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_reason: string;
+        };
+        Returns: {
+          active_assignment_id: string;
+          handoff_id: string;
+          handoff_status: string;
+          replayed: boolean;
+        }[];
+      };
       transition_inventory_reservation: {
         Args: {
           target_action: string;
@@ -2491,6 +3892,22 @@ export type Database = {
           reservation_event_id: string;
           reservation_id: string;
           reservation_status: string;
+        }[];
+      };
+      transition_order: {
+        Args: {
+          target_action: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_occurred_at?: string;
+          target_order_id: string;
+          target_organization_id: string;
+          target_reason: string;
+        };
+        Returns: {
+          order_id: string;
+          order_status: string;
+          replayed: boolean;
         }[];
       };
     };
@@ -3267,6 +4684,166 @@ export type Database = {
           },
         ];
       };
+      commercial_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          operation?: string;
+          organization_id?: string;
+          request_fingerprint?: string;
+          request_payload?: Json;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commercial_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      commercial_events: {
+        Row: {
+          command_id: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          event_payload: Json;
+          event_type: string;
+          handoff_id: string | null;
+          id: string;
+          lead_id: string | null;
+          new_status: string | null;
+          occurred_at: string;
+          opportunity_id: string | null;
+          order_id: string | null;
+          organization_id: string;
+          pending_request_id: string | null;
+          previous_status: string | null;
+          reason: string;
+          sale_id: string | null;
+        };
+        Insert: {
+          command_id: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          event_payload?: Json;
+          event_type: string;
+          handoff_id?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id: string;
+          pending_request_id?: string | null;
+          previous_status?: string | null;
+          reason: string;
+          sale_id?: string | null;
+        };
+        Update: {
+          command_id?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          event_payload?: Json;
+          event_type?: string;
+          handoff_id?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string;
+          pending_request_id?: string | null;
+          previous_status?: string | null;
+          reason?: string;
+          sale_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "commercial_events_command_fk";
+            columns: ["organization_id", "command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_handoff_fk";
+            columns: ["organization_id", "handoff_id"];
+            isOneToOne: false;
+            referencedRelation: "handoffs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_pending_request_fk";
+            columns: ["organization_id", "pending_request_id"];
+            isOneToOne: false;
+            referencedRelation: "pending_requests";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "commercial_events_sale_fk";
+            columns: ["organization_id", "sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       consents: {
         Row: {
           channel_connection_id: string;
@@ -3330,6 +4907,81 @@ export type Database = {
           },
         ];
       };
+      contact_methods: {
+        Row: {
+          consent_purpose: string;
+          consent_source: string;
+          consented_at: string;
+          contact_id: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          display_hint: string;
+          encryption_key_ref: string;
+          id: string;
+          method_kind: string;
+          organization_id: string;
+          revoked_at: string | null;
+          status: string;
+          updated_at: string;
+          value_ciphertext: string;
+          value_fingerprint: string;
+        };
+        Insert: {
+          consent_purpose: string;
+          consent_source: string;
+          consented_at: string;
+          contact_id: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          display_hint: string;
+          encryption_key_ref: string;
+          id?: string;
+          method_kind: string;
+          organization_id: string;
+          revoked_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          value_ciphertext: string;
+          value_fingerprint: string;
+        };
+        Update: {
+          consent_purpose?: string;
+          consent_source?: string;
+          consented_at?: string;
+          contact_id?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          display_hint?: string;
+          encryption_key_ref?: string;
+          id?: string;
+          method_kind?: string;
+          organization_id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          value_ciphertext?: string;
+          value_fingerprint?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_methods_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "contact_methods_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       contacts: {
         Row: {
           created_at: string;
@@ -3365,6 +5017,73 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversation_assignments: {
+        Row: {
+          agent_key: string | null;
+          assignee_kind: string;
+          channel_connection_id: string;
+          conversation_id: string;
+          created_at: string;
+          ended_at: string | null;
+          id: string;
+          member_user_id: string | null;
+          opportunity_id: string;
+          organization_id: string;
+          reason: string;
+          started_at: string;
+        };
+        Insert: {
+          agent_key?: string | null;
+          assignee_kind: string;
+          channel_connection_id: string;
+          conversation_id: string;
+          created_at?: string;
+          ended_at?: string | null;
+          id?: string;
+          member_user_id?: string | null;
+          opportunity_id: string;
+          organization_id: string;
+          reason: string;
+          started_at?: string;
+        };
+        Update: {
+          agent_key?: string | null;
+          assignee_kind?: string;
+          channel_connection_id?: string;
+          conversation_id?: string;
+          created_at?: string;
+          ended_at?: string | null;
+          id?: string;
+          member_user_id?: string | null;
+          opportunity_id?: string;
+          organization_id?: string;
+          reason?: string;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_assignments_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "conversation_assignments_member_fk";
+            columns: ["organization_id", "member_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "conversation_assignments_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -3497,6 +5216,132 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "channel_identities";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      handoffs: {
+        Row: {
+          accepted_assignment_id: string | null;
+          channel_connection_id: string;
+          context_summary: Json;
+          conversation_id: string;
+          created_at: string;
+          creation_command_id: string;
+          decided_at: string | null;
+          decided_by_user_id: string | null;
+          from_assignment_id: string;
+          id: string;
+          opportunity_id: string;
+          organization_id: string;
+          reason: string;
+          requested_at: string;
+          requested_by_user_id: string | null;
+          status: string;
+          target_agent_key: string | null;
+          target_kind: string;
+          target_member_user_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_assignment_id?: string | null;
+          channel_connection_id: string;
+          context_summary: Json;
+          conversation_id: string;
+          created_at?: string;
+          creation_command_id: string;
+          decided_at?: string | null;
+          decided_by_user_id?: string | null;
+          from_assignment_id: string;
+          id?: string;
+          opportunity_id: string;
+          organization_id: string;
+          reason: string;
+          requested_at?: string;
+          requested_by_user_id?: string | null;
+          status?: string;
+          target_agent_key?: string | null;
+          target_kind: string;
+          target_member_user_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_assignment_id?: string | null;
+          channel_connection_id?: string;
+          context_summary?: Json;
+          conversation_id?: string;
+          created_at?: string;
+          creation_command_id?: string;
+          decided_at?: string | null;
+          decided_by_user_id?: string | null;
+          from_assignment_id?: string;
+          id?: string;
+          opportunity_id?: string;
+          organization_id?: string;
+          reason?: string;
+          requested_at?: string;
+          requested_by_user_id?: string | null;
+          status?: string;
+          target_agent_key?: string | null;
+          target_kind?: string;
+          target_member_user_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "handoffs_accepted_assignment_fk";
+            columns: ["organization_id", "accepted_assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_assignments";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_decided_by_fk";
+            columns: ["organization_id", "decided_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "handoffs_from_assignment_fk";
+            columns: ["organization_id", "from_assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_assignments";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "handoffs_requested_by_fk";
+            columns: ["organization_id", "requested_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "handoffs_target_member_fk";
+            columns: ["organization_id", "target_member_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
           },
         ];
       };
@@ -4238,6 +6083,143 @@ export type Database = {
           },
         ];
       };
+      lead_interests: {
+        Row: {
+          captured_context: Json;
+          created_at: string;
+          id: string;
+          lead_id: string;
+          organization_id: string;
+          requested_quantity: number | null;
+          status: string;
+          summary: string;
+          unit_id: string | null;
+          updated_at: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          captured_context?: Json;
+          created_at?: string;
+          id?: string;
+          lead_id: string;
+          organization_id: string;
+          requested_quantity?: number | null;
+          status?: string;
+          summary: string;
+          unit_id?: string | null;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          captured_context?: Json;
+          created_at?: string;
+          id?: string;
+          lead_id?: string;
+          organization_id?: string;
+          requested_quantity?: number | null;
+          status?: string;
+          summary?: string;
+          unit_id?: string | null;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lead_interests_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "lead_interests_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "lead_interests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      leads: {
+        Row: {
+          captured_at: string;
+          channel_connection_id: string | null;
+          closed_at: string | null;
+          contact_id: string;
+          conversation_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          id: string;
+          organization_id: string;
+          source: string;
+          status: string;
+          summary: string;
+          updated_at: string;
+        };
+        Insert: {
+          captured_at?: string;
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          id?: string;
+          organization_id: string;
+          source: string;
+          status?: string;
+          summary: string;
+          updated_at?: string;
+        };
+        Update: {
+          captured_at?: string;
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          id?: string;
+          organization_id?: string;
+          source?: string;
+          status?: string;
+          summary?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leads_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "leads_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "leads_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -4485,6 +6467,359 @@ export type Database = {
           },
         ];
       };
+      opportunities: {
+        Row: {
+          closed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          currency_code: string | null;
+          estimated_amount: number | null;
+          handling_mode: string;
+          id: string;
+          lead_id: string;
+          opened_at: string;
+          organization_id: string;
+          stage_code: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          closed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          currency_code?: string | null;
+          estimated_amount?: number | null;
+          handling_mode: string;
+          id?: string;
+          lead_id: string;
+          opened_at?: string;
+          organization_id: string;
+          stage_code: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          currency_code?: string | null;
+          estimated_amount?: number | null;
+          handling_mode?: string;
+          id?: string;
+          lead_id?: string;
+          opened_at?: string;
+          organization_id?: string;
+          stage_code?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "opportunities_lead_fk";
+            columns: ["organization_id", "lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      order_lines: {
+        Row: {
+          calculation_method: string | null;
+          created_at: string;
+          currency_code: string;
+          id: string;
+          line_number: number;
+          line_total_amount: number | null;
+          offer_snapshot: Json;
+          order_id: string;
+          organization_id: string;
+          price_amount: number | null;
+          price_tier_id: string;
+          pricing_status: string;
+          product_name_snapshot: string;
+          quantity: number;
+          quoted_at: string;
+          sku_snapshot: string;
+          unit_code_snapshot: string;
+          unit_id: string;
+          variant_id: string;
+          variant_name_snapshot: string;
+        };
+        Insert: {
+          calculation_method?: string | null;
+          created_at?: string;
+          currency_code: string;
+          id?: string;
+          line_number: number;
+          line_total_amount?: number | null;
+          offer_snapshot: Json;
+          order_id: string;
+          organization_id: string;
+          price_amount?: number | null;
+          price_tier_id: string;
+          pricing_status: string;
+          product_name_snapshot: string;
+          quantity: number;
+          quoted_at: string;
+          sku_snapshot: string;
+          unit_code_snapshot: string;
+          unit_id: string;
+          variant_id: string;
+          variant_name_snapshot: string;
+        };
+        Update: {
+          calculation_method?: string | null;
+          created_at?: string;
+          currency_code?: string;
+          id?: string;
+          line_number?: number;
+          line_total_amount?: number | null;
+          offer_snapshot?: Json;
+          order_id?: string;
+          organization_id?: string;
+          price_amount?: number | null;
+          price_tier_id?: string;
+          pricing_status?: string;
+          product_name_snapshot?: string;
+          quantity?: number;
+          quoted_at?: string;
+          sku_snapshot?: string;
+          unit_code_snapshot?: string;
+          unit_id?: string;
+          variant_id?: string;
+          variant_name_snapshot?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_lines_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_price_tier_fk";
+            columns: ["organization_id", "price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      order_reservation_links: {
+        Row: {
+          created_at: string;
+          id: string;
+          linked_at: string;
+          linked_by_user_id: string | null;
+          order_id: string;
+          organization_id: string;
+          purpose: string;
+          reservation_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          linked_at?: string;
+          linked_by_user_id?: string | null;
+          order_id: string;
+          organization_id: string;
+          purpose: string;
+          reservation_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          linked_at?: string;
+          linked_by_user_id?: string | null;
+          order_id?: string;
+          organization_id?: string;
+          purpose?: string;
+          reservation_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_reservation_links_linked_by_fk";
+            columns: ["organization_id", "linked_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "order_reservation_links_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "order_reservation_links_reservation_fk";
+            columns: ["organization_id", "reservation_id"];
+            isOneToOne: true;
+            referencedRelation: "inventory_reservations";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      orders: {
+        Row: {
+          channel_connection_id: string | null;
+          closed_at: string | null;
+          contact_id: string;
+          contact_snapshot: Json;
+          conversation_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          currency_code: string | null;
+          customer_note: string | null;
+          handling_mode: string;
+          id: string;
+          notification_channel_connection_id: string | null;
+          notification_outbox_event_id: string | null;
+          notification_status: string;
+          notified_at: string | null;
+          opportunity_id: string | null;
+          organization_id: string;
+          origin: string;
+          preferred_contact_method_id: string | null;
+          status: string;
+          submitted_at: string;
+          subtotal_amount: number | null;
+          total_amount: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id: string;
+          contact_snapshot: Json;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          currency_code?: string | null;
+          customer_note?: string | null;
+          handling_mode: string;
+          id?: string;
+          notification_channel_connection_id?: string | null;
+          notification_outbox_event_id?: string | null;
+          notification_status?: string;
+          notified_at?: string | null;
+          opportunity_id?: string | null;
+          organization_id: string;
+          origin: string;
+          preferred_contact_method_id?: string | null;
+          status: string;
+          submitted_at?: string;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          closed_at?: string | null;
+          contact_id?: string;
+          contact_snapshot?: Json;
+          conversation_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          currency_code?: string | null;
+          customer_note?: string | null;
+          handling_mode?: string;
+          id?: string;
+          notification_channel_connection_id?: string | null;
+          notification_outbox_event_id?: string | null;
+          notification_status?: string;
+          notified_at?: string | null;
+          opportunity_id?: string | null;
+          organization_id?: string;
+          origin?: string;
+          preferred_contact_method_id?: string | null;
+          status?: string;
+          submitted_at?: string;
+          subtotal_amount?: number | null;
+          total_amount?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_contact_method_fk";
+            columns: ["organization_id", "preferred_contact_method_id"];
+            isOneToOne: false;
+            referencedRelation: "contact_methods";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_notification_outbox_fk";
+            columns: [
+              "organization_id",
+              "notification_channel_connection_id",
+              "notification_outbox_event_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "outbox_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "orders_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       organization_memberships: {
         Row: {
           created_at: string;
@@ -4657,6 +6992,163 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "messages";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      pending_requests: {
+        Row: {
+          channel_connection_id: string;
+          collected_context: Json;
+          contact_id: string;
+          conversation_id: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          due_at: string | null;
+          id: string;
+          organization_id: string;
+          request_kind: string;
+          requested_fields: Json;
+          requested_quantity: number | null;
+          resolution_kind: string | null;
+          resolution_text: string | null;
+          resolved_at: string | null;
+          resolved_by_user_id: string | null;
+          resolved_currency_code: string | null;
+          resolved_price_amount: number | null;
+          responded_at: string | null;
+          response_delivery_status: string;
+          response_outbox_event_id: string | null;
+          source_message_id: string | null;
+          status: string;
+          unit_id: string | null;
+          updated_at: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          channel_connection_id: string;
+          collected_context?: Json;
+          contact_id: string;
+          conversation_id: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          due_at?: string | null;
+          id?: string;
+          organization_id: string;
+          request_kind: string;
+          requested_fields: Json;
+          requested_quantity?: number | null;
+          resolution_kind?: string | null;
+          resolution_text?: string | null;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+          resolved_currency_code?: string | null;
+          resolved_price_amount?: number | null;
+          responded_at?: string | null;
+          response_delivery_status?: string;
+          response_outbox_event_id?: string | null;
+          source_message_id?: string | null;
+          status?: string;
+          unit_id?: string | null;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string;
+          collected_context?: Json;
+          contact_id?: string;
+          conversation_id?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          due_at?: string | null;
+          id?: string;
+          organization_id?: string;
+          request_kind?: string;
+          requested_fields?: Json;
+          requested_quantity?: number | null;
+          resolution_kind?: string | null;
+          resolution_text?: string | null;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+          resolved_currency_code?: string | null;
+          resolved_price_amount?: number | null;
+          responded_at?: string | null;
+          response_delivery_status?: string;
+          response_outbox_event_id?: string | null;
+          source_message_id?: string | null;
+          status?: string;
+          unit_id?: string | null;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pending_requests_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_outbox_fk";
+            columns: ["organization_id", "channel_connection_id", "response_outbox_event_id"];
+            isOneToOne: false;
+            referencedRelation: "outbox_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_resolved_by_fk";
+            columns: ["organization_id", "resolved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "pending_requests_source_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "source_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+          {
+            foreignKeyName: "pending_requests_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "pending_requests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -4993,6 +7485,205 @@ export type Database = {
           },
         ];
       };
+      sale_lines: {
+        Row: {
+          created_at: string;
+          id: string;
+          inventory_effect_status: string;
+          inventory_operation_id: string | null;
+          line_number: number;
+          line_total_amount: number;
+          order_line_id: string | null;
+          organization_id: string;
+          product_name_snapshot: string;
+          quantity: number;
+          reverses_sale_line_id: string | null;
+          sale_id: string;
+          sku_snapshot: string;
+          unit_amount: number;
+          unit_code_snapshot: string;
+          unit_id: string;
+          variant_id: string;
+          variant_name_snapshot: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          inventory_effect_status: string;
+          inventory_operation_id?: string | null;
+          line_number: number;
+          line_total_amount: number;
+          order_line_id?: string | null;
+          organization_id: string;
+          product_name_snapshot: string;
+          quantity: number;
+          reverses_sale_line_id?: string | null;
+          sale_id: string;
+          sku_snapshot: string;
+          unit_amount: number;
+          unit_code_snapshot: string;
+          unit_id: string;
+          variant_id: string;
+          variant_name_snapshot: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          inventory_effect_status?: string;
+          inventory_operation_id?: string | null;
+          line_number?: number;
+          line_total_amount?: number;
+          order_line_id?: string | null;
+          organization_id?: string;
+          product_name_snapshot?: string;
+          quantity?: number;
+          reverses_sale_line_id?: string | null;
+          sale_id?: string;
+          sku_snapshot?: string;
+          unit_amount?: number;
+          unit_code_snapshot?: string;
+          unit_id?: string;
+          variant_id?: string;
+          variant_name_snapshot?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_lines_inventory_operation_fk";
+            columns: ["organization_id", "inventory_operation_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_operations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_order_line_fk";
+            columns: ["organization_id", "order_line_id"];
+            isOneToOne: false;
+            referencedRelation: "order_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_reverses_sale_line_fk";
+            columns: ["organization_id", "reverses_sale_line_id"];
+            isOneToOne: false;
+            referencedRelation: "sale_lines";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_sale_fk";
+            columns: ["organization_id", "sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_unit_fk";
+            columns: ["organization_id", "unit_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      sales: {
+        Row: {
+          contact_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          currency_code: string;
+          id: string;
+          note: string | null;
+          occurred_at: string;
+          opportunity_id: string | null;
+          order_id: string | null;
+          organization_id: string;
+          reverses_sale_id: string | null;
+          sale_kind: string;
+          source: string;
+          subtotal_amount: number;
+          total_amount: number;
+        };
+        Insert: {
+          contact_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          currency_code: string;
+          id?: string;
+          note?: string | null;
+          occurred_at?: string;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id: string;
+          reverses_sale_id?: string | null;
+          sale_kind: string;
+          source: string;
+          subtotal_amount: number;
+          total_amount: number;
+        };
+        Update: {
+          contact_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          currency_code?: string;
+          id?: string;
+          note?: string | null;
+          occurred_at?: string;
+          opportunity_id?: string | null;
+          order_id?: string | null;
+          organization_id?: string;
+          reverses_sale_id?: string | null;
+          sale_kind?: string;
+          source?: string;
+          subtotal_amount?: number;
+          total_amount?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sales_contact_fk";
+            columns: ["organization_id", "contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "commercial_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_opportunity_fk";
+            columns: ["organization_id", "opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_order_fk";
+            columns: ["organization_id", "order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sales_reverses_fk";
+            columns: ["organization_id", "reverses_sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           accessibility_preferences: Json;
@@ -5171,6 +7862,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      assert_commercial_actor: {
+        Args: {
+          allowed_roles?: string[];
+          target_organization_id: string;
+          target_user_id: string;
+        };
+        Returns: undefined;
+      };
       assert_inventory_actor: {
         Args: { target_organization_id: string; target_user_id: string };
         Returns: undefined;
@@ -5179,9 +7878,33 @@ export type Database = {
         Args: { target_organization_id: string; target_product_id: string };
         Returns: undefined;
       };
+      assert_sale_inventory_operation: {
+        Args: {
+          target_inventory_operation_id: string;
+          target_organization_id: string;
+          target_quantity: number;
+          target_sale_kind: string;
+          target_unit_id: string;
+          target_variant_id: string;
+        };
+        Returns: undefined;
+      };
       assert_variant_catalog_ready: {
         Args: { target_organization_id: string; target_variant_id: string };
         Returns: undefined;
+      };
+      claim_commercial_command: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_request_payload: Json;
+        };
+        Returns: {
+          claimed_command_id: string;
+          was_replayed: boolean;
+        }[];
       };
       claim_inventory_command: {
         Args: {
@@ -5195,6 +7918,15 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      complete_commercial_command: {
+        Args: {
+          target_command_id: string;
+          target_organization_id: string;
+          target_result_id: string;
+          target_result_type: string;
+        };
+        Returns: undefined;
+      };
       create_inventory_reservation_core: {
         Args: {
           target_command_id: string;
@@ -5207,6 +7939,22 @@ export type Database = {
           target_reference_id: string;
           target_reference_type: string;
           target_sale_quantity: number;
+        };
+        Returns: string;
+      };
+      insert_commercial_event: {
+        Args: {
+          target_command_id: string;
+          target_created_by_user_id: string;
+          target_event_payload: Json;
+          target_event_type: string;
+          target_new_status: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_previous_status: string;
+          target_reason: string;
+          target_subject_id: string;
+          target_subject_type: string;
         };
         Returns: string;
       };

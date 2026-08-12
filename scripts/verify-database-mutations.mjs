@@ -92,6 +92,46 @@ const mutants = [
     sql: "drop trigger inventory_reservation_events_reject_update on app_private.inventory_reservation_events;",
     test: "supabase/tests/b2_005_inventory_test.sql",
   },
+  {
+    name: "remove order tenant read policy",
+    sql: "drop policy orders_member_select on app_private.orders;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove pending request creator foreign-key index",
+    sql: "drop index app_private.pending_requests_created_by_user_idx;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove both active assignment uniqueness guards",
+    sql: "drop index app_private.conversation_assignments_one_active_opportunity; drop index app_private.conversation_assignments_one_active_conversation;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove immutable order snapshot trigger",
+    sql: "drop trigger orders_prevent_core_rewrite on app_private.orders;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove sale line reversal reference validator",
+    sql: "drop trigger sale_lines_validate_reference on app_private.sale_lines;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove immutable sale header trigger",
+    sql: "drop trigger sales_reject_update on app_private.sales;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove immutable sale line trigger",
+    sql: "drop trigger sale_lines_reject_update on app_private.sale_lines;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
+  {
+    name: "remove immutable commercial event trigger",
+    sql: "drop trigger commercial_events_reject_update on app_private.commercial_events;",
+    test: "supabase/tests/b2_006_commercial_workflow_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {

@@ -61,6 +61,17 @@ for (const featureEntry of featureEntries) {
     assert.ok(pickles.length >= 8, "B2-004 must preserve all critical pricing scenarios");
   }
 
+  if (featureEntry === "b2_005_inventory.feature") {
+    assert.ok(pickles.length >= 16, "B2-005 must preserve all critical inventory scenarios");
+  }
+
+  if (featureEntry === "b2_006_commercial_workflow.feature") {
+    assert.ok(
+      pickles.length >= 24,
+      "B2-006 must preserve all critical pending, handoff, order and sale scenarios",
+    );
+  }
+
   totalPickles += pickles.length;
 }
 

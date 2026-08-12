@@ -25,6 +25,9 @@ const files = {
   inventoryResearch: "docs/references/INVENTORY-B2-005-RESEARCH.md",
   inventoryPhysical: "docs/architecture/INVENTORY-B2-005.md",
   inventoryAudit: "docs/quality/B2-005-DESIGN-AUDIT.md",
+  commercialResearch: "docs/references/COMMERCIAL-B2-006-RESEARCH.md",
+  commercialPhysical: "docs/architecture/COMMERCIAL-WORKFLOW-B2-006.md",
+  commercialAudit: "docs/quality/B2-006-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -178,6 +181,36 @@ const requiredStatements = new Map([
       "No se deshabilitó ninguna constraint",
     ],
   ],
+  [
+    "commercialResearch",
+    [
+      "RLS es defensa en profundidad",
+      "FKs compuestas preservan organización",
+      "SELECT ... FOR UPDATE",
+      "venta no contiene estado de pago",
+    ],
+  ],
+  [
+    "commercialPhysical",
+    [
+      "pedido no equivale a venta",
+      "venta no equivale a pago",
+      "RLS habilitado y forzado en las 14 tablas",
+      "misma clave con otro contrato falla",
+      "api.reconcile_sale_inventory",
+      "no puede reescribir producto, precio, cantidad ni historia",
+      "tool calling nativo",
+    ],
+  ],
+  [
+    "commercialAudit",
+    [
+      "Proyecto exclusivo: `hprdctmblmfcoagugvyp` (`AgenteFer`)",
+      "ventas concurrentes no sobrecumplen una línea",
+      "PII y datos cross-tenant no se exponen",
+      "DESIGNED — IMPLEMENTATION PENDING",
+    ],
+  ],
 ]);
 
 for (const [documentName, statements] of requiredStatements) {
@@ -217,5 +250,5 @@ for (const prohibitedColumn of prohibitedFixedColumns) {
 }
 
 console.log(
-  `AgenteFer catalog, pricing and inventory documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
+  `AgenteFer catalog, pricing, inventory and commercial documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
 );

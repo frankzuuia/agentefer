@@ -178,6 +178,133 @@ select * from api.apply_inventory_movement(
 commit;
 `;
 
+const commercialFixtureSql = `
+begin;
+set local role service_role;
+
+update app_private.product_variants
+set status = 'active'
+where id = '33000000-0000-4000-8000-000000000160';
+update app_private.products
+set status = 'active'
+where id = '33000000-0000-4000-8000-000000000150';
+
+insert into app_private.channel_connections (
+  id, organization_id, provider, channel, external_app_id, external_account_id,
+  external_sender_id, display_name, api_version, credential_reference,
+  webhook_secret_reference, status, connected_at, last_verified_at, created_by_user_id
+) values (
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000010',
+  'meta', 'whatsapp', 'concurrency-app', 'concurrency-account', 'concurrency-sender',
+  'Concurrency WhatsApp', 'v24.0', 'secret-ref://concurrency/token',
+  'secret-ref://concurrency/webhook', 'active', now(), now(),
+  '33000000-0000-4000-8000-000000000001'
+);
+insert into app_private.contacts (id, organization_id, display_name)
+values (
+  '33000000-0000-4000-8000-000000000310',
+  '33000000-0000-4000-8000-000000000010',
+  'Concurrency customer'
+);
+insert into app_private.channel_identities (
+  id, organization_id, channel_connection_id, external_subject_id,
+  principal_type, contact_id, trust_level, display_name
+) values (
+  '33000000-0000-4000-8000-000000000320',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000300',
+  'concurrency-customer', 'contact',
+  '33000000-0000-4000-8000-000000000310',
+  'provider_observed', 'Concurrency customer'
+);
+
+set constraints all deferred;
+insert into app_private.conversations (
+  id, organization_id, channel_connection_id, primary_channel_identity_id,
+  origin_kind, origin_external_id, origin_context
+) values (
+  '33000000-0000-4000-8000-000000000330',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000320',
+  'post', 'concurrency-post', '{"source":"concurrency"}'::jsonb
+);
+insert into app_private.conversation_participants (
+  id, organization_id, channel_connection_id, conversation_id,
+  participant_kind, participant_role, channel_identity_id
+) values (
+  '33000000-0000-4000-8000-000000000340',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000330',
+  'identity', 'customer', '33000000-0000-4000-8000-000000000320'
+);
+set constraints all immediate;
+
+select * from api.create_pending_request(
+  '33000000-0000-4000-8000-000000000010', 'concurrent-pending-create',
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000330',
+  '33000000-0000-4000-8000-000000000310',
+  'missing_price', '["price"]'::jsonb, '{"source":"race"}'::jsonb,
+  null, '33000000-0000-4000-8000-000000000160',
+  '33000000-0000-4000-8000-000000000110', 1,
+  clock_timestamp() + interval '1 hour',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_lead(
+  '33000000-0000-4000-8000-000000000010', 'concurrent-lead-create',
+  '33000000-0000-4000-8000-000000000310', 'whatsapp',
+  'Concurrency-qualified customer',
+  '[{"variant_id":"33000000-0000-4000-8000-000000000160","unit_id":"33000000-0000-4000-8000-000000000110","quantity":1,"summary":"last unit","context":{"source":"race"}}]'::jsonb,
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000330',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_opportunity(
+  '33000000-0000-4000-8000-000000000010', 'concurrent-opportunity-create',
+  (select result_id from app_private.commercial_commands where idempotency_key = 'concurrent-lead-create'),
+  'human_handoff', 'qualified', 'Concurrency opportunity', 'agent',
+  null, 'concurrency-agent', 1000, 'MXN',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_handoff(
+  '33000000-0000-4000-8000-000000000010', 'concurrent-handoff-create',
+  (select result_id from app_private.commercial_commands where idempotency_key = 'concurrent-opportunity-create'),
+  'member', 'Customer is ready for owner.', '{"source":"race"}'::jsonb,
+  '33000000-0000-4000-8000-000000000001', null,
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_order(
+  '33000000-0000-4000-8000-000000000010', 'concurrent-order-create',
+  '33000000-0000-4000-8000-000000000310', 'catalog_checkout', 'human_handoff',
+  jsonb_build_array(jsonb_build_object(
+    'variant_id', '33000000-0000-4000-8000-000000000160',
+    'unit_id', '33000000-0000-4000-8000-000000000110',
+    'price_tier_id', (
+      select id from app_private.price_tiers
+      where organization_id = '33000000-0000-4000-8000-000000000010'
+        and variant_id = '33000000-0000-4000-8000-000000000160'
+        and superseded_at is null
+    ),
+    'quantity', 1
+  )),
+  '2026-08-11 12:00:00+00', null,
+  (select result_id from app_private.commercial_commands where idempotency_key = 'concurrent-opportunity-create'),
+  '33000000-0000-4000-8000-000000000300',
+  '33000000-0000-4000-8000-000000000330', null,
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.transition_order(
+  '33000000-0000-4000-8000-000000000010',
+  (select result_id from app_private.commercial_commands where idempotency_key = 'concurrent-order-create'),
+  'concurrent-order-confirm', 'confirm', 'confirmed before sale race',
+  '33000000-0000-4000-8000-000000000001', statement_timestamp()
+);
+commit;
+`;
+
 const runCaptured = (sql) =>
   new Promise((resolve, reject) => {
     const child = spawn("docker", psqlArguments(sql), {
@@ -327,6 +454,137 @@ const priceRace = await verifyRace({
   failureMarker: "price_tiers_no_current_overlap",
 });
 
+runSync(commercialFixtureSql);
+
+const pendingResolutionRace = await verifyRace({
+  label: "pending-request resolution",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.resolve_pending_request(
+      '33000000-0000-4000-8000-000000000010',
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-pending-create'),
+      'concurrent-pending-resolution-first', 'resolve', 'owner_answer',
+      'First authorized answer.', 1000, 'MXN',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.resolve_pending_request(
+      '33000000-0000-4000-8000-000000000010',
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-pending-create'),
+      'concurrent-pending-resolution-second', 'resolve', 'owner_answer',
+      'Competing authorized answer.', 1100, 'MXN',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.pending_requests
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and id = (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-pending-create')
+      and status = 'resolved';`,
+  failureMarker: "pending request is not open",
+});
+
+const handoffAcceptanceRace = await verifyRace({
+  label: "handoff acceptance",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.transition_handoff(
+      '33000000-0000-4000-8000-000000000010',
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-handoff-create'),
+      'concurrent-handoff-accept-first', 'accept', 'Owner accepted first.',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.transition_handoff(
+      '33000000-0000-4000-8000-000000000010',
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-handoff-create'),
+      'concurrent-handoff-accept-second', 'accept', 'Competing acceptance.',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.handoffs
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and id = (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-handoff-create')
+      and status = 'accepted';`,
+  failureMarker: "handoff is not pending",
+});
+
+const orderLastQuantityRace = await verifyRace({
+  label: "last order quantity sale",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.record_sale(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-order-sale-first', 'sale', 'human_close', 'MXN',
+      jsonb_build_array(jsonb_build_object(
+        'order_line_id', (select id from app_private.order_lines where order_id = (
+          select result_id from app_private.commercial_commands
+          where idempotency_key = 'concurrent-order-create'
+        )),
+        'variant_id', '33000000-0000-4000-8000-000000000160',
+        'unit_id', '33000000-0000-4000-8000-000000000110',
+        'quantity', 1, 'unit_amount', 1000, 'line_total_amount', 1000,
+        'inventory_effect_status', 'pending'
+      )),
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-order-create'),
+      null, null, null, 'first concurrent close',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.record_sale(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-order-sale-second', 'sale', 'human_close', 'MXN',
+      jsonb_build_array(jsonb_build_object(
+        'order_line_id', (select id from app_private.order_lines where order_id = (
+          select result_id from app_private.commercial_commands
+          where idempotency_key = 'concurrent-order-create'
+        )),
+        'variant_id', '33000000-0000-4000-8000-000000000160',
+        'unit_id', '33000000-0000-4000-8000-000000000110',
+        'quantity', 1, 'unit_amount', 1000, 'line_total_amount', 1000,
+        'inventory_effect_status', 'pending'
+      )),
+      (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-order-create'),
+      null, null, null, 'second concurrent close',
+      '33000000-0000-4000-8000-000000000001', statement_timestamp()
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.sales
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and order_id = (select result_id from app_private.commercial_commands
+        where idempotency_key = 'concurrent-order-create')
+      and sale_kind = 'sale';`,
+  failureMarker: "sale requires a confirmed open order",
+});
+
 const reservationRace = await verifyRace({
   label: "last-unit reservation",
   firstSql: `
@@ -456,6 +714,9 @@ await writeFile(
       generatedAt: new Date().toISOString(),
       sku: skuRace,
       pricing: priceRace,
+      pendingResolution: pendingResolutionRace,
+      handoffAcceptance: handoffAcceptanceRace,
+      orderLastQuantitySale: orderLastQuantityRace,
       reservation: reservationRace,
       orderedInventoryWrites,
       invalidBalanceCount,
@@ -467,5 +728,5 @@ await writeFile(
 );
 
 console.log(
-  "Database concurrency verified: SKU/price conflicts, last-unit reservation, canonical lock order and nonnegative balances.",
+  "Database concurrency verified: SKU/price conflicts, pending resolution, handoff acceptance, last order quantity, last-unit reservation, canonical lock order and nonnegative balances.",
 );

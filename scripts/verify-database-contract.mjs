@@ -25,8 +25,9 @@ assert.deepEqual(
     "20260809201842_b2_004_monotonic_updated_at.sql",
     "20260810155350_b2_004_price_book_creator_index.sql",
     "20260811214250_b2_005_inventory.sql",
+    "20260811230632_b2_006_commercial_workflow.sql",
   ],
-  "B2-001 through B2-005 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-006 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -55,6 +56,10 @@ const inventoryMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[7]),
   "utf8",
 );
+const commercialMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[8]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -73,6 +78,10 @@ const pricingDatabaseTest = await readFile(
 );
 const inventoryDatabaseTest = await readFile(
   path.join(testDirectory, "b2_005_inventory_test.sql"),
+  "utf8",
+);
+const commercialDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_006_commercial_workflow_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -103,6 +112,7 @@ for (const [name, migration] of [
   ["B2-004 timestamp hardening", pricingTimestampHardeningMigration],
   ["B2-004 index hardening", pricingIndexHardeningMigration],
   ["B2-005", inventoryMigration],
+  ["B2-006", commercialMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -462,6 +472,83 @@ for (const forbiddenProductSpecificColumn of [
   );
 }
 
+const requiredCommercialMigrationStatements = [
+  "create table app_private.commercial_commands (",
+  "create table app_private.contact_methods (",
+  "create table app_private.pending_requests (",
+  "create table app_private.leads (",
+  "create table app_private.lead_interests (",
+  "create table app_private.opportunities (",
+  "create table app_private.conversation_assignments (",
+  "create table app_private.handoffs (",
+  "create table app_private.orders (",
+  "create table app_private.order_lines (",
+  "create table app_private.order_reservation_links (",
+  "create table app_private.sales (",
+  "create table app_private.sale_lines (",
+  "create table app_private.commercial_events (",
+  "value_ciphertext bytea not null",
+  "reverses_sale_line_id uuid",
+  "create unique index conversation_assignments_one_active_conversation",
+  "create unique index handoffs_one_pending_opportunity",
+  "create function app_private.claim_commercial_command(",
+  "create function app_private.assert_sale_inventory_operation(",
+  "create function app_private.validate_sale_line_reference()",
+  "create function api.create_pending_request(",
+  "create function api.resolve_pending_request(",
+  "create function api.create_handoff(",
+  "create function api.transition_handoff(",
+  "create function api.create_order(",
+  "create function api.record_sale(",
+  "create function api.reconcile_sale_inventory(",
+  "notification_channel_connection_id uuid",
+  "handoff target is already the active assignee",
+  "sale would exceed remaining order quantity",
+  "reversal would exceed unreversed original quantity",
+  "sale amount must match the immutable order quote",
+  "from public, anon, authenticated, service_role;",
+];
+
+for (const statement of requiredCommercialMigrationStatements) {
+  assert.ok(
+    commercialMigration.includes(statement),
+    `B2-006 database migration must include: ${statement}`,
+  );
+}
+
+assert.equal(
+  commercialMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  14,
+  "all fourteen B2-006 API views must preserve caller RLS",
+);
+assert.equal(
+  commercialMigration.split("force row level security;").length - 1,
+  14,
+  "all fourteen B2-006 private relations must force RLS",
+);
+assert.equal(
+  commercialMigration.split("create policy ").length - 1,
+  14,
+  "every B2-006 private relation must define an authenticated read policy",
+);
+assert.equal(
+  commercialMigration.includes("revoke all on all functions in schema"),
+  false,
+  "B2-006 cannot revoke previously certified API functions globally",
+);
+for (const forbiddenCommercialState of [
+  "payment_status",
+  "paid_at",
+  "tax_amount",
+  "shipping_amount",
+]) {
+  assert.equal(
+    commercialMigration.includes(forbiddenCommercialState),
+    false,
+    `B2-006 cannot fabricate undecided payment, tax or shipping state: ${forbiddenCommercialState}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -572,12 +659,43 @@ for (const statement of requiredInventoryTestStatements) {
   );
 }
 
+const requiredCommercialTestStatements = [
+  "select extensions.plan(97);",
+  "set local role authenticated;",
+  "set local role service_role;",
+  "set local role postgres;",
+  "same pending request command replays",
+  "resolution does not falsely claim message delivery",
+  "lead captures multiple interests without fabricating catalog identity",
+  "pending handoff does not change responsibility",
+  "handoff cannot target the already active assignee",
+  "checkout does not fabricate a sale",
+  "on-request order remains pending_quote with null amounts",
+  "sale cannot exceed remaining order quantity",
+  "cumulative reversals cannot exceed original sale line quantity",
+  "ordinary sale cannot receive a line that claims to reverse history",
+  "pending sale inventory can be reconciled with one exact physical operation",
+  "real inventory operation with wrong direction cannot reconcile sale",
+  "web order notification can use Fer channel independently from order origin",
+  "RLS does not leak another organization orders",
+  "every B2-006 foreign key column is indexed",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredCommercialTestStatements) {
+  assert.ok(
+    commercialDatabaseTest.includes(statement),
+    `B2-006 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
   ["B2-003", catalogDatabaseTest],
   ["B2-004", pricingDatabaseTest],
   ["B2-005", inventoryDatabaseTest],
+  ["B2-006", commercialDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -643,6 +761,27 @@ for (const generatedInventoryContract of [
     `generated database types must include B2-005 contract: ${generatedInventoryContract}`,
   );
 }
+for (const generatedCommercialContract of [
+  "commercial_commands: {",
+  "contact_methods: {",
+  "pending_requests: {",
+  "conversation_assignments: {",
+  "handoffs: {",
+  "orders: {",
+  "order_lines: {",
+  "sales: {",
+  "sale_lines: {",
+  "create_pending_request: {",
+  "transition_handoff: {",
+  "create_order: {",
+  "record_sale: {",
+  "reconcile_sale_inventory: {",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedCommercialContract),
+    `generated database types must include B2-006 contract: ${generatedCommercialContract}`,
+  );
+}
 assert.equal(
   generatedTypes.includes("  public: {"),
   false,
@@ -691,5 +830,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 44 forced-RLS tables, 385 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 58 forced-RLS tables, 482 pgTAP assertions, generated TypeScript schemas locked.`,
 );
