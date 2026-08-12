@@ -1,6 +1,6 @@
 # AgenteFer — contrato físico B2-008 runtime cognitivo durable
 
-Estado: migración aplicada en Supabase AgenteFer; QA remoto verde, CI final pendiente.  
+Estado: **COMPLETE**; migración aplicada en Supabase AgenteFer y certificación local/remota verde.  
 Fecha: 2026-08-12.  
 Dependencias: B2-001–B2-007, ADR-010 y outbox B2-002.
 
@@ -143,7 +143,7 @@ La memoria se escribe mediante una tool versionada normal; no recibe un bypass R
 - `db lint --linked --schema app_private,api`: cero errores; advisors security/performance: cero hallazgos.
 - Tipos `app_private,api` regenerados desde AgenteFer y auditados por AST: 20 tablas, 20 vistas y 18 RPC nuevas; cero entidades o campos históricos removidos.
 - Aceptación: 51 escenarios B2-008, 144 acumulados, cero errores Gherkin.
-- CI agregará dos carreras del runtime y seis mutantes SQL críticos; no se declarará `COMPLETE` hasta su evidencia verde.
+- CI `31617992972` certificó dos carreras del runtime, regresiones concurrentes previas, 38/38 mutantes SQL, lint/advisors, tipos sin drift, contenedores y QA general; los tres jobs concluyeron `success` con cero annotations.
 
 ## Frontera posterior
 

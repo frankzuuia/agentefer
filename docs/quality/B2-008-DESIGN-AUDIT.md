@@ -1,6 +1,6 @@
 # AgenteFer — auditoría B2-008 runtime cognitivo
 
-Estado: **APPLIED — QA remoto verde; CI final pendiente**.  
+Estado: **COMPLETE — INTEGRITY TOTAL — MATCH PERFECT**.  
 Fecha: 2026-08-12.  
 Proyecto exclusivo: `hprdctmblmfcoagugvyp` (`AgenteFer`).  
 Rama: `develop`.
@@ -37,14 +37,17 @@ Rama: `develop`.
 - Tipos regenerados desde AgenteFer: `B9E69A4A6F69545C8AB7847C35AB112CAAA18DD791AE654F5B8B189B06747206`; auditoría AST confirmó cero entidades/campos previos eliminados.
 - 51 escenarios B2-008, 144 acumulados, cero errores de parseo.
 - Gates preparados para dos carreras de agent runtime y seis mutantes B2-008, elevando el total SQL a 38.
+- Commit funcional `f32a5f00367c9be84859bd91e30abacdda641e75`, sólo en `develop`.
+- CI final `31617992972`: `Verify` `94185472907`, `Database contract` `94186089044` y `Container runtime` `94186089134`, todos `success` y con cero annotations.
+- CI DB: once migraciones desde cero, 649/649 pgTAP, concurrencia B2-008 y previa, 38/38 mutantes SQL eliminados, lint/advisors verdes y tipos canónicos sin drift.
+- CI general: 95/95 pruebas, cobertura 94.02% líneas/89.57% ramas, 112/112 mutantes TypeScript, contenedores no-root y supply chain verdes.
 
-## Evidencia aún requerida antes de COMPLETE
+## Certificación final
 
-- CI Docker desde cero con las 11 migraciones y 649 pgTAP;
-- dos carreras B2-008 y regresión de concurrencia previa verdes;
-- 38/38 mutantes SQL eliminados;
-- QA general, contenedores y supply chain verdes;
-- commit/push sólo en `develop`, con run/job/SHA registrados.
+- Las once migraciones se reconstruyen desde cero y el contrato acumulado permanece verde.
+- Las rutas críticas de idempotencia, concurrencia, autorización, RLS, recuperación y certeza de efectos tienen evidencia positiva, negativa y de mutación.
+- No existen excepciones de calidad abiertas para B2-008.
+- OpenAI, MiniMax, Meta y `pgmq` continúan fuera de alcance y sin conexiones simuladas.
 
 ## Límites honestos
 
