@@ -411,6 +411,22 @@ select * from api.create_publication_schedule(
   'valid', 'active', statement_timestamp() + interval '1 hour',
   '33000000-0000-4000-8000-000000000001'
 );
+select * from api.register_prompt_version(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-agent-prompt', 'concurrency.agent', 'text',
+  'Use native tools and preserve durable state.',
+  '33000000-0000-4000-8000-000000000001',
+  'concurrent-agent-prompt', null
+);
+select * from api.create_agent_policy_version(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-agent-policy', 'concurrency.default', 'Concurrency agent',
+  (select id from app_private.prompt_versions where prompt_key = 'concurrency.agent'),
+  4, 3, 2, 120000, 'auto', null, null, 'allow_and_alert',
+  '[]'::jsonb, '[]'::jsonb, null, true,
+  '33000000-0000-4000-8000-000000000001',
+  'concurrent-agent-policy', null
+);
 commit;
 `;
 
@@ -660,6 +676,116 @@ const verifyPublicationClaimRace = async () => {
 };
 
 const publicationClaimRace = await verifyPublicationClaimRace();
+
+const verifyAgentEnqueueReplayRace = async () => {
+  const enqueueSql = (shouldHoldLock) => `
+    begin;
+    set local role service_role;
+    select 'agent-run:' || agent_run_id::text || ':' || was_replayed::text
+    from api.enqueue_agent_run(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-agent-enqueue', 'concurrent-agent-run', 'owner_command',
+      'concurrency.default', 'openai', 'future-concurrency-model',
+      null, null, 'medium', null, null, null, null, null,
+      'member', '33000000-0000-4000-8000-000000000001', null,
+      1, '{"source":"concurrency"}'::jsonb,
+      'concurrent-agent-run', null
+    );
+    ${shouldHoldLock ? "select pg_sleep(2);" : ""}
+    commit;
+  `;
+  const firstEnqueue = runCaptured(enqueueSql(true));
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const secondEnqueue = runCaptured(enqueueSql(false));
+  const results = await Promise.all([firstEnqueue, secondEnqueue]);
+
+  assert.ok(
+    results.every((result) => result.status === 0),
+    `identical concurrent agent enqueues must converge: ${results
+      .map((result) => `${result.stdout}\n${result.stderr}`.trim())
+      .join("\n")}`,
+  );
+  const markers = results.flatMap((result) =>
+    result.stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("agent-run:")),
+  );
+  assert.equal(markers.length, 2);
+  assert.equal(new Set(markers.map((marker) => marker.split(":")[1])).size, 1);
+  assert.ok(markers.some((marker) => marker.endsWith(":false")));
+  assert.ok(markers.some((marker) => marker.endsWith(":true")));
+
+  const persistedState = runSync(
+    `select (select count(*) from app_private.agent_runs
+        where run_key = 'concurrent-agent-run')::text || ':' ||
+      (select count(*) from app_private.agent_jobs
+        where run_id = (select id from app_private.agent_runs
+          where run_key = 'concurrent-agent-run'))::text;`,
+    true,
+  ).stdout.trim();
+  assert.equal(persistedState, "1:1");
+
+  return {
+    successfulProcesses: 2,
+    returnedRuns: markers.length,
+    persistedState,
+    markers,
+  };
+};
+
+const agentEnqueueReplayRace = await verifyAgentEnqueueReplayRace();
+
+const verifyAgentClaimRace = async () => {
+  const claimSql = (workerId, shouldHoldLock) => `
+    begin;
+    set local role service_role;
+    select 'agent-claimed:' || agent_job_id::text
+    from api.claim_agent_job(
+      '33000000-0000-4000-8000-000000000010', '${workerId}', 120
+    );
+    ${shouldHoldLock ? "select pg_sleep(2);" : ""}
+    commit;
+  `;
+  const firstClaim = runCaptured(claimSql("concurrent-agent-worker-first", true));
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const secondClaim = runCaptured(claimSql("concurrent-agent-worker-second", false));
+  const results = await Promise.all([firstClaim, secondClaim]);
+
+  assert.ok(
+    results.every((result) => result.status === 0),
+    `agent claim race must complete without blocking failure: ${results
+      .map((result) => `${result.stdout}\n${result.stderr}`.trim())
+      .join("\n")}`,
+  );
+  const markers = results.flatMap((result) =>
+    result.stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("agent-claimed:")),
+  );
+  assert.equal(markers.length, 1);
+  const finalState = runSync(
+    `select status || ':' || attempt_count::text || ':' || worker_id
+      from app_private.agent_jobs
+      where run_id = (select id from app_private.agent_runs
+        where run_key = 'concurrent-agent-run');`,
+    true,
+  ).stdout.trim();
+  assert.ok(
+    finalState === "processing:1:concurrent-agent-worker-first" ||
+      finalState === "processing:1:concurrent-agent-worker-second",
+  );
+
+  return {
+    successfulProcesses: 2,
+    claimsReturned: markers.length,
+    finalState,
+    markers,
+  };
+};
+
+const agentClaimRace = await verifyAgentClaimRace();
 
 const publicationScheduleRace = await verifyRace({
   label: "publication schedule occurrence",
@@ -994,6 +1120,8 @@ await writeFile(
       publicationIdentity: publicationIdentityRace,
       publicationClaim: publicationClaimRace,
       publicationSchedule: publicationScheduleRace,
+      agentEnqueueReplay: agentEnqueueReplayRace,
+      agentClaim: agentClaimRace,
       orderedInventoryWrites,
       invalidBalanceCount,
     },
@@ -1004,5 +1132,5 @@ await writeFile(
 );
 
 console.log(
-  "Database concurrency verified: SKU/price/publication conflicts, single publication claim, exact schedule occurrence, pending resolution, handoff acceptance, last order quantity, last-unit reservation, canonical lock order and nonnegative balances.",
+  "Database concurrency verified: SKU/price/publication conflicts, single publication and agent claims, idempotent concurrent agent enqueue, exact schedule occurrence, pending resolution, handoff acceptance, last order quantity, last-unit reservation, canonical lock order and nonnegative balances.",
 );

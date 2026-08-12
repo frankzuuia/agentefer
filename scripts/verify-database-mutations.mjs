@@ -182,6 +182,36 @@ const mutants = [
     sql: "drop policy publications_member_select on app_private.publications;",
     test: "supabase/tests/b2_007_publication_workflow_test.sql",
   },
+  {
+    name: "remove agent attempt composite foreign-key index",
+    sql: "drop index app_private.job_attempts_job_run_fk_idx;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
+  {
+    name: "remove immutable prompt history trigger",
+    sql: "drop trigger prompt_versions_reject_update on app_private.prompt_versions;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
+  {
+    name: "remove immutable cognitive message trigger",
+    sql: "drop trigger agent_messages_reject_update on app_private.agent_messages;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
+  {
+    name: "remove external tool effect uniqueness",
+    sql: "drop index app_private.tool_executions_external_effect_unique;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
+  {
+    name: "remove agent run tenant read policy",
+    sql: "drop policy agent_runs_operator_select on app_private.agent_runs;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
+  {
+    name: "remove forced RLS from agent runs",
+    sql: "alter table app_private.agent_runs no force row level security;",
+    test: "supabase/tests/b2_008_agent_runtime_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {

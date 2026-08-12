@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001–B2-007 completos y certificados; B2-007 está aplicado en Supabase AgenteFer, pasó 565/565 pgTAP, concurrencia y 32/32 mutantes SQL en CI. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001–B2-007 completos y certificados; B2-008 está aplicado en Supabase AgenteFer y pasó 649/649 pgTAP, lint y advisors remotos. Su CI final de concurrencia y 38 mutantes SQL está pendiente. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -51,7 +51,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | 110/110 remoto; CI `31543232608`; concurrencia y 14/14 mutantes verdes    | [x]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | 97/97 propio; 482/482 acumulado; CI `31551318493`; 22/22 mutantes         | [x]    |
 | B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | 83/83 propio; 565/565 CI; concurrencia y 32/32 mutantes verdes             | [x]    |
-| B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts                                 | trazabilidad, costo y redacción                                          | [ ]    |
+| B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts                                 | 84/84 propio; 649/649 remoto; CI concurrencia/mutación pendiente          | [ ]    |
 | B2-009 | BL-001, BL-020, BL-021, SC-032        | políticas RLS y grants explícitos para cada entidad                                                        | suite positiva/negativa anon/user/owner/cross-org                        | [ ]    |
 | B2-010 | BL-008, BL-020, SC-033                | buckets, paths, políticas y ciclo original/derivado                                                        | aislamiento, MIME/tamaño y URL firmada                                   | [ ]    |
 | B2-011 | BL-025, SC-036                        | validación SQL, advisors, tipos generados y documentación ER                                               | reset/migrate/test reproducible y cero hallazgos críticos                | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003/B2-004/B2-005/B2-006/B2-007 completos; B2-007 aplicado con 565/565 pgTAP, concurrencia y 32/32 mutantes certificados en CI. Tools cognitivas, adapters Meta y UI todavía pendientes.
+- Functional implementation: B2-003/B2-004/B2-005/B2-006/B2-007 completos; B2-008 aplicado con 649/649 pgTAP y QA remoto verde, pendiente de certificación CI. Tools de dominio, adapters LLM/Meta y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -310,3 +310,14 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Evidencia DB CI: diez migraciones desde cero, 565/565 pgTAP, concurrencia B2-007 y previa, 32/32 mutantes SQL eliminados, lint/advisors verdes y tipos sin drift.
 - Auditoría final: `docs/quality/B2-007-DESIGN-AUDIT.md` (`COMPLETE — INTEGRITY TOTAL — MATCH PERFECT`).
 - Meta, pgmq/pg_cron y el adapter externo siguen sin configurar; ninguna publicación externa se declara real.
+
+## Evidencia parcial de B2-008
+
+- Investigación: `docs/references/AGENT-RUNTIME-B2-008-RESEARCH.md`; contrato: `docs/architecture/AGENT-RUNTIME-B2-008.md`; aceptación: `features/b2_008_agent_runtime.feature`.
+- Migración `20260812152500_b2_008_agent_runtime.sql`; SHA-256 `09AC2A350169A0AB19285B2DDA4A869F2B05C0B87F53330E248693BDE9595D29`.
+- Supabase AgenteFer `hprdctmblmfcoagugvyp`: historial 11/11, aplicación atómica, 20 tablas con RLS forzada, 20 policies, 20 vistas seguras y 18 RPC backend-only.
+- QA remoto: ensayo 84/84 con rollback y 649/649 acumuladas post-aplicación; lint/advisors con cero hallazgos.
+- Tipos regenerados desde remoto, SHA-256 `B9E69A4A6F69545C8AB7847C35AB112CAAA18DD791AE654F5B8B189B06747206`; auditoría AST: cero contratos anteriores eliminados.
+- Aceptación: 51 escenarios B2-008 y 144 acumulados, cero errores Gherkin.
+- CI preparado con dos carreras del runtime y seis mutantes nuevos; B2-008 permanece pendiente hasta certificar 38/38 mutantes, concurrencia, contenedores y QA general.
+- OpenAI/MiniMax, Meta y `pgmq` siguen sin conexión real; esta etapa construyó el ledger/provider-neutral, no simula adapters.

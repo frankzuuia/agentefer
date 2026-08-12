@@ -6,6 +6,901 @@ export type Database = {
       [_ in never]: never;
     };
     Views: {
+      agent_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          operation: string | null;
+          organization_id: string | null;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_commands_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_jobs: {
+        Row: {
+          attempt_count: number | null;
+          available_at: string | null;
+          checkpoint_sequence: number | null;
+          completed_at: string | null;
+          created_at: string | null;
+          external_effect_state: string | null;
+          id: string | null;
+          job_kind: string | null;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          max_attempts: number | null;
+          organization_id: string | null;
+          priority: number | null;
+          run_id: string | null;
+          started_at: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          attempt_count?: number | null;
+          available_at?: string | null;
+          checkpoint_sequence?: number | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          external_effect_state?: string | null;
+          id?: string | null;
+          job_kind?: string | null;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          max_attempts?: number | null;
+          organization_id?: string | null;
+          priority?: number | null;
+          run_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          attempt_count?: number | null;
+          available_at?: string | null;
+          checkpoint_sequence?: number | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          external_effect_state?: string | null;
+          id?: string | null;
+          job_kind?: string | null;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          max_attempts?: number | null;
+          organization_id?: string | null;
+          priority?: number | null;
+          run_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_jobs_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_jobs_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: true;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_messages: {
+        Row: {
+          channel_connection_id: string | null;
+          content_hash: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          domain_message_id: string | null;
+          id: string | null;
+          message_key: string | null;
+          message_kind: string | null;
+          message_role: string | null;
+          organization_id: string | null;
+          provider_item_id: string | null;
+          run_id: string | null;
+          sequence_number: number | null;
+          trust_level: string | null;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          content_hash?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          domain_message_id?: string | null;
+          id?: string | null;
+          message_key?: string | null;
+          message_kind?: string | null;
+          message_role?: string | null;
+          organization_id?: string | null;
+          provider_item_id?: string | null;
+          run_id?: string | null;
+          sequence_number?: number | null;
+          trust_level?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          content_hash?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          domain_message_id?: string | null;
+          id?: string | null;
+          message_key?: string | null;
+          message_kind?: string | null;
+          message_role?: string | null;
+          organization_id?: string | null;
+          provider_item_id?: string | null;
+          run_id?: string | null;
+          sequence_number?: number | null;
+          trust_level?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_domain_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "domain_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+          {
+            foreignKeyName: "agent_messages_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_messages_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_policies: {
+        Row: {
+          created_at: string | null;
+          created_by_user_id: string | null;
+          current_version_id: string | null;
+          display_name: string | null;
+          id: string | null;
+          organization_id: string | null;
+          policy_key: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_key?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_key?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policies_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_policies_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "policy_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policies_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_policy_tools: {
+        Row: {
+          allowed_actor_kinds: string[] | null;
+          allowed_channels: string[] | null;
+          authorization_constraints: Json | null;
+          created_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          policy_version_id: string | null;
+          required_membership_roles: string[] | null;
+          tool_contract_id: string | null;
+          tool_contract_version_id: string | null;
+        };
+        Insert: {
+          allowed_actor_kinds?: string[] | null;
+          allowed_channels?: string[] | null;
+          authorization_constraints?: Json | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+          required_membership_roles?: string[] | null;
+          tool_contract_id?: string | null;
+          tool_contract_version_id?: string | null;
+        };
+        Update: {
+          allowed_actor_kinds?: string[] | null;
+          allowed_channels?: string[] | null;
+          authorization_constraints?: Json | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+          required_membership_roles?: string[] | null;
+          tool_contract_id?: string | null;
+          tool_contract_version_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policy_tools_contract_version_fk";
+            columns: ["organization_id", "tool_contract_id", "tool_contract_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policy_tools_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_policy_tools_policy_version_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_policy_versions: {
+        Row: {
+          cache_mode: string | null;
+          cost_currency: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          fallback_models: Json | null;
+          id: string | null;
+          max_cost_amount: number | null;
+          max_parallel_tools: number | null;
+          max_provider_attempts: number | null;
+          max_tool_rounds: number | null;
+          organization_id: string | null;
+          policy_hash: string | null;
+          policy_id: string | null;
+          prompt_version_id: string | null;
+          turn_timeout_ms: number | null;
+          unknown_cost_behavior: string | null;
+          version_number: number | null;
+        };
+        Insert: {
+          cache_mode?: string | null;
+          cost_currency?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          fallback_models?: Json | null;
+          id?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number | null;
+          max_provider_attempts?: number | null;
+          max_tool_rounds?: number | null;
+          organization_id?: string | null;
+          policy_hash?: string | null;
+          policy_id?: string | null;
+          prompt_version_id?: string | null;
+          turn_timeout_ms?: number | null;
+          unknown_cost_behavior?: string | null;
+          version_number?: number | null;
+        };
+        Update: {
+          cache_mode?: string | null;
+          cost_currency?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          fallback_models?: Json | null;
+          id?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number | null;
+          max_provider_attempts?: number | null;
+          max_tool_rounds?: number | null;
+          organization_id?: string | null;
+          policy_hash?: string | null;
+          policy_id?: string | null;
+          prompt_version_id?: string | null;
+          turn_timeout_ms?: number | null;
+          unknown_cost_behavior?: string | null;
+          version_number?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policy_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_policy_fk";
+            columns: ["organization_id", "policy_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policies";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_prompt_fk";
+            columns: ["organization_id", "prompt_version_id"];
+            isOneToOne: false;
+            referencedRelation: "prompt_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_run_configurations: {
+        Row: {
+          configuration_id: string | null;
+          configuration_version_id: string | null;
+          created_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          run_id: string | null;
+        };
+        Insert: {
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          run_id?: string | null;
+        };
+        Update: {
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          run_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_run_configurations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_run_configurations_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_run_configurations_version_fk";
+            columns: ["organization_id", "configuration_id", "configuration_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+        ];
+      };
+      agent_runs: {
+        Row: {
+          actor_channel_identity_id: string | null;
+          actor_kind: string | null;
+          actor_user_id: string | null;
+          budget_status: string | null;
+          cache_mode: string | null;
+          channel_connection_id: string | null;
+          completed_at: string | null;
+          continuation_sequence: number | null;
+          conversation_id: string | null;
+          conversation_snapshot_id: string | null;
+          correlation_id: string | null;
+          cost_currency: string | null;
+          created_at: string | null;
+          fallback_models: Json | null;
+          id: string | null;
+          last_termination_reason: string | null;
+          max_cost_amount: number | null;
+          max_parallel_tools: number | null;
+          max_provider_attempts: number | null;
+          max_tool_rounds: number | null;
+          model: string | null;
+          organization_id: string | null;
+          policy_version_id: string | null;
+          provider: string | null;
+          provider_attempt_count: number | null;
+          reasoning_effort: string | null;
+          run_key: string | null;
+          run_kind: string | null;
+          source_inbound_event_id: string | null;
+          started_at: string | null;
+          status: string | null;
+          tool_round_count: number | null;
+          trace_id: string | null;
+          trigger_message_id: string | null;
+          turn_timeout_ms: number | null;
+          unknown_cost_behavior: string | null;
+          updated_at: string | null;
+          vision_model: string | null;
+          vision_provider: string | null;
+        };
+        Insert: {
+          actor_channel_identity_id?: string | null;
+          actor_kind?: string | null;
+          actor_user_id?: string | null;
+          budget_status?: string | null;
+          cache_mode?: string | null;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          continuation_sequence?: number | null;
+          conversation_id?: string | null;
+          conversation_snapshot_id?: string | null;
+          correlation_id?: string | null;
+          cost_currency?: string | null;
+          created_at?: string | null;
+          fallback_models?: Json | null;
+          id?: string | null;
+          last_termination_reason?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number | null;
+          max_provider_attempts?: number | null;
+          max_tool_rounds?: number | null;
+          model?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+          provider?: string | null;
+          provider_attempt_count?: number | null;
+          reasoning_effort?: string | null;
+          run_key?: string | null;
+          run_kind?: string | null;
+          source_inbound_event_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          tool_round_count?: number | null;
+          trace_id?: string | null;
+          trigger_message_id?: string | null;
+          turn_timeout_ms?: number | null;
+          unknown_cost_behavior?: string | null;
+          updated_at?: string | null;
+          vision_model?: string | null;
+          vision_provider?: string | null;
+        };
+        Update: {
+          actor_channel_identity_id?: string | null;
+          actor_kind?: string | null;
+          actor_user_id?: string | null;
+          budget_status?: string | null;
+          cache_mode?: string | null;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          continuation_sequence?: number | null;
+          conversation_id?: string | null;
+          conversation_snapshot_id?: string | null;
+          correlation_id?: string | null;
+          cost_currency?: string | null;
+          created_at?: string | null;
+          fallback_models?: Json | null;
+          id?: string | null;
+          last_termination_reason?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number | null;
+          max_provider_attempts?: number | null;
+          max_tool_rounds?: number | null;
+          model?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+          provider?: string | null;
+          provider_attempt_count?: number | null;
+          reasoning_effort?: string | null;
+          run_key?: string | null;
+          run_kind?: string | null;
+          source_inbound_event_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          tool_round_count?: number | null;
+          trace_id?: string | null;
+          trigger_message_id?: string | null;
+          turn_timeout_ms?: number | null;
+          unknown_cost_behavior?: string | null;
+          updated_at?: string | null;
+          vision_model?: string | null;
+          vision_provider?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_actor_channel_identity_fk";
+            columns: ["organization_id", "channel_connection_id", "actor_channel_identity_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_identities";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_actor_user_fk";
+            columns: ["organization_id", "actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_runs_channel_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_conversation_snapshot_fk";
+            columns: ["organization_id", "conversation_snapshot_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_agent_snapshots";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_runs_policy_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_trigger_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "trigger_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+        ];
+      };
+      audit_events: {
+        Row: {
+          actor_kind: string | null;
+          actor_user_id: string | null;
+          configuration_id: string | null;
+          configuration_version_id: string | null;
+          correlation_id: string | null;
+          event_type: string | null;
+          id: string | null;
+          job_attempt_id: string | null;
+          job_id: string | null;
+          metadata_safe: Json | null;
+          occurred_at: string | null;
+          organization_id: string | null;
+          outbox_channel_connection_id: string | null;
+          outbox_event_id: string | null;
+          run_id: string | null;
+          tool_execution_id: string | null;
+          trace_id: string | null;
+        };
+        Insert: {
+          actor_kind?: string | null;
+          actor_user_id?: string | null;
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          correlation_id?: string | null;
+          event_type?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          metadata_safe?: Json | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          trace_id?: string | null;
+        };
+        Update: {
+          actor_kind?: string | null;
+          actor_user_id?: string | null;
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          correlation_id?: string | null;
+          event_type?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          metadata_safe?: Json | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          trace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_actor_user_fk";
+            columns: ["organization_id", "actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "audit_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_configuration_fk";
+            columns: ["organization_id", "configuration_id", "configuration_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_tool_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      business_configuration_versions: {
+        Row: {
+          configuration_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          document_hash: string | null;
+          id: string | null;
+          organization_id: string | null;
+          schema_key: string | null;
+          schema_version: number | null;
+          source_version_id: string | null;
+          validation_contract: string | null;
+          version_number: number | null;
+        };
+        Insert: {
+          configuration_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          document_hash?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          schema_key?: string | null;
+          schema_version?: number | null;
+          source_version_id?: string | null;
+          validation_contract?: string | null;
+          version_number?: number | null;
+        };
+        Update: {
+          configuration_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          document_hash?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          schema_key?: string | null;
+          schema_version?: number | null;
+          source_version_id?: string | null;
+          validation_contract?: string | null;
+          version_number?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_configuration_versions_configuration_fk";
+            columns: ["organization_id", "configuration_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configurations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_source_fk";
+            columns: ["organization_id", "configuration_id", "source_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+        ];
+      };
+      business_configurations: {
+        Row: {
+          configuration_key: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          current_version_id: string | null;
+          display_name: string | null;
+          id: string | null;
+          organization_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          configuration_key?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          configuration_key?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_configurations_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "business_configurations_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+          {
+            foreignKeyName: "business_configurations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       business_profiles: {
         Row: {
           created_at: string | null;
@@ -931,6 +1826,55 @@ export type Database = {
           },
         ];
       };
+      conversation_agent_snapshots: {
+        Row: {
+          channel_connection_id: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          policy_version_id: string | null;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_version_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_agent_snapshots_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: true;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "conversation_agent_snapshots_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_agent_snapshots_policy_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       conversation_assignments: {
         Row: {
           agent_key: string | null;
@@ -1146,6 +2090,96 @@ export type Database = {
             columns: ["organization_id", "social_connection_id"];
             isOneToOne: false;
             referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      error_events: {
+        Row: {
+          error_category: string | null;
+          error_code: string | null;
+          error_key: string | null;
+          id: string | null;
+          job_attempt_id: string | null;
+          job_id: string | null;
+          occurred_at: string | null;
+          organization_id: string | null;
+          provider: string | null;
+          provider_request_id: string | null;
+          retryable: boolean | null;
+          run_id: string | null;
+          severity: string | null;
+          summary_redacted: string | null;
+          tool_execution_id: string | null;
+        };
+        Insert: {
+          error_category?: string | null;
+          error_code?: string | null;
+          error_key?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          retryable?: boolean | null;
+          run_id?: string | null;
+          severity?: string | null;
+          summary_redacted?: string | null;
+          tool_execution_id?: string | null;
+        };
+        Update: {
+          error_category?: string | null;
+          error_code?: string | null;
+          error_key?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          retryable?: boolean | null;
+          run_id?: string | null;
+          severity?: string | null;
+          summary_redacted?: string | null;
+          tool_execution_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "error_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "error_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_tool_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -1956,6 +2990,75 @@ export type Database = {
           },
         ];
       };
+      job_attempts: {
+        Row: {
+          attempt_number: number | null;
+          completed_at: string | null;
+          disposition: string | null;
+          fallback_ordinal: number | null;
+          id: string | null;
+          job_id: string | null;
+          model: string | null;
+          organization_id: string | null;
+          provider: string | null;
+          provider_request_id: string | null;
+          run_id: string | null;
+          started_at: string | null;
+          status: string | null;
+          termination_reason: string | null;
+          worker_id: string | null;
+        };
+        Insert: {
+          attempt_number?: number | null;
+          completed_at?: string | null;
+          disposition?: string | null;
+          fallback_ordinal?: number | null;
+          id?: string | null;
+          job_id?: string | null;
+          model?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          run_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          termination_reason?: string | null;
+          worker_id?: string | null;
+        };
+        Update: {
+          attempt_number?: number | null;
+          completed_at?: string | null;
+          disposition?: string | null;
+          fallback_ordinal?: number | null;
+          id?: string | null;
+          job_id?: string | null;
+          model?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          run_id?: string | null;
+          started_at?: string | null;
+          status?: string | null;
+          termination_reason?: string | null;
+          worker_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_attempts_job_run_fk";
+            columns: ["organization_id", "job_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id", "run_id"];
+          },
+          {
+            foreignKeyName: "job_attempts_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       lead_interests: {
         Row: {
           captured_context: Json | null;
@@ -2145,6 +3248,96 @@ export type Database = {
             columns: ["organization_id", "source_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      memory_entries: {
+        Row: {
+          channel_connection_id: string | null;
+          content_hash: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          expires_at: string | null;
+          id: string | null;
+          organization_id: string | null;
+          revoked_at: string | null;
+          run_id: string | null;
+          scope_key: string | null;
+          scope_kind: string | null;
+          source_agent_message_id: string | null;
+          source_tool_execution_id: string | null;
+          status: string | null;
+          trust_level: string | null;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          content_hash?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          expires_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          revoked_at?: string | null;
+          run_id?: string | null;
+          scope_key?: string | null;
+          scope_kind?: string | null;
+          source_agent_message_id?: string | null;
+          source_tool_execution_id?: string | null;
+          status?: string | null;
+          trust_level?: string | null;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          content_hash?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          expires_at?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          revoked_at?: string | null;
+          run_id?: string | null;
+          scope_key?: string | null;
+          scope_kind?: string | null;
+          source_agent_message_id?: string | null;
+          source_tool_execution_id?: string | null;
+          status?: string | null;
+          trust_level?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memory_entries_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_entries_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_source_message_fk";
+            columns: ["organization_id", "source_agent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_source_tool_fk";
+            columns: ["organization_id", "source_tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -3201,6 +4394,54 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_categories";
             referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      prompt_versions: {
+        Row: {
+          content_hash: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          prompt_key: string | null;
+          template_format: string | null;
+          version_number: number | null;
+        };
+        Insert: {
+          content_hash?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          prompt_key?: string | null;
+          template_format?: string | null;
+          version_number?: number | null;
+        };
+        Update: {
+          content_hash?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          prompt_key?: string | null;
+          template_format?: string | null;
+          version_number?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "prompt_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "prompt_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -4279,6 +5520,340 @@ export type Database = {
           },
         ];
       };
+      tool_contract_versions: {
+        Row: {
+          contract_hash: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          description: string | null;
+          effect_class: string | null;
+          id: string | null;
+          input_schema: Json | null;
+          organization_id: string | null;
+          output_schema: Json | null;
+          tool_contract_id: string | null;
+          version_number: number | null;
+        };
+        Insert: {
+          contract_hash?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          effect_class?: string | null;
+          id?: string | null;
+          input_schema?: Json | null;
+          organization_id?: string | null;
+          output_schema?: Json | null;
+          tool_contract_id?: string | null;
+          version_number?: number | null;
+        };
+        Update: {
+          contract_hash?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          effect_class?: string | null;
+          id?: string | null;
+          input_schema?: Json | null;
+          organization_id?: string | null;
+          output_schema?: Json | null;
+          tool_contract_id?: string | null;
+          version_number?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_contract_versions_contract_fk";
+            columns: ["organization_id", "tool_contract_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contracts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_contract_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "tool_contract_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tool_contracts: {
+        Row: {
+          created_at: string | null;
+          created_by_user_id: string | null;
+          current_version_id: string | null;
+          display_name: string | null;
+          id: string | null;
+          organization_id: string | null;
+          status: string | null;
+          tool_name: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          tool_name?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          display_name?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          tool_name?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_contracts_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "tool_contracts_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_contracts_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tool_executions: {
+        Row: {
+          arguments_hash: string | null;
+          authorization_reason: string | null;
+          authorization_status: string | null;
+          authorized_at: string | null;
+          completed_at: string | null;
+          created_at: string | null;
+          effect_certainty: string | null;
+          effect_class: string | null;
+          effect_started_at: string | null;
+          id: string | null;
+          job_attempt_id: string | null;
+          organization_id: string | null;
+          outbox_channel_connection_id: string | null;
+          outbox_event_id: string | null;
+          policy_tool_id: string | null;
+          provider_tool_call_id: string | null;
+          result_hash: string | null;
+          run_id: string | null;
+          status: string | null;
+          tool_contract_id: string | null;
+          tool_contract_version_id: string | null;
+          tool_round: number | null;
+        };
+        Insert: {
+          arguments_hash?: string | null;
+          authorization_reason?: string | null;
+          authorization_status?: string | null;
+          authorized_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          effect_certainty?: string | null;
+          effect_class?: string | null;
+          effect_started_at?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          organization_id?: string | null;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          policy_tool_id?: string | null;
+          provider_tool_call_id?: string | null;
+          result_hash?: string | null;
+          run_id?: string | null;
+          status?: string | null;
+          tool_contract_id?: string | null;
+          tool_contract_version_id?: string | null;
+          tool_round?: number | null;
+        };
+        Update: {
+          arguments_hash?: string | null;
+          authorization_reason?: string | null;
+          authorization_status?: string | null;
+          authorized_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          effect_certainty?: string | null;
+          effect_class?: string | null;
+          effect_started_at?: string | null;
+          id?: string | null;
+          job_attempt_id?: string | null;
+          organization_id?: string | null;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          policy_tool_id?: string | null;
+          provider_tool_call_id?: string | null;
+          result_hash?: string | null;
+          run_id?: string | null;
+          status?: string | null;
+          tool_contract_id?: string | null;
+          tool_contract_version_id?: string | null;
+          tool_round?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_executions_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_contract_version_fk";
+            columns: ["organization_id", "tool_contract_id", "tool_contract_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tool_executions_policy_tool_fk";
+            columns: ["organization_id", "policy_tool_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_tools";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      usage_events: {
+        Row: {
+          cache_write_input_tokens: number | null;
+          cached_input_tokens: number | null;
+          cost_amount: number | null;
+          cost_currency: string | null;
+          cost_status: string | null;
+          id: string | null;
+          input_tokens: number | null;
+          job_attempt_id: string | null;
+          latency_ms: number | null;
+          model: string | null;
+          occurred_at: string | null;
+          operation: string | null;
+          organization_id: string | null;
+          output_tokens: number | null;
+          provider: string | null;
+          reasoning_tokens: number | null;
+          request_count: number | null;
+          run_id: string | null;
+          tool_execution_id: string | null;
+          total_tokens: number | null;
+          usage_key: string | null;
+        };
+        Insert: {
+          cache_write_input_tokens?: number | null;
+          cached_input_tokens?: number | null;
+          cost_amount?: number | null;
+          cost_currency?: string | null;
+          cost_status?: string | null;
+          id?: string | null;
+          input_tokens?: number | null;
+          job_attempt_id?: string | null;
+          latency_ms?: number | null;
+          model?: string | null;
+          occurred_at?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          output_tokens?: number | null;
+          provider?: string | null;
+          reasoning_tokens?: number | null;
+          request_count?: number | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          total_tokens?: number | null;
+          usage_key?: string | null;
+        };
+        Update: {
+          cache_write_input_tokens?: number | null;
+          cached_input_tokens?: number | null;
+          cost_amount?: number | null;
+          cost_currency?: string | null;
+          cost_status?: string | null;
+          id?: string | null;
+          input_tokens?: number | null;
+          job_attempt_id?: string | null;
+          latency_ms?: number | null;
+          model?: string | null;
+          occurred_at?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          output_tokens?: number | null;
+          provider?: string | null;
+          reasoning_tokens?: number | null;
+          request_count?: number | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          total_tokens?: number | null;
+          usage_key?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "usage_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "usage_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "usage_events_tool_execution_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           accessibility_preferences: Json | null;
@@ -4444,6 +6019,26 @@ export type Database = {
       };
     };
     Functions: {
+      append_agent_message: {
+        Args: {
+          target_channel_connection_id: string;
+          target_content: Json;
+          target_conversation_id: string;
+          target_domain_message_id: string;
+          target_message_key: string;
+          target_message_kind: string;
+          target_message_role: string;
+          target_organization_id: string;
+          target_provider_item_id: string;
+          target_run_id: string;
+          target_trust_level: string;
+        };
+        Returns: {
+          agent_message_id: string;
+          sequence_number: number;
+          was_replayed: boolean;
+        }[];
+      };
       apply_inventory_composition_movement: {
         Args: {
           target_allocations: Json;
@@ -4507,6 +6102,20 @@ export type Database = {
           authorization_status: string;
         }[];
       };
+      authorize_tool_execution: {
+        Args: {
+          target_organization_id: string;
+          target_tool_execution_id: string;
+        };
+        Returns: {
+          authorization_constraints: Json;
+          authorization_reason: string;
+          authorization_status: string;
+          status: string;
+          tool_execution_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       cancel_publication_batch: {
         Args: {
           target_created_by_user_id?: string;
@@ -4521,6 +6130,21 @@ export type Database = {
           publication_batch_id: string;
           status: string;
           was_replayed: boolean;
+        }[];
+      };
+      claim_agent_job: {
+        Args: {
+          target_lease_seconds?: number;
+          target_organization_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          attempt_number: number;
+          lease_expires_at: string;
+          lease_token: string;
+          payload_safe: Json;
         }[];
       };
       claim_publication_job: {
@@ -4541,6 +6165,60 @@ export type Database = {
           publication_job_id: string;
           target_instance_id: string;
           target_version_id: string;
+        }[];
+      };
+      create_agent_policy_version: {
+        Args: {
+          target_activate: boolean;
+          target_cache_mode: string;
+          target_correlation_id: string;
+          target_cost_currency: string;
+          target_created_by_user_id: string;
+          target_display_name: string;
+          target_expected_current_version_id: string;
+          target_fallback_models: Json;
+          target_idempotency_key: string;
+          target_max_cost_amount: number;
+          target_max_parallel_tools: number;
+          target_max_provider_attempts: number;
+          target_max_tool_rounds: number;
+          target_organization_id: string;
+          target_policy_key: string;
+          target_prompt_version_id: string;
+          target_tool_bindings: Json;
+          target_trace_id?: string;
+          target_turn_timeout_ms: number;
+          target_unknown_cost_behavior: string;
+        };
+        Returns: {
+          agent_policy_id: string;
+          agent_policy_version_id: string;
+          tools_bound: number;
+          version_number: number;
+          was_replayed: boolean;
+        }[];
+      };
+      create_business_configuration_version: {
+        Args: {
+          target_activate: boolean;
+          target_configuration_key: string;
+          target_correlation_id: string;
+          target_created_by_user_id: string;
+          target_display_name: string;
+          target_document: Json;
+          target_expected_current_version_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_schema_key: string;
+          target_schema_version: number;
+          target_trace_id?: string;
+          target_validation_contract: string;
+        };
+        Returns: {
+          configuration_id: string;
+          configuration_version_id: string;
+          version_number: number;
+          was_replayed: boolean;
         }[];
       };
       create_handoff: {
@@ -4736,6 +6414,38 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      enqueue_agent_run: {
+        Args: {
+          target_actor_channel_identity_id: string;
+          target_actor_kind: string;
+          target_actor_user_id: string;
+          target_cache_key_hash: string;
+          target_channel_connection_id: string;
+          target_conversation_id: string;
+          target_correlation_id: string;
+          target_idempotency_key: string;
+          target_model: string;
+          target_organization_id: string;
+          target_payload_safe: Json;
+          target_policy_key: string;
+          target_priority: number;
+          target_provider: string;
+          target_reasoning_effort: string;
+          target_run_key: string;
+          target_run_kind: string;
+          target_source_inbound_event_id: string;
+          target_trace_id?: string;
+          target_trigger_message_id: string;
+          target_vision_model: string;
+          target_vision_provider: string;
+        };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          conversation_snapshot_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       enqueue_publication_batch: {
         Args: {
           target_available_at?: string;
@@ -4805,6 +6515,19 @@ export type Database = {
         };
         Returns: string;
       };
+      mark_tool_effect_started: {
+        Args: {
+          target_organization_id: string;
+          target_tool_execution_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          effect_certainty: string;
+          status: string;
+          tool_execution_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       observe_social_capability: {
         Args: {
           target_capability_code: string;
@@ -4821,6 +6544,25 @@ export type Database = {
         };
         Returns: {
           social_capability_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      propose_tool_execution: {
+        Args: {
+          target_arguments_safe: Json;
+          target_execution_key: string;
+          target_external_effect_key: string;
+          target_job_attempt_id: string;
+          target_organization_id: string;
+          target_provider_tool_call_id: string;
+          target_run_id: string;
+          target_tool_name: string;
+          target_tool_round: number;
+        };
+        Returns: {
+          authorization_status: string;
+          effect_class: string;
+          tool_execution_id: string;
           was_replayed: boolean;
         }[];
       };
@@ -4852,6 +6594,28 @@ export type Database = {
           sale_line_id: string;
         }[];
       };
+      record_agent_attempt_result: {
+        Args: {
+          target_checkpoint_hash?: string;
+          target_checkpoint_reference?: string;
+          target_disposition: string;
+          target_job_attempt_id: string;
+          target_last_error_code?: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_provider_request_id: string;
+          target_response_metadata_safe: Json;
+          target_termination_reason: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          attempt_status: string;
+          job_attempt_id: string;
+          job_status: string;
+          run_status: string;
+          was_replayed: boolean;
+        }[];
+      };
       record_commercial_notification: {
         Args: {
           target_created_by_user_id?: string;
@@ -4865,6 +6629,30 @@ export type Database = {
           notification_status: string;
           replayed: boolean;
           subject_id: string;
+        }[];
+      };
+      record_error_event: {
+        Args: {
+          target_correlation_id: string;
+          target_detail_reference: string;
+          target_error_category: string;
+          target_error_code: string;
+          target_error_key: string;
+          target_job_attempt_id: string;
+          target_job_id: string;
+          target_organization_id: string;
+          target_provider: string;
+          target_provider_request_id: string;
+          target_retryable: boolean;
+          target_run_id: string;
+          target_severity: string;
+          target_summary_redacted: string;
+          target_tool_execution_id: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          error_event_id: string;
+          was_replayed: boolean;
         }[];
       };
       record_publication_job_result: {
@@ -4913,6 +6701,69 @@ export type Database = {
           sale_id: string;
         }[];
       };
+      record_tool_execution_result: {
+        Args: {
+          target_effect_certainty: string;
+          target_organization_id: string;
+          target_outbox_channel_connection_id?: string;
+          target_outbox_event_id?: string;
+          target_result_safe: Json;
+          target_status: string;
+          target_tool_execution_id: string;
+        };
+        Returns: {
+          effect_certainty: string;
+          status: string;
+          tool_execution_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      record_usage_event: {
+        Args: {
+          target_cache_write_input_tokens: number;
+          target_cached_input_tokens: number;
+          target_cost_amount: number;
+          target_cost_currency: string;
+          target_cost_status: string;
+          target_input_tokens: number;
+          target_job_attempt_id: string;
+          target_latency_ms: number;
+          target_model: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_output_tokens: number;
+          target_provider: string;
+          target_provider_usage_safe?: Json;
+          target_reasoning_tokens: number;
+          target_request_count: number;
+          target_run_id: string;
+          target_tool_execution_id: string;
+          target_total_tokens: number;
+          target_usage_key: string;
+        };
+        Returns: {
+          budget_status: string;
+          total_known_cost: number;
+          usage_event_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      recover_expired_agent_job: {
+        Args: {
+          target_job_id: string;
+          target_organization_id: string;
+          target_recovery_worker_id: string;
+          target_retry_delay_seconds?: number;
+        };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          job_status: string;
+          recovered: boolean;
+          recovery_disposition: string;
+          run_status: string;
+        }[];
+      };
       recover_expired_publication_job: {
         Args: {
           target_now?: string;
@@ -4944,6 +6795,23 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      register_prompt_version: {
+        Args: {
+          target_content_template: string;
+          target_correlation_id: string;
+          target_created_by_user_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_prompt_key: string;
+          target_template_format: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          prompt_version_id: string;
+          version_number: number;
+          was_replayed: boolean;
+        }[];
+      };
       register_social_connection: {
         Args: {
           target_api_version?: string;
@@ -4961,6 +6829,30 @@ export type Database = {
         };
         Returns: {
           social_connection_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      register_tool_contract_version: {
+        Args: {
+          target_correlation_id: string;
+          target_created_by_user_id: string;
+          target_description: string;
+          target_display_name: string;
+          target_effect_class: string;
+          target_expected_current_version_id: string;
+          target_handler_key: string;
+          target_idempotency_key: string;
+          target_input_schema: Json;
+          target_organization_id: string;
+          target_output_schema: Json;
+          target_status: string;
+          target_tool_name: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          tool_contract_id: string;
+          tool_contract_version_id: string;
+          version_number: number;
           was_replayed: boolean;
         }[];
       };
@@ -5022,6 +6914,51 @@ export type Database = {
           valid_from: string;
           valid_until: string;
           variant_id: string;
+        }[];
+      };
+      resume_agent_run_after_tools: {
+        Args: { target_job_id: string; target_organization_id: string };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          job_status: string;
+          run_status: string;
+        }[];
+      };
+      rollback_business_configuration: {
+        Args: {
+          target_configuration_id: string;
+          target_correlation_id: string;
+          target_created_by_user_id: string;
+          target_expected_current_version_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_source_version_id: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          configuration_version_id: string;
+          version_number: number;
+          was_replayed: boolean;
+        }[];
+      };
+      start_agent_job_attempt: {
+        Args: {
+          target_fallback_ordinal: number;
+          target_job_id: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_request_metadata_safe?: Json;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_run_id: string;
+          attempt_number: number;
+          fallback_ordinal: number;
+          job_attempt_id: string;
+          model: string;
+          provider: string;
         }[];
       };
       transition_handoff: {
@@ -5136,6 +7073,954 @@ export type Database = {
   };
   app_private: {
     Tables: {
+      agent_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          operation?: string;
+          organization_id?: string;
+          request_fingerprint?: string;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_commands_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          checkpoint_hash: string | null;
+          checkpoint_reference: string | null;
+          checkpoint_sequence: number;
+          completed_at: string | null;
+          created_at: string;
+          external_effect_state: string;
+          id: string;
+          idempotency_key: string;
+          job_kind: string;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          lease_token: string | null;
+          max_attempts: number;
+          organization_id: string;
+          payload_safe: Json;
+          priority: number;
+          run_id: string;
+          started_at: string | null;
+          status: string;
+          updated_at: string;
+          worker_id: string | null;
+        };
+        Insert: {
+          attempt_count?: number;
+          available_at?: string;
+          checkpoint_hash?: string | null;
+          checkpoint_reference?: string | null;
+          checkpoint_sequence?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          external_effect_state?: string;
+          id?: string;
+          idempotency_key: string;
+          job_kind: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts: number;
+          organization_id: string;
+          payload_safe?: Json;
+          priority?: number;
+          run_id: string;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          worker_id?: string | null;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          checkpoint_hash?: string | null;
+          checkpoint_reference?: string | null;
+          checkpoint_sequence?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          external_effect_state?: string;
+          id?: string;
+          idempotency_key?: string;
+          job_kind?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts?: number;
+          organization_id?: string;
+          payload_safe?: Json;
+          priority?: number;
+          run_id?: string;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          worker_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_jobs_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_jobs_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: true;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_messages: {
+        Row: {
+          channel_connection_id: string | null;
+          content: Json;
+          content_hash: string;
+          conversation_id: string | null;
+          created_at: string;
+          domain_message_id: string | null;
+          id: string;
+          message_key: string;
+          message_kind: string;
+          message_role: string;
+          organization_id: string;
+          provider_item_id: string | null;
+          run_id: string;
+          sequence_number: number;
+          trust_level: string;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          content: Json;
+          content_hash: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          domain_message_id?: string | null;
+          id?: string;
+          message_key: string;
+          message_kind: string;
+          message_role: string;
+          organization_id: string;
+          provider_item_id?: string | null;
+          run_id: string;
+          sequence_number: number;
+          trust_level: string;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          content?: Json;
+          content_hash?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          domain_message_id?: string | null;
+          id?: string;
+          message_key?: string;
+          message_kind?: string;
+          message_role?: string;
+          organization_id?: string;
+          provider_item_id?: string | null;
+          run_id?: string;
+          sequence_number?: number;
+          trust_level?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_domain_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "domain_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+          {
+            foreignKeyName: "agent_messages_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_messages_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_policies: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string;
+          current_version_id: string | null;
+          display_name: string;
+          id: string;
+          organization_id: string;
+          policy_key: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id: string;
+          current_version_id?: string | null;
+          display_name: string;
+          id?: string;
+          organization_id: string;
+          policy_key: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string;
+          current_version_id?: string | null;
+          display_name?: string;
+          id?: string;
+          organization_id?: string;
+          policy_key?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policies_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_policies_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "policy_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policies_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_policy_tools: {
+        Row: {
+          allowed_actor_kinds: string[];
+          allowed_channels: string[];
+          authorization_constraints: Json;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          policy_version_id: string;
+          required_membership_roles: string[];
+          tool_contract_id: string;
+          tool_contract_version_id: string;
+        };
+        Insert: {
+          allowed_actor_kinds: string[];
+          allowed_channels?: string[];
+          authorization_constraints?: Json;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          policy_version_id: string;
+          required_membership_roles?: string[];
+          tool_contract_id: string;
+          tool_contract_version_id: string;
+        };
+        Update: {
+          allowed_actor_kinds?: string[];
+          allowed_channels?: string[];
+          authorization_constraints?: Json;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          policy_version_id?: string;
+          required_membership_roles?: string[];
+          tool_contract_id?: string;
+          tool_contract_version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policy_tools_contract_version_fk";
+            columns: ["organization_id", "tool_contract_id", "tool_contract_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policy_tools_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_policy_tools_policy_version_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_policy_versions: {
+        Row: {
+          cache_mode: string;
+          cost_currency: string | null;
+          created_at: string;
+          created_by_user_id: string;
+          fallback_models: Json;
+          id: string;
+          max_cost_amount: number | null;
+          max_parallel_tools: number;
+          max_provider_attempts: number;
+          max_tool_rounds: number;
+          organization_id: string;
+          policy_hash: string;
+          policy_id: string;
+          prompt_version_id: string;
+          turn_timeout_ms: number;
+          unknown_cost_behavior: string;
+          version_number: number;
+        };
+        Insert: {
+          cache_mode: string;
+          cost_currency?: string | null;
+          created_at?: string;
+          created_by_user_id: string;
+          fallback_models?: Json;
+          id?: string;
+          max_cost_amount?: number | null;
+          max_parallel_tools: number;
+          max_provider_attempts: number;
+          max_tool_rounds: number;
+          organization_id: string;
+          policy_hash: string;
+          policy_id: string;
+          prompt_version_id: string;
+          turn_timeout_ms: number;
+          unknown_cost_behavior: string;
+          version_number: number;
+        };
+        Update: {
+          cache_mode?: string;
+          cost_currency?: string | null;
+          created_at?: string;
+          created_by_user_id?: string;
+          fallback_models?: Json;
+          id?: string;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number;
+          max_provider_attempts?: number;
+          max_tool_rounds?: number;
+          organization_id?: string;
+          policy_hash?: string;
+          policy_id?: string;
+          prompt_version_id?: string;
+          turn_timeout_ms?: number;
+          unknown_cost_behavior?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_policy_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_policy_fk";
+            columns: ["organization_id", "policy_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policies";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_policy_versions_prompt_fk";
+            columns: ["organization_id", "prompt_version_id"];
+            isOneToOne: false;
+            referencedRelation: "prompt_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      agent_run_configurations: {
+        Row: {
+          configuration_id: string;
+          configuration_version_id: string;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          run_id: string;
+        };
+        Insert: {
+          configuration_id: string;
+          configuration_version_id: string;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          run_id: string;
+        };
+        Update: {
+          configuration_id?: string;
+          configuration_version_id?: string;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          run_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_run_configurations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_run_configurations_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_run_configurations_version_fk";
+            columns: ["organization_id", "configuration_id", "configuration_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+        ];
+      };
+      agent_runs: {
+        Row: {
+          actor_channel_identity_id: string | null;
+          actor_kind: string;
+          actor_user_id: string | null;
+          budget_status: string;
+          cache_key_hash: string | null;
+          cache_mode: string;
+          channel_connection_id: string | null;
+          completed_at: string | null;
+          continuation_sequence: number;
+          conversation_id: string | null;
+          conversation_snapshot_id: string | null;
+          correlation_id: string;
+          cost_currency: string | null;
+          created_at: string;
+          fallback_models: Json;
+          id: string;
+          last_termination_reason: string | null;
+          max_cost_amount: number | null;
+          max_parallel_tools: number;
+          max_provider_attempts: number;
+          max_tool_rounds: number;
+          model: string;
+          organization_id: string;
+          policy_version_id: string;
+          provider: string;
+          provider_attempt_count: number;
+          provider_state_hash: string | null;
+          provider_state_reference: string | null;
+          reasoning_effort: string | null;
+          run_key: string;
+          run_kind: string;
+          source_inbound_event_id: string | null;
+          started_at: string | null;
+          status: string;
+          tool_round_count: number;
+          trace_id: string | null;
+          trigger_message_id: string | null;
+          turn_timeout_ms: number;
+          unknown_cost_behavior: string;
+          updated_at: string;
+          vision_model: string | null;
+          vision_provider: string | null;
+        };
+        Insert: {
+          actor_channel_identity_id?: string | null;
+          actor_kind: string;
+          actor_user_id?: string | null;
+          budget_status?: string;
+          cache_key_hash?: string | null;
+          cache_mode: string;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          continuation_sequence?: number;
+          conversation_id?: string | null;
+          conversation_snapshot_id?: string | null;
+          correlation_id: string;
+          cost_currency?: string | null;
+          created_at?: string;
+          fallback_models: Json;
+          id?: string;
+          last_termination_reason?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools: number;
+          max_provider_attempts: number;
+          max_tool_rounds: number;
+          model: string;
+          organization_id: string;
+          policy_version_id: string;
+          provider: string;
+          provider_attempt_count?: number;
+          provider_state_hash?: string | null;
+          provider_state_reference?: string | null;
+          reasoning_effort?: string | null;
+          run_key: string;
+          run_kind: string;
+          source_inbound_event_id?: string | null;
+          started_at?: string | null;
+          status?: string;
+          tool_round_count?: number;
+          trace_id?: string | null;
+          trigger_message_id?: string | null;
+          turn_timeout_ms: number;
+          unknown_cost_behavior: string;
+          updated_at?: string;
+          vision_model?: string | null;
+          vision_provider?: string | null;
+        };
+        Update: {
+          actor_channel_identity_id?: string | null;
+          actor_kind?: string;
+          actor_user_id?: string | null;
+          budget_status?: string;
+          cache_key_hash?: string | null;
+          cache_mode?: string;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          continuation_sequence?: number;
+          conversation_id?: string | null;
+          conversation_snapshot_id?: string | null;
+          correlation_id?: string;
+          cost_currency?: string | null;
+          created_at?: string;
+          fallback_models?: Json;
+          id?: string;
+          last_termination_reason?: string | null;
+          max_cost_amount?: number | null;
+          max_parallel_tools?: number;
+          max_provider_attempts?: number;
+          max_tool_rounds?: number;
+          model?: string;
+          organization_id?: string;
+          policy_version_id?: string;
+          provider?: string;
+          provider_attempt_count?: number;
+          provider_state_hash?: string | null;
+          provider_state_reference?: string | null;
+          reasoning_effort?: string | null;
+          run_key?: string;
+          run_kind?: string;
+          source_inbound_event_id?: string | null;
+          started_at?: string | null;
+          status?: string;
+          tool_round_count?: number;
+          trace_id?: string | null;
+          trigger_message_id?: string | null;
+          turn_timeout_ms?: number;
+          unknown_cost_behavior?: string;
+          updated_at?: string;
+          vision_model?: string | null;
+          vision_provider?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_actor_channel_identity_fk";
+            columns: ["organization_id", "channel_connection_id", "actor_channel_identity_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_identities";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_actor_user_fk";
+            columns: ["organization_id", "actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "agent_runs_channel_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_conversation_snapshot_fk";
+            columns: ["organization_id", "conversation_snapshot_id"];
+            isOneToOne: false;
+            referencedRelation: "conversation_agent_snapshots";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_runs_policy_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_source_inbound_event_fk";
+            columns: ["organization_id", "channel_connection_id", "source_inbound_event_id"];
+            isOneToOne: false;
+            referencedRelation: "inbound_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "agent_runs_trigger_message_fk";
+            columns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "trigger_message_id",
+            ];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: [
+              "organization_id",
+              "channel_connection_id",
+              "conversation_id",
+              "id",
+            ];
+          },
+        ];
+      };
+      audit_events: {
+        Row: {
+          actor_kind: string;
+          actor_user_id: string | null;
+          configuration_id: string | null;
+          configuration_version_id: string | null;
+          correlation_id: string;
+          event_type: string;
+          id: string;
+          job_attempt_id: string | null;
+          job_id: string | null;
+          metadata_safe: Json;
+          occurred_at: string;
+          organization_id: string;
+          outbox_channel_connection_id: string | null;
+          outbox_event_id: string | null;
+          run_id: string | null;
+          tool_execution_id: string | null;
+          trace_id: string | null;
+        };
+        Insert: {
+          actor_kind: string;
+          actor_user_id?: string | null;
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          correlation_id: string;
+          event_type: string;
+          id?: string;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          metadata_safe?: Json;
+          occurred_at?: string;
+          organization_id: string;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          trace_id?: string | null;
+        };
+        Update: {
+          actor_kind?: string;
+          actor_user_id?: string | null;
+          configuration_id?: string | null;
+          configuration_version_id?: string | null;
+          correlation_id?: string;
+          event_type?: string;
+          id?: string;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          metadata_safe?: Json;
+          occurred_at?: string;
+          organization_id?: string;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          run_id?: string | null;
+          tool_execution_id?: string | null;
+          trace_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_actor_user_fk";
+            columns: ["organization_id", "actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "audit_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_configuration_fk";
+            columns: ["organization_id", "configuration_id", "configuration_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "audit_events_outbox_fk";
+            columns: ["organization_id", "outbox_channel_connection_id", "outbox_event_id"];
+            isOneToOne: false;
+            referencedRelation: "outbox_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "audit_events_tool_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      business_configuration_versions: {
+        Row: {
+          configuration_id: string;
+          created_at: string;
+          created_by_user_id: string;
+          document: Json;
+          document_hash: string;
+          id: string;
+          organization_id: string;
+          schema_key: string;
+          schema_version: number;
+          source_version_id: string | null;
+          validation_contract: string;
+          version_number: number;
+        };
+        Insert: {
+          configuration_id: string;
+          created_at?: string;
+          created_by_user_id: string;
+          document: Json;
+          document_hash: string;
+          id?: string;
+          organization_id: string;
+          schema_key: string;
+          schema_version: number;
+          source_version_id?: string | null;
+          validation_contract: string;
+          version_number: number;
+        };
+        Update: {
+          configuration_id?: string;
+          created_at?: string;
+          created_by_user_id?: string;
+          document?: Json;
+          document_hash?: string;
+          id?: string;
+          organization_id?: string;
+          schema_key?: string;
+          schema_version?: number;
+          source_version_id?: string | null;
+          validation_contract?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_configuration_versions_configuration_fk";
+            columns: ["organization_id", "configuration_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configurations";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "business_configuration_versions_source_fk";
+            columns: ["organization_id", "configuration_id", "source_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+        ];
+      };
+      business_configurations: {
+        Row: {
+          configuration_key: string;
+          created_at: string;
+          created_by_user_id: string;
+          current_version_id: string | null;
+          display_name: string;
+          id: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          configuration_key: string;
+          created_at?: string;
+          created_by_user_id: string;
+          current_version_id?: string | null;
+          display_name: string;
+          id?: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          configuration_key?: string;
+          created_at?: string;
+          created_by_user_id?: string;
+          current_version_id?: string | null;
+          display_name?: string;
+          id?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_configurations_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "business_configurations_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "business_configuration_versions";
+            referencedColumns: ["organization_id", "configuration_id", "id"];
+          },
+          {
+            foreignKeyName: "business_configurations_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       business_profiles: {
         Row: {
           created_at: string;
@@ -6236,6 +9121,58 @@ export type Database = {
           },
         ];
       };
+      conversation_agent_snapshots: {
+        Row: {
+          channel_connection_id: string;
+          configuration_snapshot: Json;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          policy_version_id: string;
+        };
+        Insert: {
+          channel_connection_id: string;
+          configuration_snapshot: Json;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          policy_version_id: string;
+        };
+        Update: {
+          channel_connection_id?: string;
+          configuration_snapshot?: Json;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          policy_version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_agent_snapshots_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: true;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "conversation_agent_snapshots_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_agent_snapshots_policy_fk";
+            columns: ["organization_id", "policy_version_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       conversation_assignments: {
         Row: {
           agent_key: string | null;
@@ -6432,6 +9369,99 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "channel_identities";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      error_events: {
+        Row: {
+          detail_reference: string | null;
+          error_category: string;
+          error_code: string;
+          error_key: string;
+          id: string;
+          job_attempt_id: string | null;
+          job_id: string | null;
+          occurred_at: string;
+          organization_id: string;
+          provider: string | null;
+          provider_request_id: string | null;
+          retryable: boolean;
+          run_id: string | null;
+          severity: string;
+          summary_redacted: string;
+          tool_execution_id: string | null;
+        };
+        Insert: {
+          detail_reference?: string | null;
+          error_category: string;
+          error_code: string;
+          error_key: string;
+          id?: string;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          occurred_at?: string;
+          organization_id: string;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          retryable: boolean;
+          run_id?: string | null;
+          severity: string;
+          summary_redacted: string;
+          tool_execution_id?: string | null;
+        };
+        Update: {
+          detail_reference?: string | null;
+          error_category?: string;
+          error_code?: string;
+          error_key?: string;
+          id?: string;
+          job_attempt_id?: string | null;
+          job_id?: string | null;
+          occurred_at?: string;
+          organization_id?: string;
+          provider?: string | null;
+          provider_request_id?: string | null;
+          retryable?: boolean;
+          run_id?: string | null;
+          severity?: string;
+          summary_redacted?: string;
+          tool_execution_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "error_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "error_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "error_events_tool_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -7299,6 +10329,84 @@ export type Database = {
           },
         ];
       };
+      job_attempts: {
+        Row: {
+          attempt_number: number;
+          completed_at: string | null;
+          disposition: string | null;
+          fallback_ordinal: number;
+          id: string;
+          job_id: string;
+          lease_token: string;
+          model: string;
+          organization_id: string;
+          provider: string;
+          provider_request_id: string | null;
+          request_metadata_safe: Json;
+          response_metadata_safe: Json;
+          run_id: string;
+          started_at: string;
+          status: string;
+          termination_reason: string | null;
+          worker_id: string;
+        };
+        Insert: {
+          attempt_number: number;
+          completed_at?: string | null;
+          disposition?: string | null;
+          fallback_ordinal?: number;
+          id?: string;
+          job_id: string;
+          lease_token: string;
+          model: string;
+          organization_id: string;
+          provider: string;
+          provider_request_id?: string | null;
+          request_metadata_safe?: Json;
+          response_metadata_safe?: Json;
+          run_id: string;
+          started_at?: string;
+          status?: string;
+          termination_reason?: string | null;
+          worker_id: string;
+        };
+        Update: {
+          attempt_number?: number;
+          completed_at?: string | null;
+          disposition?: string | null;
+          fallback_ordinal?: number;
+          id?: string;
+          job_id?: string;
+          lease_token?: string;
+          model?: string;
+          organization_id?: string;
+          provider?: string;
+          provider_request_id?: string | null;
+          request_metadata_safe?: Json;
+          response_metadata_safe?: Json;
+          run_id?: string;
+          started_at?: string;
+          status?: string;
+          termination_reason?: string | null;
+          worker_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_attempts_job_run_fk";
+            columns: ["organization_id", "job_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_jobs";
+            referencedColumns: ["organization_id", "id", "run_id"];
+          },
+          {
+            foreignKeyName: "job_attempts_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       lead_interests: {
         Row: {
           captured_context: Json;
@@ -7501,6 +10609,102 @@ export type Database = {
             columns: ["organization_id", "source_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      memory_entries: {
+        Row: {
+          channel_connection_id: string | null;
+          content: Json;
+          content_hash: string;
+          conversation_id: string | null;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          organization_id: string;
+          provenance_safe: Json;
+          revoked_at: string | null;
+          run_id: string;
+          scope_key: string;
+          scope_kind: string;
+          source_agent_message_id: string | null;
+          source_tool_execution_id: string | null;
+          status: string;
+          trust_level: string;
+        };
+        Insert: {
+          channel_connection_id?: string | null;
+          content: Json;
+          content_hash: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          organization_id: string;
+          provenance_safe?: Json;
+          revoked_at?: string | null;
+          run_id: string;
+          scope_key: string;
+          scope_kind: string;
+          source_agent_message_id?: string | null;
+          source_tool_execution_id?: string | null;
+          status?: string;
+          trust_level: string;
+        };
+        Update: {
+          channel_connection_id?: string | null;
+          content?: Json;
+          content_hash?: string;
+          conversation_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          organization_id?: string;
+          provenance_safe?: Json;
+          revoked_at?: string | null;
+          run_id?: string;
+          scope_key?: string;
+          scope_kind?: string;
+          source_agent_message_id?: string | null;
+          source_tool_execution_id?: string | null;
+          status?: string;
+          trust_level?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memory_entries_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_entries_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_source_message_fk";
+            columns: ["organization_id", "source_agent_message_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "memory_entries_source_tool_fk";
+            columns: ["organization_id", "source_tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -8701,6 +11905,57 @@ export type Database = {
           },
         ];
       };
+      prompt_versions: {
+        Row: {
+          content_hash: string;
+          content_template: string;
+          created_at: string;
+          created_by_user_id: string;
+          id: string;
+          organization_id: string;
+          prompt_key: string;
+          template_format: string;
+          version_number: number;
+        };
+        Insert: {
+          content_hash: string;
+          content_template: string;
+          created_at?: string;
+          created_by_user_id: string;
+          id?: string;
+          organization_id: string;
+          prompt_key: string;
+          template_format: string;
+          version_number: number;
+        };
+        Update: {
+          content_hash?: string;
+          content_template?: string;
+          created_at?: string;
+          created_by_user_id?: string;
+          id?: string;
+          organization_id?: string;
+          prompt_key?: string;
+          template_format?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "prompt_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "prompt_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       publication_batches: {
         Row: {
           cancel_requested_at: string | null;
@@ -9851,6 +13106,365 @@ export type Database = {
           },
         ];
       };
+      tool_contract_versions: {
+        Row: {
+          contract_hash: string;
+          created_at: string;
+          created_by_user_id: string;
+          description: string;
+          effect_class: string;
+          handler_key: string;
+          id: string;
+          input_schema: Json;
+          organization_id: string;
+          output_schema: Json;
+          tool_contract_id: string;
+          version_number: number;
+        };
+        Insert: {
+          contract_hash: string;
+          created_at?: string;
+          created_by_user_id: string;
+          description: string;
+          effect_class: string;
+          handler_key: string;
+          id?: string;
+          input_schema: Json;
+          organization_id: string;
+          output_schema: Json;
+          tool_contract_id: string;
+          version_number: number;
+        };
+        Update: {
+          contract_hash?: string;
+          created_at?: string;
+          created_by_user_id?: string;
+          description?: string;
+          effect_class?: string;
+          handler_key?: string;
+          id?: string;
+          input_schema?: Json;
+          organization_id?: string;
+          output_schema?: Json;
+          tool_contract_id?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_contract_versions_contract_fk";
+            columns: ["organization_id", "tool_contract_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contracts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_contract_versions_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "tool_contract_versions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tool_contracts: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string;
+          current_version_id: string | null;
+          display_name: string;
+          id: string;
+          organization_id: string;
+          status: string;
+          tool_name: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id: string;
+          current_version_id?: string | null;
+          display_name: string;
+          id?: string;
+          organization_id: string;
+          status?: string;
+          tool_name: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string;
+          current_version_id?: string | null;
+          display_name?: string;
+          id?: string;
+          organization_id?: string;
+          status?: string;
+          tool_name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_contracts_created_by_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "tool_contracts_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_contracts_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tool_executions: {
+        Row: {
+          arguments_hash: string;
+          arguments_safe: Json;
+          authorization_reason: string | null;
+          authorization_status: string;
+          authorized_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          effect_certainty: string;
+          effect_class: string;
+          effect_started_at: string | null;
+          execution_key: string;
+          external_effect_key: string | null;
+          id: string;
+          job_attempt_id: string;
+          organization_id: string;
+          outbox_channel_connection_id: string | null;
+          outbox_event_id: string | null;
+          policy_tool_id: string;
+          provider_tool_call_id: string;
+          result_hash: string | null;
+          result_safe: Json | null;
+          run_id: string;
+          status: string;
+          tool_contract_id: string;
+          tool_contract_version_id: string;
+          tool_round: number;
+        };
+        Insert: {
+          arguments_hash: string;
+          arguments_safe: Json;
+          authorization_reason?: string | null;
+          authorization_status?: string;
+          authorized_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          effect_certainty?: string;
+          effect_class: string;
+          effect_started_at?: string | null;
+          execution_key: string;
+          external_effect_key?: string | null;
+          id?: string;
+          job_attempt_id: string;
+          organization_id: string;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          policy_tool_id: string;
+          provider_tool_call_id: string;
+          result_hash?: string | null;
+          result_safe?: Json | null;
+          run_id: string;
+          status?: string;
+          tool_contract_id: string;
+          tool_contract_version_id: string;
+          tool_round: number;
+        };
+        Update: {
+          arguments_hash?: string;
+          arguments_safe?: Json;
+          authorization_reason?: string | null;
+          authorization_status?: string;
+          authorized_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          effect_certainty?: string;
+          effect_class?: string;
+          effect_started_at?: string | null;
+          execution_key?: string;
+          external_effect_key?: string | null;
+          id?: string;
+          job_attempt_id?: string;
+          organization_id?: string;
+          outbox_channel_connection_id?: string | null;
+          outbox_event_id?: string | null;
+          policy_tool_id?: string;
+          provider_tool_call_id?: string;
+          result_hash?: string | null;
+          result_safe?: Json | null;
+          run_id?: string;
+          status?: string;
+          tool_contract_id?: string;
+          tool_contract_version_id?: string;
+          tool_round?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tool_executions_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_contract_version_fk";
+            columns: ["organization_id", "tool_contract_id", "tool_contract_version_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_contract_versions";
+            referencedColumns: ["organization_id", "tool_contract_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tool_executions_outbox_fk";
+            columns: ["organization_id", "outbox_channel_connection_id", "outbox_event_id"];
+            isOneToOne: false;
+            referencedRelation: "outbox_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_policy_tool_fk";
+            columns: ["organization_id", "policy_tool_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_policy_tools";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "tool_executions_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      usage_events: {
+        Row: {
+          cache_write_input_tokens: number | null;
+          cached_input_tokens: number | null;
+          cost_amount: number | null;
+          cost_currency: string | null;
+          cost_status: string;
+          id: string;
+          input_tokens: number | null;
+          job_attempt_id: string | null;
+          latency_ms: number | null;
+          model: string;
+          occurred_at: string;
+          operation: string;
+          organization_id: string;
+          output_tokens: number | null;
+          provider: string;
+          provider_usage_safe: Json;
+          reasoning_tokens: number | null;
+          request_count: number;
+          run_id: string;
+          tool_execution_id: string | null;
+          total_tokens: number | null;
+          usage_key: string;
+        };
+        Insert: {
+          cache_write_input_tokens?: number | null;
+          cached_input_tokens?: number | null;
+          cost_amount?: number | null;
+          cost_currency?: string | null;
+          cost_status: string;
+          id?: string;
+          input_tokens?: number | null;
+          job_attempt_id?: string | null;
+          latency_ms?: number | null;
+          model: string;
+          occurred_at?: string;
+          operation: string;
+          organization_id: string;
+          output_tokens?: number | null;
+          provider: string;
+          provider_usage_safe?: Json;
+          reasoning_tokens?: number | null;
+          request_count?: number;
+          run_id: string;
+          tool_execution_id?: string | null;
+          total_tokens?: number | null;
+          usage_key: string;
+        };
+        Update: {
+          cache_write_input_tokens?: number | null;
+          cached_input_tokens?: number | null;
+          cost_amount?: number | null;
+          cost_currency?: string | null;
+          cost_status?: string;
+          id?: string;
+          input_tokens?: number | null;
+          job_attempt_id?: string | null;
+          latency_ms?: number | null;
+          model?: string;
+          occurred_at?: string;
+          operation?: string;
+          organization_id?: string;
+          output_tokens?: number | null;
+          provider?: string;
+          provider_usage_safe?: Json;
+          reasoning_tokens?: number | null;
+          request_count?: number;
+          run_id?: string;
+          tool_execution_id?: string | null;
+          total_tokens?: number | null;
+          usage_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_attempt_fk";
+            columns: ["organization_id", "job_attempt_id"];
+            isOneToOne: false;
+            referencedRelation: "job_attempts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "usage_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "usage_events_run_fk";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "usage_events_tool_execution_fk";
+            columns: ["organization_id", "tool_execution_id"];
+            isOneToOne: false;
+            referencedRelation: "tool_executions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           accessibility_preferences: Json;
@@ -10029,6 +13643,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      agent_model_route_is_valid: {
+        Args: { target_route: Json };
+        Returns: boolean;
+      };
+      assert_agent_actor: {
+        Args: {
+          allow_system?: boolean;
+          allowed_roles?: string[];
+          target_organization_id: string;
+          target_user_id: string;
+        };
+        Returns: undefined;
+      };
       assert_commercial_actor: {
         Args: {
           allowed_roles?: string[];
@@ -10067,6 +13694,21 @@ export type Database = {
       assert_variant_catalog_ready: {
         Args: { target_organization_id: string; target_variant_id: string };
         Returns: undefined;
+      };
+      claim_agent_command: {
+        Args: {
+          target_allow_system?: boolean;
+          target_allowed_roles?: string[];
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_request_payload: Json;
+        };
+        Returns: {
+          claimed_command_id: string;
+          was_replayed: boolean;
+        }[];
       };
       claim_commercial_command: {
         Args: {
@@ -10107,6 +13749,15 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      complete_agent_command: {
+        Args: {
+          target_command_id: string;
+          target_organization_id: string;
+          target_result_id: string;
+          target_result_type: string;
+        };
+        Returns: undefined;
+      };
       complete_commercial_command: {
         Args: {
           target_command_id: string;
@@ -10137,6 +13788,27 @@ export type Database = {
           target_reference_id: string;
           target_reference_type: string;
           target_sale_quantity: number;
+        };
+        Returns: string;
+      };
+      insert_agent_audit_event: {
+        Args: {
+          target_actor_kind: string;
+          target_actor_user_id: string;
+          target_configuration_id?: string;
+          target_configuration_version_id?: string;
+          target_correlation_id: string;
+          target_event_type: string;
+          target_job_attempt_id?: string;
+          target_job_id?: string;
+          target_metadata_safe?: Json;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_outbox_channel_connection_id?: string;
+          target_outbox_event_id?: string;
+          target_run_id?: string;
+          target_tool_execution_id?: string;
+          target_trace_id?: string;
         };
         Returns: string;
       };

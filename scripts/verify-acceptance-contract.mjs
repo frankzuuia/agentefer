@@ -81,6 +81,15 @@ for (const featureEntry of featureEntries) {
     );
   }
 
+  if (featureEntry === "b2_008_agent_runtime.feature") {
+    const rules = document.feature.children.filter((child) => child.rule !== undefined);
+    assert.ok(rules.length >= 6, "B2-008 must preserve its six agent runtime acceptance rules");
+    assert.ok(
+      pickles.length >= 50,
+      "B2-008 must preserve all critical runtime, tool and recovery scenarios",
+    );
+  }
+
   totalPickles += pickles.length;
 }
 

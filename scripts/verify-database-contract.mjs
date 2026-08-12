@@ -27,8 +27,9 @@ assert.deepEqual(
     "20260811214250_b2_005_inventory.sql",
     "20260811230632_b2_006_commercial_workflow.sql",
     "20260812132809_b2_007_publication_workflow.sql",
+    "20260812152500_b2_008_agent_runtime.sql",
   ],
-  "B2-001 through B2-007 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-008 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -65,6 +66,10 @@ const publicationMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[9]),
   "utf8",
 );
+const agentRuntimeMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[10]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -91,6 +96,10 @@ const commercialDatabaseTest = await readFile(
 );
 const publicationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_007_publication_workflow_test.sql"),
+  "utf8",
+);
+const agentRuntimeDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_008_agent_runtime_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -123,6 +132,7 @@ for (const [name, migration] of [
   ["B2-005", inventoryMigration],
   ["B2-006", commercialMigration],
   ["B2-007", publicationMigration],
+  ["B2-008", agentRuntimeMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -655,6 +665,93 @@ for (const forbiddenProductSpecificColumn of [
   );
 }
 
+const requiredAgentRuntimeMigrationStatements = [
+  "create table app_private.agent_commands (",
+  "create table app_private.business_configurations (",
+  "create table app_private.business_configuration_versions (",
+  "create table app_private.prompt_versions (",
+  "create table app_private.tool_contracts (",
+  "create table app_private.tool_contract_versions (",
+  "create table app_private.agent_policies (",
+  "create table app_private.agent_policy_versions (",
+  "create table app_private.agent_policy_tools (",
+  "create table app_private.conversation_agent_snapshots (",
+  "create table app_private.agent_runs (",
+  "create table app_private.agent_run_configurations (",
+  "create table app_private.agent_messages (",
+  "create table app_private.agent_jobs (",
+  "create table app_private.job_attempts (",
+  "create table app_private.tool_executions (",
+  "create table app_private.usage_events (",
+  "create table app_private.error_events (",
+  "create table app_private.memory_entries (",
+  "create table app_private.audit_events (",
+  "create function api.create_business_configuration_version(",
+  "create function api.rollback_business_configuration(",
+  "create function api.register_prompt_version(",
+  "create function api.register_tool_contract_version(",
+  "create function api.create_agent_policy_version(",
+  "create function api.enqueue_agent_run(",
+  "create function api.claim_agent_job(",
+  "create function api.start_agent_job_attempt(",
+  "create function api.append_agent_message(",
+  "create function api.propose_tool_execution(",
+  "create function api.authorize_tool_execution(",
+  "create function api.mark_tool_effect_started(",
+  "create function api.record_tool_execution_result(",
+  "create function api.resume_agent_run_after_tools(",
+  "create function api.record_usage_event(",
+  "create function api.record_error_event(",
+  "create function api.record_agent_attempt_result(",
+  "create function api.recover_expired_agent_job(",
+  "agent_model_route_is_valid",
+  "conversation is pinned to a different agent policy",
+  "tool_emergency_disabled",
+  "cost_budget_not_authorized",
+  "external_effect_uncertain",
+  "job_attempts_job_run_fk_idx",
+];
+
+for (const statement of requiredAgentRuntimeMigrationStatements) {
+  assert.ok(
+    agentRuntimeMigration.includes(statement),
+    `B2-008 database migration must include: ${statement}`,
+  );
+}
+
+assert.equal(
+  agentRuntimeMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  20,
+  "all twenty B2-008 API views must preserve caller RLS",
+);
+assert.equal(
+  agentRuntimeMigration.split("force row level security;").length - 1,
+  20,
+  "all twenty B2-008 private relations must force RLS",
+);
+assert.equal(
+  agentRuntimeMigration.split("create policy ").length - 1,
+  20,
+  "every B2-008 private relation must define an authenticated read policy",
+);
+assert.equal(
+  agentRuntimeMigration.split("create function api.").length - 1,
+  18,
+  "B2-008 must expose exactly eighteen service-only runtime RPCs",
+);
+assert.equal(
+  agentRuntimeMigration.includes("revoke all on all functions in schema"),
+  false,
+  "B2-008 cannot revoke previously certified API functions globally",
+);
+for (const forbiddenProviderBinding of ["gpt-", "MiniMax-M", "luna-medium"]) {
+  assert.equal(
+    agentRuntimeMigration.includes(forbiddenProviderBinding),
+    false,
+    `B2-008 schema cannot hardcode provider model identity: ${forbiddenProviderBinding}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -826,6 +923,32 @@ for (const statement of requiredPublicationTestStatements) {
   );
 }
 
+const requiredAgentRuntimeTestStatements = [
+  "select extensions.plan(84);",
+  "set local role authenticated;",
+  "set local role postgres;",
+  "every B2-008 foreign key column is indexed",
+  "owner run accepts an arbitrary future model and independent vision model",
+  "fallback ordinal resolves exact MiniMax family model from frozen route",
+  "contact cannot execute the owner-only administrative tool",
+  "unknown provider cost is recorded as unknown and never fabricated as zero",
+  "identical tool result replay does not repeat an external effect",
+  "expired lease before an external effect is safely retryable",
+  "expired lease after external start halts instead of blind retry",
+  "crashed external tool is terminally marked uncertain rather than left executing",
+  "later configuration activation does not silently alter an existing conversation",
+  "authenticated owner cannot read private prompt body directly",
+  "RLS prevents another organization owner from observing runtime rows",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredAgentRuntimeTestStatements) {
+  assert.ok(
+    agentRuntimeDatabaseTest.includes(statement),
+    `B2-008 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -834,6 +957,7 @@ for (const [name, databaseTest] of [
   ["B2-005", inventoryDatabaseTest],
   ["B2-006", commercialDatabaseTest],
   ["B2-007", publicationDatabaseTest],
+  ["B2-008", agentRuntimeDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -939,6 +1063,26 @@ for (const generatedPublicationContract of [
     `generated database types must include B2-007 contract: ${generatedPublicationContract}`,
   );
 }
+for (const generatedAgentRuntimeContract of [
+  "agent_runs: {",
+  "agent_jobs: {",
+  "agent_messages: {",
+  "agent_policies: {",
+  "agent_policy_versions: {",
+  "tool_contracts: {",
+  "tool_executions: {",
+  "usage_events: {",
+  "error_events: {",
+  "enqueue_agent_run: {",
+  "authorize_tool_execution: {",
+  "record_agent_attempt_result: {",
+  "recover_expired_agent_job: {",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedAgentRuntimeContract),
+    `generated database types must include B2-008 contract: ${generatedAgentRuntimeContract}`,
+  );
+}
 assert.equal(
   generatedTypes.includes("  public: {"),
   false,
@@ -987,5 +1131,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 69 forced-RLS tables, 565 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 89 forced-RLS tables, 649 pgTAP assertions, generated TypeScript schemas locked.`,
 );
