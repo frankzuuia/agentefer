@@ -305,6 +305,115 @@ select * from api.transition_order(
 commit;
 `;
 
+const publicationFixtureSql = `
+begin;
+set local role service_role;
+
+insert into app_private.products (id, organization_id, category_id, name, status)
+values (
+  '33000000-0000-4000-8000-000000000152',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000100',
+  'Concurrent publication identity product',
+  'active'
+);
+insert into app_private.product_variants (id, organization_id, product_id, name, status)
+values (
+  '33000000-0000-4000-8000-000000000162',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000152',
+  'Concurrent publication identity variant',
+  'draft'
+);
+insert into app_private.variant_skus (id, organization_id, variant_id, sku, status)
+values (
+  '33000000-0000-4000-8000-000000000172',
+  '33000000-0000-4000-8000-000000000010',
+  '33000000-0000-4000-8000-000000000162',
+  'CONCURRENT-PUBLICATION',
+  'current'
+);
+update app_private.product_variants
+set status = 'active'
+where id = '33000000-0000-4000-8000-000000000162';
+
+select * from api.register_social_connection(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-social-connection', 'active',
+  'concurrent-publication-app', 'concurrent-publication-page',
+  'Concurrent Facebook Page', 'v24.0',
+  'secret-ref://concurrency/publication-token', null,
+  statement_timestamp(), statement_timestamp(),
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.observe_social_capability(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-social-capability',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-social-connection'),
+  'page.post.create', 'granted', 'provider_probe',
+  '{}'::jsonb, '{"source":"concurrency"}'::jsonb,
+  statement_timestamp(), statement_timestamp() + interval '1 day',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_publication(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-publication-main',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-social-connection'),
+  '33000000-0000-4000-8000-000000000160',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_publication_version(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-publication-version',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-publication-main'),
+  'Concurrent publication body', 'Concurrent publication', 'Contactar',
+  '{"source":"concurrency"}'::jsonb,
+  (
+    select id from app_private.price_tiers
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and variant_id = '33000000-0000-4000-8000-000000000160'
+      and superseded_at is null
+    order by id
+    limit 1
+  ),
+  '[]'::jsonb,
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.approve_publication_version(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-publication-approve',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-publication-version'),
+  'active', 'concurrency approval',
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.enqueue_publication_job(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-publication-job',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-publication-main'),
+  'publish', 'page.post.create', 'concurrent-publication-effect',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-publication-version'),
+  null, statement_timestamp(), 10, 4,
+  '33000000-0000-4000-8000-000000000001'
+);
+select * from api.create_publication_schedule(
+  '33000000-0000-4000-8000-000000000010',
+  'concurrent-publication-schedule',
+  (select result_id from app_private.publication_commands
+    where idempotency_key = 'concurrent-social-connection'),
+  'concurrent_refresh', 'Concurrent refresh', 'America/Tijuana', '0 14 * * *',
+  'refresh', '{"scope":"selected"}'::jsonb, '{"spacing_seconds":300}'::jsonb,
+  'valid', 'active', statement_timestamp() + interval '1 hour',
+  '33000000-0000-4000-8000-000000000001'
+);
+commit;
+`;
+
 const runCaptured = (sql) =>
   new Promise((resolve, reject) => {
     const child = spawn("docker", psqlArguments(sql), {
@@ -459,6 +568,166 @@ const priceRace = await verifyRace({
 });
 
 runSync(commercialFixtureSql);
+runSync(publicationFixtureSql);
+
+const publicationIdentityRace = await verifyRace({
+  label: "publication identity",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.create_publication(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-publication-identity-first',
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-social-connection'),
+      '33000000-0000-4000-8000-000000000162',
+      '33000000-0000-4000-8000-000000000001'
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.create_publication(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-publication-identity-second',
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-social-connection'),
+      '33000000-0000-4000-8000-000000000162',
+      '33000000-0000-4000-8000-000000000001'
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.publications
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and variant_id = '33000000-0000-4000-8000-000000000162'
+      and status <> 'retired';`,
+  failureMarker: "publications_one_operational_offer",
+});
+
+const verifyPublicationClaimRace = async () => {
+  const claimSql = (workerId, shouldHoldLock) => `
+    begin;
+    set local role service_role;
+    select 'claimed:' || publication_job_id::text
+    from api.claim_publication_job('${workerId}', 120, statement_timestamp());
+    ${shouldHoldLock ? "select pg_sleep(2);" : ""}
+    commit;
+  `;
+  const firstClaim = runCaptured(claimSql("concurrent-publication-worker-first", true));
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const secondClaim = runCaptured(claimSql("concurrent-publication-worker-second", false));
+  const results = await Promise.all([firstClaim, secondClaim]);
+
+  assert.ok(
+    results.every((result) => result.status === 0),
+    `both claim attempts must complete without blocking failure: ${results
+      .map((result) => `${result.stdout}\n${result.stderr}`.trim())
+      .join("\n")}`,
+  );
+
+  const claimMarkers = results.flatMap((result) =>
+    result.stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("claimed:")),
+  );
+  const expectedJobId = runSync(
+    `select result_id::text from app_private.publication_commands
+      where idempotency_key = 'concurrent-publication-job';`,
+    true,
+  ).stdout.trim();
+  const finalState = runSync(
+    `select status || ':' || attempt_count::text from app_private.publication_jobs
+      where id = '${expectedJobId}'::uuid;`,
+    true,
+  ).stdout.trim();
+
+  assert.deepEqual(claimMarkers, [`claimed:${expectedJobId}`]);
+  assert.equal(finalState, "processing:1");
+
+  return {
+    successfulProcesses: 2,
+    claimsReturned: claimMarkers.length,
+    claimedJobId: expectedJobId,
+    finalState,
+    results: results.map((result) => ({
+      status: result.status,
+      diagnostic: `${result.stdout}\n${result.stderr}`.trim().split("\n").slice(-20).join("\n"),
+    })),
+  };
+};
+
+const publicationClaimRace = await verifyPublicationClaimRace();
+
+const publicationScheduleRace = await verifyRace({
+  label: "publication schedule occurrence",
+  firstSql: `
+    begin;
+    set local role service_role;
+    select * from api.enqueue_publication_batch(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-schedule-occurrence-first',
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-social-connection'),
+      'refresh', 'schedule',
+      jsonb_build_array((select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-publication-main')),
+      '{"scope":"selected"}'::jsonb, '{"spacing_seconds":300}'::jsonb,
+      (select next_run_at from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      100, 4,
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-publication-schedule'),
+      1,
+      (select next_run_at from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      (select next_run_at + interval '1 day' from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      '33000000-0000-4000-8000-000000000001'
+    );
+    select pg_sleep(2);
+    commit;
+  `,
+  secondSql: `
+    begin;
+    set local role service_role;
+    select * from api.enqueue_publication_batch(
+      '33000000-0000-4000-8000-000000000010',
+      'concurrent-schedule-occurrence-second',
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-social-connection'),
+      'refresh', 'schedule',
+      jsonb_build_array((select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-publication-main')),
+      '{"scope":"selected"}'::jsonb, '{"spacing_seconds":300}'::jsonb,
+      (select next_run_at from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      100, 4,
+      (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-publication-schedule'),
+      1,
+      (select next_run_at from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      (select next_run_at + interval '1 day' from app_private.publication_schedules
+        where creation_command_id = (select id from app_private.publication_commands
+          where idempotency_key = 'concurrent-publication-schedule')),
+      '33000000-0000-4000-8000-000000000001'
+    );
+    commit;
+  `,
+  countSql: `select count(*) from app_private.publication_batches
+    where organization_id = '33000000-0000-4000-8000-000000000010'
+      and schedule_id = (select result_id from app_private.publication_commands
+        where idempotency_key = 'concurrent-publication-schedule');`,
+  failureMarker: "scheduled batch must advance the exact active schedule occurrence",
+});
 
 const pendingResolutionRace = await verifyRace({
   label: "pending-request resolution",
@@ -722,6 +991,9 @@ await writeFile(
       handoffAcceptance: handoffAcceptanceRace,
       orderLastQuantitySale: orderLastQuantityRace,
       reservation: reservationRace,
+      publicationIdentity: publicationIdentityRace,
+      publicationClaim: publicationClaimRace,
+      publicationSchedule: publicationScheduleRace,
       orderedInventoryWrites,
       invalidBalanceCount,
     },
@@ -732,5 +1004,5 @@ await writeFile(
 );
 
 console.log(
-  "Database concurrency verified: SKU/price conflicts, pending resolution, handoff acceptance, last order quantity, last-unit reservation, canonical lock order and nonnegative balances.",
+  "Database concurrency verified: SKU/price/publication conflicts, single publication claim, exact schedule occurrence, pending resolution, handoff acceptance, last order quantity, last-unit reservation, canonical lock order and nonnegative balances.",
 );

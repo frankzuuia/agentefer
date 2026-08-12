@@ -1127,6 +1127,29 @@ export type Database = {
           },
         ];
       };
+      current_social_capabilities: {
+        Row: {
+          capability_code: string | null;
+          capability_constraints: Json | null;
+          created_at: string | null;
+          id: string | null;
+          observation_source: string | null;
+          observed_at: string | null;
+          organization_id: string | null;
+          social_connection_id: string | null;
+          status: string | null;
+          valid_until: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_capabilities_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       handoffs: {
         Row: {
           accepted_assignment_id: string | null;
@@ -3181,6 +3204,770 @@ export type Database = {
           },
         ];
       };
+      publication_batches: {
+        Row: {
+          cancel_requested_at: string | null;
+          completed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          policy_snapshot: Json | null;
+          requested_operation: string | null;
+          schedule_generation: number | null;
+          schedule_id: string | null;
+          schedule_occurrence_at: string | null;
+          selection_criteria_snapshot: Json | null;
+          social_connection_id: string | null;
+          status: string | null;
+          trigger_kind: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          cancel_requested_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_snapshot?: Json | null;
+          requested_operation?: string | null;
+          schedule_generation?: number | null;
+          schedule_id?: string | null;
+          schedule_occurrence_at?: string | null;
+          selection_criteria_snapshot?: Json | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          trigger_kind?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          cancel_requested_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          policy_snapshot?: Json | null;
+          requested_operation?: string | null;
+          schedule_generation?: number | null;
+          schedule_id?: string | null;
+          schedule_occurrence_at?: string | null;
+          selection_criteria_snapshot?: Json | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          trigger_kind?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_batches_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batches_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          operation: string | null;
+          organization_id: string | null;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      publication_events: {
+        Row: {
+          batch_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          event_payload: Json | null;
+          event_type: string | null;
+          id: string | null;
+          instance_id: string | null;
+          job_id: string | null;
+          new_status: string | null;
+          occurred_at: string | null;
+          organization_id: string | null;
+          previous_status: string | null;
+          publication_id: string | null;
+          publication_version_id: string | null;
+          reason: string | null;
+          schedule_id: string | null;
+          social_connection_id: string | null;
+        };
+        Insert: {
+          batch_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          event_payload?: Json | null;
+          event_type?: string | null;
+          id?: string | null;
+          instance_id?: string | null;
+          job_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          previous_status?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          reason?: string | null;
+          schedule_id?: string | null;
+          social_connection_id?: string | null;
+        };
+        Update: {
+          batch_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          event_payload?: Json | null;
+          event_type?: string | null;
+          id?: string | null;
+          instance_id?: string | null;
+          job_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string | null;
+          organization_id?: string | null;
+          previous_status?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          reason?: string | null;
+          schedule_id?: string | null;
+          social_connection_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_events_batch_fk";
+            columns: ["organization_id", "batch_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_instance_fk";
+            columns: ["organization_id", "instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_instances";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_instance_fk";
+            columns: ["organization_id", "instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_origin_lookup";
+            referencedColumns: ["organization_id", "publication_instance_id"];
+          },
+          {
+            foreignKeyName: "publication_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "publication_events_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_version_fk";
+            columns: ["organization_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_instances: {
+        Row: {
+          created_at: string | null;
+          creation_job_id: string | null;
+          external_publication_id: string | null;
+          external_url: string | null;
+          id: string | null;
+          last_reconciled_at: string | null;
+          organization_id: string | null;
+          provider_created_at: string | null;
+          provider_updated_at: string | null;
+          publication_id: string | null;
+          publication_version_id: string | null;
+          social_connection_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          creation_job_id?: string | null;
+          external_publication_id?: string | null;
+          external_url?: string | null;
+          id?: string | null;
+          last_reconciled_at?: string | null;
+          organization_id?: string | null;
+          provider_created_at?: string | null;
+          provider_updated_at?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          creation_job_id?: string | null;
+          external_publication_id?: string | null;
+          external_url?: string | null;
+          id?: string | null;
+          last_reconciled_at?: string | null;
+          organization_id?: string | null;
+          provider_created_at?: string | null;
+          provider_updated_at?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_instances_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_creation_job_fk";
+            columns: ["organization_id", "creation_job_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_version_fk";
+            columns: ["organization_id", "publication_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+        ];
+      };
+      publication_jobs: {
+        Row: {
+          attempt_count: number | null;
+          authorized_at: string | null;
+          available_at: string | null;
+          batch_id: string | null;
+          capability_code: string | null;
+          completed_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          effect_started_at: string | null;
+          id: string | null;
+          last_error_class: string | null;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          max_attempts: number | null;
+          operation: string | null;
+          organization_id: string | null;
+          priority: number | null;
+          processing_started_at: string | null;
+          provider_request_id: string | null;
+          publication_id: string | null;
+          schedule_id: string | null;
+          status: string | null;
+          target_instance_id: string | null;
+          target_version_id: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          attempt_count?: number | null;
+          authorized_at?: string | null;
+          available_at?: string | null;
+          batch_id?: string | null;
+          capability_code?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          effect_started_at?: string | null;
+          id?: string | null;
+          last_error_class?: string | null;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          max_attempts?: number | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          priority?: number | null;
+          processing_started_at?: string | null;
+          provider_request_id?: string | null;
+          publication_id?: string | null;
+          schedule_id?: string | null;
+          status?: string | null;
+          target_instance_id?: string | null;
+          target_version_id?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          attempt_count?: number | null;
+          authorized_at?: string | null;
+          available_at?: string | null;
+          batch_id?: string | null;
+          capability_code?: string | null;
+          completed_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          effect_started_at?: string | null;
+          id?: string | null;
+          last_error_class?: string | null;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          max_attempts?: number | null;
+          operation?: string | null;
+          organization_id?: string | null;
+          priority?: number | null;
+          processing_started_at?: string | null;
+          provider_request_id?: string | null;
+          publication_id?: string | null;
+          schedule_id?: string | null;
+          status?: string | null;
+          target_instance_id?: string | null;
+          target_version_id?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_jobs_batch_fk";
+            columns: ["organization_id", "batch_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_target_instance_fk";
+            columns: ["organization_id", "target_instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_instances";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_target_instance_fk";
+            columns: ["organization_id", "target_instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_origin_lookup";
+            referencedColumns: ["organization_id", "publication_instance_id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_target_version_fk";
+            columns: ["organization_id", "publication_id", "target_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+        ];
+      };
+      publication_media: {
+        Row: {
+          alt_text: string | null;
+          created_at: string | null;
+          id: string | null;
+          media_asset_id: string | null;
+          media_role: string | null;
+          ordinal: number | null;
+          organization_id: string | null;
+          publication_version_id: string | null;
+        };
+        Insert: {
+          alt_text?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          media_role?: string | null;
+          ordinal?: number | null;
+          organization_id?: string | null;
+          publication_version_id?: string | null;
+        };
+        Update: {
+          alt_text?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          media_role?: string | null;
+          ordinal?: number | null;
+          organization_id?: string | null;
+          publication_version_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_media_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_media_version_fk";
+            columns: ["organization_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_origin_lookup: {
+        Row: {
+          created_at: string | null;
+          currency_code: string | null;
+          external_publication_id: string | null;
+          external_url: string | null;
+          instance_status: string | null;
+          organization_id: string | null;
+          price_amount: number | null;
+          pricing_status: string | null;
+          publication_id: string | null;
+          publication_instance_id: string | null;
+          publication_version_id: string | null;
+          social_connection_id: string | null;
+          variant_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_instances_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_schedules: {
+        Row: {
+          code: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          expression_kind: string | null;
+          generation: number | null;
+          id: string | null;
+          last_enqueued_at: string | null;
+          name: string | null;
+          next_run_at: string | null;
+          organization_id: string | null;
+          requested_operation: string | null;
+          retired_at: string | null;
+          schedule_expression: string | null;
+          schedule_policy: Json | null;
+          selection_criteria: Json | null;
+          social_connection_id: string | null;
+          status: string | null;
+          timezone_name: string | null;
+          updated_at: string | null;
+          validation_status: string | null;
+        };
+        Insert: {
+          code?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          expression_kind?: string | null;
+          generation?: number | null;
+          id?: string | null;
+          last_enqueued_at?: string | null;
+          name?: string | null;
+          next_run_at?: string | null;
+          organization_id?: string | null;
+          requested_operation?: string | null;
+          retired_at?: string | null;
+          schedule_expression?: string | null;
+          schedule_policy?: Json | null;
+          selection_criteria?: Json | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          timezone_name?: string | null;
+          updated_at?: string | null;
+          validation_status?: string | null;
+        };
+        Update: {
+          code?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          expression_kind?: string | null;
+          generation?: number | null;
+          id?: string | null;
+          last_enqueued_at?: string | null;
+          name?: string | null;
+          next_run_at?: string | null;
+          organization_id?: string | null;
+          requested_operation?: string | null;
+          retired_at?: string | null;
+          schedule_expression?: string | null;
+          schedule_policy?: Json | null;
+          selection_criteria?: Json | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          timezone_name?: string | null;
+          updated_at?: string | null;
+          validation_status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_schedules_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_versions: {
+        Row: {
+          approved_at: string | null;
+          approved_by_user_id: string | null;
+          availability_snapshot: Json | null;
+          body: string | null;
+          calculation_method: string | null;
+          call_to_action: string | null;
+          content_payload: Json | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          currency_code: string | null;
+          headline: string | null;
+          id: string | null;
+          organization_id: string | null;
+          price_amount: number | null;
+          pricing_status: string | null;
+          publication_id: string | null;
+          source_price_tier_id: string | null;
+          source_price_valid_from: string | null;
+          source_variant_updated_at: string | null;
+          status: string | null;
+          version_number: number | null;
+        };
+        Insert: {
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          availability_snapshot?: Json | null;
+          body?: string | null;
+          calculation_method?: string | null;
+          call_to_action?: string | null;
+          content_payload?: Json | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          headline?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          pricing_status?: string | null;
+          publication_id?: string | null;
+          source_price_tier_id?: string | null;
+          source_price_valid_from?: string | null;
+          source_variant_updated_at?: string | null;
+          status?: string | null;
+          version_number?: number | null;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          availability_snapshot?: Json | null;
+          body?: string | null;
+          calculation_method?: string | null;
+          call_to_action?: string | null;
+          content_payload?: Json | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          currency_code?: string | null;
+          headline?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          price_amount?: number | null;
+          pricing_status?: string | null;
+          publication_id?: string | null;
+          source_price_tier_id?: string | null;
+          source_price_valid_from?: string | null;
+          source_variant_updated_at?: string | null;
+          status?: string | null;
+          version_number?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_versions_approved_by_fk";
+            columns: ["organization_id", "approved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "publication_versions_price_tier_fk";
+            columns: ["organization_id", "source_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "previous_price_tier_id"];
+          },
+          {
+            foreignKeyName: "publication_versions_price_tier_fk";
+            columns: ["organization_id", "source_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tier_changes";
+            referencedColumns: ["organization_id", "price_tier_id"];
+          },
+          {
+            foreignKeyName: "publication_versions_price_tier_fk";
+            columns: ["organization_id", "source_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_versions_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publications: {
+        Row: {
+          created_at: string | null;
+          created_by_user_id: string | null;
+          current_version_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          retired_at: string | null;
+          social_connection_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          current_version_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          retired_at?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publications_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publications_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+          {
+            foreignKeyName: "publications_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       sale_lines: {
         Row: {
           created_at: string | null;
@@ -3367,6 +4154,128 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "sales";
             referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      social_capabilities: {
+        Row: {
+          capability_code: string | null;
+          capability_constraints: Json | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          id: string | null;
+          observation_source: string | null;
+          observed_at: string | null;
+          organization_id: string | null;
+          social_connection_id: string | null;
+          status: string | null;
+          valid_until: string | null;
+        };
+        Insert: {
+          capability_code?: string | null;
+          capability_constraints?: Json | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          observation_source?: string | null;
+          observed_at?: string | null;
+          organization_id?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          valid_until?: string | null;
+        };
+        Update: {
+          capability_code?: string | null;
+          capability_constraints?: Json | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          id?: string | null;
+          observation_source?: string | null;
+          observed_at?: string | null;
+          organization_id?: string | null;
+          social_connection_id?: string | null;
+          status?: string | null;
+          valid_until?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_capabilities_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      social_connections: {
+        Row: {
+          api_version: string | null;
+          connected_at: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          disabled_at: string | null;
+          display_name: string | null;
+          external_account_id: string | null;
+          external_app_id: string | null;
+          id: string | null;
+          last_verified_at: string | null;
+          messenger_channel_connection_id: string | null;
+          organization_id: string | null;
+          provider: string | null;
+          status: string | null;
+          surface: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          api_version?: string | null;
+          connected_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_account_id?: string | null;
+          external_app_id?: string | null;
+          id?: string | null;
+          last_verified_at?: string | null;
+          messenger_channel_connection_id?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          status?: string | null;
+          surface?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          api_version?: string | null;
+          connected_at?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_account_id?: string | null;
+          external_app_id?: string | null;
+          id?: string | null;
+          last_verified_at?: string | null;
+          messenger_channel_connection_id?: string | null;
+          organization_id?: string | null;
+          provider?: string | null;
+          status?: string | null;
+          surface?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_connections_messenger_connection_fk";
+            columns: ["organization_id", "messenger_channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_connections_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -3571,6 +4480,69 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      approve_publication_version: {
+        Args: {
+          target_created_by_user_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_status: string;
+          target_publication_version_id: string;
+          target_reason: string;
+        };
+        Returns: {
+          publication_version_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      authorize_publication_job: {
+        Args: {
+          target_lease_token: string;
+          target_now?: string;
+          target_organization_id: string;
+          target_publication_job_id: string;
+        };
+        Returns: {
+          authorization_reason: string;
+          authorization_snapshot: Json;
+          authorization_status: string;
+        }[];
+      };
+      cancel_publication_batch: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+          target_reason: string;
+        };
+        Returns: {
+          jobs_cancelled: number;
+          jobs_in_flight: number;
+          publication_batch_id: string;
+          status: string;
+          was_replayed: boolean;
+        }[];
+      };
+      claim_publication_job: {
+        Args: {
+          target_lease_seconds?: number;
+          target_now?: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          attempt_count: number;
+          capability_code: string;
+          external_effect_key: string;
+          lease_expires_at: string;
+          lease_token: string;
+          operation: string;
+          organization_id: string;
+          publication_id: string;
+          publication_job_id: string;
+          target_instance_id: string;
+          target_version_id: string;
+        }[];
+      };
       create_handoff: {
         Args: {
           target_context_summary: Json;
@@ -3711,6 +4683,104 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      create_publication: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_social_connection_id: string;
+          target_variant_id: string;
+        };
+        Returns: {
+          publication_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      create_publication_schedule: {
+        Args: {
+          target_code: string;
+          target_created_by_user_id: string;
+          target_idempotency_key: string;
+          target_name: string;
+          target_next_run_at: string;
+          target_organization_id: string;
+          target_requested_operation: string;
+          target_schedule_expression: string;
+          target_schedule_policy: Json;
+          target_selection_criteria: Json;
+          target_social_connection_id: string;
+          target_status: string;
+          target_timezone_name: string;
+          target_validation_status: string;
+        };
+        Returns: {
+          publication_schedule_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      create_publication_version: {
+        Args: {
+          target_body: string;
+          target_call_to_action?: string;
+          target_content_payload?: Json;
+          target_created_by_user_id?: string;
+          target_headline?: string;
+          target_idempotency_key: string;
+          target_media?: Json;
+          target_organization_id: string;
+          target_publication_id: string;
+          target_source_price_tier_id?: string;
+        };
+        Returns: {
+          publication_version_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      enqueue_publication_batch: {
+        Args: {
+          target_available_at?: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_max_attempts?: number;
+          target_next_schedule_run_at?: string;
+          target_organization_id: string;
+          target_policy_snapshot: Json;
+          target_priority?: number;
+          target_publication_ids: Json;
+          target_requested_operation: string;
+          target_schedule_generation?: number;
+          target_schedule_id?: string;
+          target_schedule_occurrence_at?: string;
+          target_selection_criteria: Json;
+          target_social_connection_id: string;
+          target_trigger_kind: string;
+        };
+        Returns: {
+          jobs_created: number;
+          publication_batch_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      enqueue_publication_job: {
+        Args: {
+          target_available_at?: string;
+          target_capability_code: string;
+          target_created_by_user_id?: string;
+          target_external_effect_key: string;
+          target_idempotency_key: string;
+          target_instance_id?: string;
+          target_max_attempts?: number;
+          target_operation: string;
+          target_organization_id: string;
+          target_priority?: number;
+          target_publication_id: string;
+          target_version_id?: string;
+        };
+        Returns: {
+          publication_job_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       link_order_reservation: {
         Args: {
           target_idempotency_key: string;
@@ -3724,6 +4794,46 @@ export type Database = {
           order_id: string;
           replayed: boolean;
           reservation_id: string;
+        }[];
+      };
+      mark_publication_effect_started: {
+        Args: {
+          target_lease_token: string;
+          target_organization_id: string;
+          target_publication_job_id: string;
+          target_started_at?: string;
+        };
+        Returns: string;
+      };
+      observe_social_capability: {
+        Args: {
+          target_capability_code: string;
+          target_capability_constraints?: Json;
+          target_created_by_user_id?: string;
+          target_evidence_summary?: Json;
+          target_idempotency_key: string;
+          target_observation_source: string;
+          target_observed_at?: string;
+          target_organization_id: string;
+          target_social_connection_id: string;
+          target_status: string;
+          target_valid_until?: string;
+        };
+        Returns: {
+          social_capability_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      reconcile_publication_batch: {
+        Args: {
+          target_now?: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+        };
+        Returns: {
+          job_counts: Json;
+          publication_batch_id: string;
+          status: string;
         }[];
       };
       reconcile_sale_inventory: {
@@ -3757,6 +4867,30 @@ export type Database = {
           subject_id: string;
         }[];
       };
+      record_publication_job_result: {
+        Args: {
+          target_effect_certainty: string;
+          target_error_class?: string;
+          target_error_code?: string;
+          target_error_summary?: Json;
+          target_external_publication_id?: string;
+          target_external_url?: string;
+          target_instance_status?: string;
+          target_lease_token: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_outcome: string;
+          target_provider_request_id?: string;
+          target_publication_job_id: string;
+          target_response_summary?: Json;
+          target_retry_at?: string;
+        };
+        Returns: {
+          publication_instance_id: string;
+          publication_job_id: string;
+          status: string;
+        }[];
+      };
       record_sale: {
         Args: {
           target_contact_id?: string;
@@ -3779,6 +4913,17 @@ export type Database = {
           sale_id: string;
         }[];
       };
+      recover_expired_publication_job: {
+        Args: {
+          target_now?: string;
+          target_organization_id: string;
+          target_publication_job_id: string;
+        };
+        Returns: {
+          publication_job_id: string;
+          status: string;
+        }[];
+      };
       register_contact_method: {
         Args: {
           target_consent_purpose: string;
@@ -3797,6 +4942,26 @@ export type Database = {
         Returns: {
           contact_method_id: string;
           replayed: boolean;
+        }[];
+      };
+      register_social_connection: {
+        Args: {
+          target_api_version?: string;
+          target_connected_at?: string;
+          target_created_by_user_id?: string;
+          target_credential_reference?: string;
+          target_display_name?: string;
+          target_external_account_id?: string;
+          target_external_app_id?: string;
+          target_idempotency_key: string;
+          target_last_verified_at?: string;
+          target_messenger_channel_connection_id?: string;
+          target_organization_id: string;
+          target_status: string;
+        };
+        Returns: {
+          social_connection_id: string;
+          was_replayed: boolean;
         }[];
       };
       resolve_inventory_requirements: {
@@ -3908,6 +5073,57 @@ export type Database = {
           order_id: string;
           order_status: string;
           replayed: boolean;
+        }[];
+      };
+      transition_publication: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_id: string;
+          target_reason: string;
+          target_status: string;
+        };
+        Returns: {
+          publication_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      transition_publication_schedule: {
+        Args: {
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_next_run_at?: string;
+          target_organization_id: string;
+          target_publication_schedule_id: string;
+          target_reason: string;
+          target_status: string;
+        };
+        Returns: {
+          publication_schedule_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      transition_social_connection: {
+        Args: {
+          target_api_version?: string;
+          target_connected_at?: string;
+          target_created_by_user_id?: string;
+          target_credential_reference?: string;
+          target_display_name?: string;
+          target_external_account_id?: string;
+          target_external_app_id?: string;
+          target_idempotency_key: string;
+          target_last_verified_at?: string;
+          target_messenger_channel_connection_id?: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_social_connection_id: string;
+          target_status: string;
+        };
+        Returns: {
+          social_connection_id: string;
+          was_replayed: boolean;
         }[];
       };
     };
@@ -7485,6 +8701,809 @@ export type Database = {
           },
         ];
       };
+      publication_batches: {
+        Row: {
+          cancel_requested_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          id: string;
+          organization_id: string;
+          policy_snapshot: Json;
+          requested_operation: string;
+          schedule_generation: number | null;
+          schedule_id: string | null;
+          schedule_occurrence_at: string | null;
+          selection_criteria_snapshot: Json;
+          social_connection_id: string;
+          status: string;
+          trigger_kind: string;
+          updated_at: string;
+        };
+        Insert: {
+          cancel_requested_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          id?: string;
+          organization_id: string;
+          policy_snapshot?: Json;
+          requested_operation: string;
+          schedule_generation?: number | null;
+          schedule_id?: string | null;
+          schedule_occurrence_at?: string | null;
+          selection_criteria_snapshot: Json;
+          social_connection_id: string;
+          status?: string;
+          trigger_kind: string;
+          updated_at?: string;
+        };
+        Update: {
+          cancel_requested_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          id?: string;
+          organization_id?: string;
+          policy_snapshot?: Json;
+          requested_operation?: string;
+          schedule_generation?: number | null;
+          schedule_id?: string | null;
+          schedule_occurrence_at?: string | null;
+          selection_criteria_snapshot?: Json;
+          social_connection_id?: string;
+          status?: string;
+          trigger_kind?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_batches_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batches_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batches_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          id: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_id: string | null;
+          result_type: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          operation?: string;
+          organization_id?: string;
+          request_fingerprint?: string;
+          request_payload?: Json;
+          result_id?: string | null;
+          result_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      publication_events: {
+        Row: {
+          batch_id: string | null;
+          command_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          event_payload: Json;
+          event_type: string;
+          id: string;
+          instance_id: string | null;
+          job_id: string | null;
+          new_status: string | null;
+          occurred_at: string;
+          organization_id: string;
+          previous_status: string | null;
+          publication_id: string | null;
+          publication_version_id: string | null;
+          reason: string | null;
+          schedule_id: string | null;
+          social_connection_id: string | null;
+        };
+        Insert: {
+          batch_id?: string | null;
+          command_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          event_payload?: Json;
+          event_type: string;
+          id?: string;
+          instance_id?: string | null;
+          job_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string;
+          organization_id: string;
+          previous_status?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          reason?: string | null;
+          schedule_id?: string | null;
+          social_connection_id?: string | null;
+        };
+        Update: {
+          batch_id?: string | null;
+          command_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          event_payload?: Json;
+          event_type?: string;
+          id?: string;
+          instance_id?: string | null;
+          job_id?: string | null;
+          new_status?: string | null;
+          occurred_at?: string;
+          organization_id?: string;
+          previous_status?: string | null;
+          publication_id?: string | null;
+          publication_version_id?: string | null;
+          reason?: string | null;
+          schedule_id?: string | null;
+          social_connection_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_events_batch_fk";
+            columns: ["organization_id", "batch_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_command_fk";
+            columns: ["organization_id", "command_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_instance_fk";
+            columns: ["organization_id", "instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_instances";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_job_fk";
+            columns: ["organization_id", "job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "publication_events_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_events_version_fk";
+            columns: ["organization_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_instances: {
+        Row: {
+          created_at: string;
+          creation_job_id: string;
+          external_publication_id: string;
+          external_url: string | null;
+          id: string;
+          last_reconciled_at: string | null;
+          organization_id: string;
+          provider_created_at: string | null;
+          provider_updated_at: string | null;
+          publication_id: string;
+          publication_version_id: string;
+          response_summary: Json;
+          social_connection_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          creation_job_id: string;
+          external_publication_id: string;
+          external_url?: string | null;
+          id?: string;
+          last_reconciled_at?: string | null;
+          organization_id: string;
+          provider_created_at?: string | null;
+          provider_updated_at?: string | null;
+          publication_id: string;
+          publication_version_id: string;
+          response_summary?: Json;
+          social_connection_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          creation_job_id?: string;
+          external_publication_id?: string;
+          external_url?: string | null;
+          id?: string;
+          last_reconciled_at?: string | null;
+          organization_id?: string;
+          provider_created_at?: string | null;
+          provider_updated_at?: string | null;
+          publication_id?: string;
+          publication_version_id?: string;
+          response_summary?: Json;
+          social_connection_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_instances_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_creation_job_fk";
+            columns: ["organization_id", "creation_job_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_instances_version_fk";
+            columns: ["organization_id", "publication_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+        ];
+      };
+      publication_jobs: {
+        Row: {
+          attempt_count: number;
+          authorization_snapshot: Json | null;
+          authorized_at: string | null;
+          available_at: string;
+          batch_id: string | null;
+          capability_code: string;
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          effect_started_at: string | null;
+          external_effect_key: string;
+          id: string;
+          idempotency_key: string;
+          last_error_class: string | null;
+          last_error_code: string | null;
+          last_error_summary: Json | null;
+          lease_expires_at: string | null;
+          lease_token: string | null;
+          max_attempts: number;
+          operation: string;
+          organization_id: string;
+          priority: number;
+          processing_started_at: string | null;
+          provider_request_id: string | null;
+          publication_id: string;
+          request_fingerprint: string;
+          schedule_id: string | null;
+          status: string;
+          target_instance_id: string | null;
+          target_version_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          attempt_count?: number;
+          authorization_snapshot?: Json | null;
+          authorized_at?: string | null;
+          available_at?: string;
+          batch_id?: string | null;
+          capability_code: string;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          effect_started_at?: string | null;
+          external_effect_key: string;
+          id?: string;
+          idempotency_key: string;
+          last_error_class?: string | null;
+          last_error_code?: string | null;
+          last_error_summary?: Json | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts?: number;
+          operation: string;
+          organization_id: string;
+          priority?: number;
+          processing_started_at?: string | null;
+          provider_request_id?: string | null;
+          publication_id: string;
+          request_fingerprint: string;
+          schedule_id?: string | null;
+          status?: string;
+          target_instance_id?: string | null;
+          target_version_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          attempt_count?: number;
+          authorization_snapshot?: Json | null;
+          authorized_at?: string | null;
+          available_at?: string;
+          batch_id?: string | null;
+          capability_code?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          effect_started_at?: string | null;
+          external_effect_key?: string;
+          id?: string;
+          idempotency_key?: string;
+          last_error_class?: string | null;
+          last_error_code?: string | null;
+          last_error_summary?: Json | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts?: number;
+          operation?: string;
+          organization_id?: string;
+          priority?: number;
+          processing_started_at?: string | null;
+          provider_request_id?: string | null;
+          publication_id?: string;
+          request_fingerprint?: string;
+          schedule_id?: string | null;
+          status?: string;
+          target_instance_id?: string | null;
+          target_version_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_jobs_batch_fk";
+            columns: ["organization_id", "batch_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_schedule_fk";
+            columns: ["organization_id", "schedule_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_schedules";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_target_instance_fk";
+            columns: ["organization_id", "target_instance_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_instances";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_target_version_fk";
+            columns: ["organization_id", "publication_id", "target_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+        ];
+      };
+      publication_media: {
+        Row: {
+          alt_text: string | null;
+          created_at: string;
+          id: string;
+          media_asset_id: string;
+          media_role: string;
+          ordinal: number;
+          organization_id: string;
+          publication_version_id: string;
+        };
+        Insert: {
+          alt_text?: string | null;
+          created_at?: string;
+          id?: string;
+          media_asset_id: string;
+          media_role?: string;
+          ordinal: number;
+          organization_id: string;
+          publication_version_id: string;
+        };
+        Update: {
+          alt_text?: string | null;
+          created_at?: string;
+          id?: string;
+          media_asset_id?: string;
+          media_role?: string;
+          ordinal?: number;
+          organization_id?: string;
+          publication_version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_media_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_media_version_fk";
+            columns: ["organization_id", "publication_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_schedules: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          expression_kind: string;
+          generation: number;
+          id: string;
+          last_enqueued_at: string | null;
+          name: string;
+          next_run_at: string | null;
+          organization_id: string;
+          requested_operation: string;
+          retired_at: string | null;
+          schedule_expression: string;
+          schedule_policy: Json;
+          selection_criteria: Json;
+          social_connection_id: string;
+          status: string;
+          timezone_name: string;
+          updated_at: string;
+          validation_status: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          expression_kind?: string;
+          generation?: number;
+          id?: string;
+          last_enqueued_at?: string | null;
+          name: string;
+          next_run_at?: string | null;
+          organization_id: string;
+          requested_operation: string;
+          retired_at?: string | null;
+          schedule_expression: string;
+          schedule_policy?: Json;
+          selection_criteria?: Json;
+          social_connection_id: string;
+          status?: string;
+          timezone_name: string;
+          updated_at?: string;
+          validation_status?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          expression_kind?: string;
+          generation?: number;
+          id?: string;
+          last_enqueued_at?: string | null;
+          name?: string;
+          next_run_at?: string | null;
+          organization_id?: string;
+          requested_operation?: string;
+          retired_at?: string | null;
+          schedule_expression?: string;
+          schedule_policy?: Json;
+          selection_criteria?: Json;
+          social_connection_id?: string;
+          status?: string;
+          timezone_name?: string;
+          updated_at?: string;
+          validation_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_schedules_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_schedules_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publication_versions: {
+        Row: {
+          approved_at: string | null;
+          approved_by_user_id: string | null;
+          availability_snapshot: Json;
+          body: string;
+          calculation_method: string | null;
+          call_to_action: string | null;
+          content_payload: Json;
+          content_sha256: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          currency_code: string | null;
+          headline: string | null;
+          id: string;
+          organization_id: string;
+          price_amount: number | null;
+          pricing_status: string;
+          publication_id: string;
+          source_price_tier_id: string | null;
+          source_price_valid_from: string | null;
+          source_variant_updated_at: string;
+          status: string;
+          version_number: number;
+        };
+        Insert: {
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          availability_snapshot?: Json;
+          body: string;
+          calculation_method?: string | null;
+          call_to_action?: string | null;
+          content_payload?: Json;
+          content_sha256: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          currency_code?: string | null;
+          headline?: string | null;
+          id?: string;
+          organization_id: string;
+          price_amount?: number | null;
+          pricing_status: string;
+          publication_id: string;
+          source_price_tier_id?: string | null;
+          source_price_valid_from?: string | null;
+          source_variant_updated_at: string;
+          status?: string;
+          version_number: number;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          availability_snapshot?: Json;
+          body?: string;
+          calculation_method?: string | null;
+          call_to_action?: string | null;
+          content_payload?: Json;
+          content_sha256?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          currency_code?: string | null;
+          headline?: string | null;
+          id?: string;
+          organization_id?: string;
+          price_amount?: number | null;
+          pricing_status?: string;
+          publication_id?: string;
+          source_price_tier_id?: string | null;
+          source_price_valid_from?: string | null;
+          source_variant_updated_at?: string;
+          status?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_versions_approved_by_fk";
+            columns: ["organization_id", "approved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "publication_versions_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_versions_price_tier_fk";
+            columns: ["organization_id", "source_price_tier_id"];
+            isOneToOne: false;
+            referencedRelation: "price_tiers";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_versions_publication_fk";
+            columns: ["organization_id", "publication_id"];
+            isOneToOne: false;
+            referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      publications: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          current_version_id: string | null;
+          id: string;
+          organization_id: string;
+          retired_at: string | null;
+          social_connection_id: string;
+          status: string;
+          updated_at: string;
+          variant_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          current_version_id?: string | null;
+          id?: string;
+          organization_id: string;
+          retired_at?: string | null;
+          social_connection_id: string;
+          status?: string;
+          updated_at?: string;
+          variant_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          current_version_id?: string | null;
+          id?: string;
+          organization_id?: string;
+          retired_at?: string | null;
+          social_connection_id?: string;
+          status?: string;
+          updated_at?: string;
+          variant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publications_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publications_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publications_current_version_fk";
+            columns: ["organization_id", "id", "current_version_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_versions";
+            referencedColumns: ["organization_id", "publication_id", "id"];
+          },
+          {
+            foreignKeyName: "publications_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       sale_lines: {
         Row: {
           created_at: string;
@@ -7684,6 +9703,154 @@ export type Database = {
           },
         ];
       };
+      social_capabilities: {
+        Row: {
+          capability_code: string;
+          capability_constraints: Json;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          evidence_summary: Json;
+          id: string;
+          observation_source: string;
+          observed_at: string;
+          organization_id: string;
+          social_connection_id: string;
+          status: string;
+          valid_until: string | null;
+        };
+        Insert: {
+          capability_code: string;
+          capability_constraints?: Json;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          evidence_summary?: Json;
+          id?: string;
+          observation_source: string;
+          observed_at: string;
+          organization_id: string;
+          social_connection_id: string;
+          status: string;
+          valid_until?: string | null;
+        };
+        Update: {
+          capability_code?: string;
+          capability_constraints?: Json;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          evidence_summary?: Json;
+          id?: string;
+          observation_source?: string;
+          observed_at?: string;
+          organization_id?: string;
+          social_connection_id?: string;
+          status?: string;
+          valid_until?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_capabilities_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_capabilities_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      social_connections: {
+        Row: {
+          api_version: string | null;
+          connected_at: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          creation_command_id: string;
+          credential_reference: string | null;
+          disabled_at: string | null;
+          display_name: string | null;
+          external_account_id: string | null;
+          external_app_id: string | null;
+          id: string;
+          last_verified_at: string | null;
+          messenger_channel_connection_id: string | null;
+          organization_id: string;
+          provider: string;
+          status: string;
+          surface: string;
+          updated_at: string;
+        };
+        Insert: {
+          api_version?: string | null;
+          connected_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id: string;
+          credential_reference?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_account_id?: string | null;
+          external_app_id?: string | null;
+          id?: string;
+          last_verified_at?: string | null;
+          messenger_channel_connection_id?: string | null;
+          organization_id: string;
+          provider?: string;
+          status?: string;
+          surface?: string;
+          updated_at?: string;
+        };
+        Update: {
+          api_version?: string | null;
+          connected_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          creation_command_id?: string;
+          credential_reference?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_account_id?: string | null;
+          external_app_id?: string | null;
+          id?: string;
+          last_verified_at?: string | null;
+          messenger_channel_connection_id?: string | null;
+          organization_id?: string;
+          provider?: string;
+          status?: string;
+          surface?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_connections_creation_command_fk";
+            columns: ["organization_id", "creation_command_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_commands";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_connections_messenger_connection_fk";
+            columns: ["organization_id", "messenger_channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_connections_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           accessibility_preferences: Json;
@@ -7878,6 +10045,14 @@ export type Database = {
         Args: { target_organization_id: string; target_product_id: string };
         Returns: undefined;
       };
+      assert_publication_actor: {
+        Args: {
+          allowed_roles?: string[];
+          target_organization_id: string;
+          target_user_id: string;
+        };
+        Returns: undefined;
+      };
       assert_sale_inventory_operation: {
         Args: {
           target_inventory_operation_id: string;
@@ -7918,7 +10093,30 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      claim_publication_command: {
+        Args: {
+          target_allowed_roles?: string[];
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_request_payload: Json;
+        };
+        Returns: {
+          claimed_command_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       complete_commercial_command: {
+        Args: {
+          target_command_id: string;
+          target_organization_id: string;
+          target_result_id: string;
+          target_result_type: string;
+        };
+        Returns: undefined;
+      };
+      complete_publication_command: {
         Args: {
           target_command_id: string;
           target_organization_id: string;
@@ -7958,6 +10156,22 @@ export type Database = {
         };
         Returns: string;
       };
+      insert_publication_event: {
+        Args: {
+          target_command_id: string;
+          target_created_by_user_id: string;
+          target_event_payload: Json;
+          target_event_type: string;
+          target_new_status: string;
+          target_occurred_at?: string;
+          target_organization_id: string;
+          target_previous_status: string;
+          target_reason: string;
+          target_subject_id: string;
+          target_subject_type: string;
+        };
+        Returns: string;
+      };
       post_inventory_movement: {
         Args: {
           target_command_id: string;
@@ -7973,6 +10187,14 @@ export type Database = {
           target_sale_quantity: number;
         };
         Returns: string;
+      };
+      publication_availability_snapshot: {
+        Args: {
+          target_captured_at?: string;
+          target_organization_id: string;
+          target_variant_id: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {

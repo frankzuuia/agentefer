@@ -26,8 +26,9 @@ assert.deepEqual(
     "20260810155350_b2_004_price_book_creator_index.sql",
     "20260811214250_b2_005_inventory.sql",
     "20260811230632_b2_006_commercial_workflow.sql",
+    "20260812132809_b2_007_publication_workflow.sql",
   ],
-  "B2-001 through B2-006 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-007 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -60,6 +61,10 @@ const commercialMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[8]),
   "utf8",
 );
+const publicationMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[9]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -82,6 +87,10 @@ const inventoryDatabaseTest = await readFile(
 );
 const commercialDatabaseTest = await readFile(
   path.join(testDirectory, "b2_006_commercial_workflow_test.sql"),
+  "utf8",
+);
+const publicationDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_007_publication_workflow_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -113,6 +122,7 @@ for (const [name, migration] of [
   ["B2-004 index hardening", pricingIndexHardeningMigration],
   ["B2-005", inventoryMigration],
   ["B2-006", commercialMigration],
+  ["B2-007", publicationMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -549,6 +559,102 @@ for (const forbiddenCommercialState of [
   );
 }
 
+const requiredPublicationMigrationStatements = [
+  "create table app_private.publication_commands (",
+  "create table app_private.social_connections (",
+  "create table app_private.social_capabilities (",
+  "create table app_private.publications (",
+  "create table app_private.publication_versions (",
+  "create table app_private.publication_media (",
+  "create table app_private.publication_schedules (",
+  "create table app_private.publication_batches (",
+  "create table app_private.publication_jobs (",
+  "create table app_private.publication_instances (",
+  "create table app_private.publication_events (",
+  "constraint publication_jobs_external_effect_unique unique",
+  "create unique index publications_one_operational_offer",
+  "create unique index publication_batches_schedule_occurrence_unique",
+  "create trigger social_capabilities_reject_update",
+  "create trigger publication_versions_prevent_rewrite",
+  "create trigger publication_jobs_prevent_core_rewrite",
+  "create trigger publication_instances_validate",
+  "create trigger publication_events_reject_update",
+  "create function api.register_social_connection(",
+  "create function api.observe_social_capability(",
+  "create function api.create_publication(",
+  "create function api.create_publication_version(",
+  "create function api.approve_publication_version(",
+  "create function api.create_publication_schedule(",
+  "create function api.enqueue_publication_batch(",
+  "create function api.claim_publication_job(",
+  "create function api.authorize_publication_job(",
+  "create function api.mark_publication_effect_started(",
+  "create function api.record_publication_job_result(",
+  "create function api.recover_expired_publication_job(",
+  "create function api.cancel_publication_batch(",
+  "create function api.reconcile_publication_batch(",
+  "catalog_snapshot_stale",
+  "price_snapshot_stale",
+  "stock_unavailable",
+  "worker_lost_after_effect_started",
+  "publication_batches_connection_fk_idx",
+  "publication_instances_version_fk_idx",
+  "publication_jobs_version_scope_fk_idx",
+  "from public, anon, authenticated, service_role;",
+];
+
+for (const statement of requiredPublicationMigrationStatements) {
+  assert.ok(
+    publicationMigration.includes(statement),
+    `B2-007 database migration must include: ${statement}`,
+  );
+}
+
+assert.equal(
+  publicationMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  13,
+  "all thirteen B2-007 API views must preserve caller RLS",
+);
+assert.equal(
+  publicationMigration.split("force row level security;").length - 1,
+  11,
+  "all eleven B2-007 private relations must force RLS",
+);
+assert.equal(
+  publicationMigration.split("create policy ").length - 1,
+  11,
+  "every B2-007 private relation must define an authenticated read policy",
+);
+assert.equal(
+  publicationMigration.includes("revoke all on all functions in schema"),
+  false,
+  "B2-007 cannot revoke previously certified API functions globally",
+);
+
+const socialConnectionView = publicationMigration.slice(
+  publicationMigration.indexOf("create view api.social_connections"),
+  publicationMigration.indexOf("create view api.social_capabilities"),
+);
+assert.equal(
+  socialConnectionView.includes("credential_reference"),
+  false,
+  "B2-007 social connection API view cannot expose credential references",
+);
+
+for (const forbiddenProductSpecificColumn of [
+  "tire_size",
+  "rim_size",
+  "tank_capacity",
+  "with_rim",
+  "without_rim",
+]) {
+  assert.equal(
+    publicationMigration.includes(forbiddenProductSpecificColumn),
+    false,
+    `B2-007 publications cannot compile product-specific column: ${forbiddenProductSpecificColumn}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -689,6 +795,37 @@ for (const statement of requiredCommercialTestStatements) {
   );
 }
 
+const requiredPublicationTestStatements = [
+  "select extensions.plan(83);",
+  "set local role authenticated;",
+  "set local role service_role;",
+  "set local role postgres;",
+  "every B2-007 foreign key column is indexed",
+  "viewer cannot approve content for external publication",
+  "last-moment authorization allows current connection capability price and stock",
+  "refresh preserves both provider instances for audit and lead attribution",
+  "provider revocation blocks a previously queued job before effect start",
+  "expired lease before effect start is safely retryable",
+  "expired lease after effect start becomes uncertain and is never blindly retried",
+  "same schedule occurrence replays without duplicate jobs",
+  "queued publication is blocked when its exact price tier was superseded",
+  "tracked zero stock blocks a queued publication before provider effect",
+  "catalog change after version approval blocks stale publication content",
+  "unknown external effect key cannot be enqueued again for a blind retry",
+  "publication job effect contract cannot be rewritten after enqueue",
+  "publication instance rejects a different connection than its exact processing job",
+  "publication current version cannot point to an unapproved draft",
+  "RLS hides every other organization publication",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredPublicationTestStatements) {
+  assert.ok(
+    publicationDatabaseTest.includes(statement),
+    `B2-007 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -696,6 +833,7 @@ for (const [name, databaseTest] of [
   ["B2-004", pricingDatabaseTest],
   ["B2-005", inventoryDatabaseTest],
   ["B2-006", commercialDatabaseTest],
+  ["B2-007", publicationDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -782,6 +920,25 @@ for (const generatedCommercialContract of [
     `generated database types must include B2-006 contract: ${generatedCommercialContract}`,
   );
 }
+for (const generatedPublicationContract of [
+  "publication_batches: {",
+  "publication_commands: {",
+  "publication_instances: {",
+  "publication_jobs: {",
+  "publication_origin_lookup: {",
+  "publication_schedules: {",
+  "publication_versions: {",
+  "publications: {",
+  "social_capabilities: {",
+  "social_connections: {",
+  "authorize_publication_job: {",
+  "record_publication_job_result: {",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedPublicationContract),
+    `generated database types must include B2-007 contract: ${generatedPublicationContract}`,
+  );
+}
 assert.equal(
   generatedTypes.includes("  public: {"),
   false,
@@ -830,5 +987,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 58 forced-RLS tables, 482 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 69 forced-RLS tables, 565 pgTAP assertions, generated TypeScript schemas locked.`,
 );

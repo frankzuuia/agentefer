@@ -28,6 +28,9 @@ const files = {
   commercialResearch: "docs/references/COMMERCIAL-B2-006-RESEARCH.md",
   commercialPhysical: "docs/architecture/COMMERCIAL-WORKFLOW-B2-006.md",
   commercialAudit: "docs/quality/B2-006-DESIGN-AUDIT.md",
+  publicationResearch: "docs/references/PUBLICATIONS-B2-007-RESEARCH.md",
+  publicationPhysical: "docs/architecture/PUBLICATION-WORKFLOW-B2-007.md",
+  publicationAudit: "docs/quality/B2-007-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -217,6 +220,39 @@ const requiredStatements = new Map([
       "No se deshabilitó ninguna constraint",
     ],
   ],
+  [
+    "publicationResearch",
+    [
+      "Página de Facebook y Marketplace son superficies diferentes",
+      "social_capabilities",
+      "no se publica otra vez a ciegas",
+      "`pgmq` y `pg_cron`",
+    ],
+  ],
+  [
+    "publicationPhysical",
+    [
+      "No existen columnas o ramas para llantas",
+      "external_effect_key",
+      "FOR UPDATE SKIP LOCKED",
+      "catalog_snapshot_stale",
+      "price_snapshot_stale",
+      "stock_unavailable",
+      "tool calling nativo",
+    ],
+  ],
+  [
+    "publicationAudit",
+    [
+      "Proyecto exclusivo: `hprdctmblmfcoagugvyp` (`AgenteFer`)",
+      "83/83 pgTAP",
+      "36 escenarios B2-007",
+      "32 mutantes acumulados",
+      "nueve referencias sin índice",
+      "Meta sigue sin credenciales/capacidades reales",
+      "No se deshabilitó ninguna constraint",
+    ],
+  ],
 ]);
 
 for (const [documentName, statements] of requiredStatements) {
@@ -256,5 +292,5 @@ for (const prohibitedColumn of prohibitedFixedColumns) {
 }
 
 console.log(
-  `AgenteFer catalog, pricing, inventory and commercial documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
+  `AgenteFer catalog, pricing, inventory, commercial and publication documentation verified: ${requirementIds.length} continuous requirements and ${requiredStatements.size} canonical contracts.`,
 );

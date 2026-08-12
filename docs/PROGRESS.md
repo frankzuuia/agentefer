@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001–B2-006 completos; catálogo, precios, inventario y flujo comercial durable están aplicados en Supabase AgenteFer y certificados con 482/482 pgTAP. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001–B2-006 completos; B2-007 está aplicado en Supabase AgenteFer y pasó 565/565 pgTAP, pero su concurrencia/mutación CI aún no está certificada. Todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -50,7 +50,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B2-004 | BL-010, SC-010, SC-013, RQ-110        | libros/tiers de precio, unidad, moneda, vigencia y `on_request`                                            | 66/66 pgTAP; CI `31407961615`; 7/7 mutantes y concurrencia verdes        | [x]    |
 | B2-005 | BL-011, SC-014, SC-018–SC-019, RQ-110 | unidades inventariables, composición explícita, ubicaciones, movimientos, saldos y reservas                | 110/110 remoto; CI `31543232608`; concurrencia y 14/14 mutantes verdes    | [x]    |
 | B2-006 | BL-006, BL-007, BL-013, SC-011–SC-016 | pendientes, leads, oportunidades, handoffs, pedidos, líneas, estados y ventas                              | 97/97 propio; 482/482 acumulado; CI `31551318493`; 22/22 mutantes         | [x]    |
-| B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | estados, dedupe, cancelación y versionado                                | [ ]    |
+| B2-007 | BL-015, BL-016, SC-021–SC-026         | conexiones sociales, capacidades, publicaciones, lotes, jobs y calendarios                                 | 83/83 propio; 565/565 remoto; concurrencia y 32/32 mutantes CI pendientes | [ ]    |
 | B2-008 | BL-018–BL-022, SC-027–SC-031, SC-037  | configuración versionada, agent runs, tools, auditoría, uso, jobs/attempts                                 | trazabilidad, costo y redacción                                          | [ ]    |
 | B2-009 | BL-001, BL-020, BL-021, SC-032        | políticas RLS y grants explícitos para cada entidad                                                        | suite positiva/negativa anon/user/owner/cross-org                        | [ ]    |
 | B2-010 | BL-008, BL-020, SC-033                | buckets, paths, políticas y ciclo original/derivado                                                        | aislamiento, MIME/tamaño y URL firmada                                   | [ ]    |
@@ -166,7 +166,7 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003/B2-004/B2-005/B2-006 completos; núcleo de catálogo, precios, inventario y flujo comercial aplicado con 482/482 pgTAP y CI aislado verde. Tools, adapters y UI todavía pendientes.
+- Functional implementation: B2-003/B2-004/B2-005/B2-006 completos; B2-007 aplicado con 565/565 pgTAP y certificación CI pendiente. Tools cognitivas, adapters Meta y UI todavía pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 
@@ -296,3 +296,14 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 - Mutation testing SQL: 22/22 mutantes eliminados, incluidos 8 del flujo comercial.
 - CI final: run `31551318493` sobre `ba72bc485a9d5820c4d776d823c6302daf3994b3`; jobs `Verify` `93974405545`, `Database contract` `93974764573` y `Container runtime` `93974764638`, todos `success` y con 0 annotations.
 - Auditoría final: `docs/quality/B2-006-DESIGN-AUDIT.md` (`COMPLETE — INTEGRITY TOTAL — MATCH PERFECT`).
+
+## Evidencia parcial de B2-007
+
+- Investigación oficial: `docs/references/PUBLICATIONS-B2-007-RESEARCH.md`.
+- Contrato físico: `docs/architecture/PUBLICATION-WORKFLOW-B2-007.md`; aceptación: `features/b2_007_publication_workflow.feature`.
+- Migración `20260812132809_b2_007_publication_workflow.sql`; SHA-256 `654C56E07517DD1C98F7EE3CC7990612B3957C765DE941AD140EF6BB3AEB49F7`.
+- Supabase AgenteFer `hprdctmblmfcoagugvyp`: historial 10/10, aplicación atómica, 11 tablas nuevas con RLS forzado y cero hallazgos de lint/advisors.
+- QA remoto: 83/83 B2-007 y 565/565 acumuladas; tipos regenerados desde remoto, SHA-256 `A0F8FBB6A663D7F3988047941337988EC8AAB9C3131451531CF938D32349A466`.
+- Aceptación: 36 escenarios B2-007 y 93 acumulados, cero errores de parseo.
+- Concurrencia Docker y 32/32 mutantes SQL están registrados, pero pendientes de ejecución CI; B2-007 no se marca completo todavía.
+- Meta, pgmq/pg_cron y el adapter externo siguen sin configurar; ninguna publicación externa se declara real.

@@ -72,6 +72,15 @@ for (const featureEntry of featureEntries) {
     );
   }
 
+  if (featureEntry === "b2_007_publication_workflow.feature") {
+    const rules = document.feature.children.filter((child) => child.rule !== undefined);
+    assert.ok(rules.length >= 5, "B2-007 must preserve its five publication acceptance rules");
+    assert.ok(
+      pickles.length >= 30,
+      "B2-007 must preserve all critical publication and failure scenarios",
+    );
+  }
+
   totalPickles += pickles.length;
 }
 

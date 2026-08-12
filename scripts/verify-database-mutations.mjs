@@ -132,6 +132,56 @@ const mutants = [
     sql: "drop trigger commercial_events_reject_update on app_private.commercial_events;",
     test: "supabase/tests/b2_006_commercial_workflow_test.sql",
   },
+  {
+    name: "remove one-operational-publication uniqueness",
+    sql: "drop index app_private.publications_one_operational_offer;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove publication external-effect uniqueness",
+    sql: "alter table app_private.publication_jobs drop constraint publication_jobs_external_effect_unique;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove immutable social capability trigger",
+    sql: "drop trigger social_capabilities_reject_update on app_private.social_capabilities;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove immutable publication version trigger",
+    sql: "drop trigger publication_versions_prevent_rewrite on app_private.publication_versions;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove immutable publication event trigger",
+    sql: "drop trigger publication_events_reject_update on app_private.publication_events;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove immutable publication job contract trigger",
+    sql: "drop trigger publication_jobs_prevent_core_rewrite on app_private.publication_jobs;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove publication instance provenance validator",
+    sql: "drop trigger publication_instances_validate on app_private.publication_instances;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove current publication version validator",
+    sql: "drop trigger publications_validate_current_version on app_private.publications;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove publication batch connection foreign-key index",
+    sql: "drop index app_private.publication_batches_connection_fk_idx;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
+  {
+    name: "remove publication tenant read policy",
+    sql: "drop policy publications_member_select on app_private.publications;",
+    test: "supabase/tests/b2_007_publication_workflow_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {
