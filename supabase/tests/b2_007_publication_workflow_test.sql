@@ -421,6 +421,11 @@ select extensions.lives_ok(
 );
 
 select set_config(
+  'test.b2007_connection_observed_at',
+  (statement_timestamp() + interval '1 hour')::text,
+  true
+);
+select set_config(
   'test.b2007_connection_a',
   (
     select social_connection_id::text
@@ -428,7 +433,8 @@ select set_config(
       '71000000-0000-4000-8000-000000000010', 'b2-007-connection-a', 'active',
       'b2-007-app-a', 'b2-007-page-a', 'Pagina A', 'v24.0',
       'secret-ref://agentefer/meta/page-a', null,
-      statement_timestamp(), statement_timestamp(),
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
       '71000000-0000-4000-8000-000000000001'
     )
   ),
@@ -442,7 +448,8 @@ select set_config(
       '71000000-0000-4000-8000-000000000010', 'b2-007-connection-alt', 'active',
       'b2-007-app-alt', 'b2-007-page-alt', 'Pagina alternativa', 'v24.0',
       'secret-ref://agentefer/meta/page-alt', null,
-      statement_timestamp(), statement_timestamp(),
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
       '71000000-0000-4000-8000-000000000001'
     )
   ),
@@ -457,13 +464,16 @@ select extensions.is(
   'active',
   'owner registers a complete active Facebook Page connection'
 );
+-- Regression: an idempotent replay must reuse the original observed timestamps;
+-- generating a new statement timestamp represents a different request by design.
 select extensions.ok(
   (
     select was_replayed from api.register_social_connection(
       '71000000-0000-4000-8000-000000000010', 'b2-007-connection-a', 'active',
       'b2-007-app-a', 'b2-007-page-a', 'Pagina A', 'v24.0',
       'secret-ref://agentefer/meta/page-a', null,
-      statement_timestamp(), statement_timestamp(),
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
+      current_setting('test.b2007_connection_observed_at')::timestamptz,
       '71000000-0000-4000-8000-000000000001'
     )
   ),
@@ -646,6 +656,11 @@ set local role service_role;
 
 -- A worker receives a lease, reauthorizes current facts, starts one effect and records provenance.
 select set_config(
+  'test.b2007_publish_scheduled_for',
+  statement_timestamp()::text,
+  true
+);
+select set_config(
   'test.b2007_publish_job',
   (
     select publication_job_id::text
@@ -654,7 +669,7 @@ select set_config(
       current_setting('test.b2007_publication_a')::uuid,
       'publish', 'page.post.create', 'b2-007-effect-publish',
       current_setting('test.b2007_version_a')::uuid, null,
-      statement_timestamp(), 10, 4,
+      current_setting('test.b2007_publish_scheduled_for')::timestamptz, 10, 4,
       '71000000-0000-4000-8000-000000000002'
     )
   ),
@@ -667,7 +682,7 @@ select extensions.ok(
       current_setting('test.b2007_publication_a')::uuid,
       'publish', 'page.post.create', 'b2-007-effect-publish',
       current_setting('test.b2007_version_a')::uuid, null,
-      statement_timestamp(), 10, 4,
+      current_setting('test.b2007_publish_scheduled_for')::timestamptz, 10, 4,
       '71000000-0000-4000-8000-000000000002'
     )
   ),
@@ -1031,6 +1046,11 @@ select extensions.is(
 
 -- Batch cancellation removes pending work while preserving immutable history.
 select set_config(
+  'test.b2007_batch_requested_for',
+  (statement_timestamp() + interval '1 hour')::text,
+  true
+);
+select set_config(
   'test.b2007_batch_a',
   (
     select publication_batch_id::text
@@ -1040,7 +1060,7 @@ select set_config(
       'refresh', 'manual',
       jsonb_build_array(current_setting('test.b2007_publication_a')::uuid),
       '{"scope":"selected"}', '{"spacing_seconds":300}',
-      statement_timestamp() + interval '1 hour', 100, 4,
+      current_setting('test.b2007_batch_requested_for')::timestamptz, 100, 4,
       null, null, null, null,
       '71000000-0000-4000-8000-000000000002'
     )
@@ -1055,7 +1075,7 @@ select extensions.is(
       'refresh', 'manual',
       jsonb_build_array(current_setting('test.b2007_publication_a')::uuid),
       '{"scope":"selected"}', '{"spacing_seconds":300}',
-      statement_timestamp() + interval '1 hour', 100, 4,
+      current_setting('test.b2007_batch_requested_for')::timestamptz, 100, 4,
       null, null, null, null,
       '71000000-0000-4000-8000-000000000002'
     )
