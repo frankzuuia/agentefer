@@ -1,6 +1,6 @@
 # AgenteFer — contrato físico B2-009 autorización integral
 
-Estado: implementado en AgenteFer; certificación CI pendiente.  
+Estado: implementado y certificado en AgenteFer.  
 Fecha: 2026-08-13.  
 Dependencias: B2-001–B2-008.
 

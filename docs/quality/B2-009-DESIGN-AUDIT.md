@@ -1,6 +1,6 @@
 # AgenteFer — auditoría B2-009 autorización integral
 
-Estado: **IMPLEMENTED — REMOTE QA GREEN, CI PENDING**.  
+Estado: **COMPLETE — REMOTE QA AND CI GREEN**.  
 Fecha: 2026-08-13.  
 Proyecto: `hprdctmblmfcoagugvyp` (`AgenteFer`).  
 Rama: `develop`.
@@ -58,6 +58,12 @@ Rama: `develop`.
 - Nueve mutantes de autorización añadidos al total de 47: apertura `anon`, DML humano, RPC
   mutadora, `PUBLIC EXECUTE`, vista sin invoker, policy/índice eliminados y
   exposición de prompt privado.
+- GitHub Actions Quality
+  [`31715927230`](https://github.com/frankzuuia/agentefer/actions/runs/31715927230):
+  `Verify`, `Container runtime` y `Database contract` verdes sobre
+  `8f9d79191a8abbbb8b0693e2dcbda4af87990e06`.
+- CI reconstruyó las 13 migraciones desde cero y verificó 729 pgTAP,
+  concurrencia, 47/47 mutantes SQL, lint, advisors y tipos sin drift.
 
 ## Incidente de QA y corrección
 
@@ -66,10 +72,12 @@ B2-001/B2-002 lo detectó antes del cierre del bloque. Se generó una migración
 forward-only compensatoria; no se reescribió el historial remoto. La matriz
 final 89/36/29/4 quedó verificada por postflight y pgTAP.
 
-## Gates pendientes
+## Cierre
 
-- commit/push exclusivo a `develop`;
-- CI final, incluyendo Docker, concurrencia y los 47 mutantes de base.
+- Commit de implementación: `8f9d79191a8abbbb8b0693e2dcbda4af87990e06`.
+- Rama/remoto: `develop` en `frankzuuia/agentefer`.
+- Supabase: 13/13 migraciones en `hprdctmblmfcoagugvyp` (`AgenteFer`).
+- Cero cambios en `main` y cero archivos de otros proyectos.
 
 No existen credenciales externas, datos reales ni conexiones Meta/LLM en este
-bloque. No se declarará `COMPLETE` hasta que CI quede verde.
+bloque.
