@@ -159,6 +159,10 @@ const linkedB4MutationRunner = await readFile(
   path.join(repositoryRoot, "scripts", "verify-linked-database-mutations.mjs"),
   "utf8",
 );
+const databaseConcurrencyScript = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-database-concurrency.mjs"),
+  "utf8",
+);
 const eslintConfiguration = await readFile(path.join(repositoryRoot, "eslint.config.mjs"), "utf8");
 
 for (const [name, migration] of [
@@ -1209,6 +1213,16 @@ const requiredWorkflowStatements = [
 for (const statement of requiredWorkflowStatements) {
   assert.ok(qualityWorkflow.includes(statement), `database CI must include: ${statement}`);
 }
+
+assert.ok(
+  databaseConcurrencyScript.includes("select * from api.register_meta_application("),
+  "concurrency fixtures must register Meta applications through the audited Vault RPC",
+);
+assert.equal(
+  databaseConcurrencyScript.includes("insert into app_private.meta_applications"),
+  false,
+  "concurrency fixtures cannot bypass the audited Meta application registration RPC",
+);
 
 for (const schema of ["api", "app_private"]) {
   assert.ok(generatedTypes.includes(`  ${schema}: {`), `generated types must include ${schema}`);

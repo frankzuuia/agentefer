@@ -189,14 +189,42 @@ update app_private.product_variants
 set status = 'active'
 where id = '33000000-0000-4000-8000-000000000160';
 
-insert into app_private.meta_applications (
-  id, organization_id, external_app_id, display_name, api_version, status,
-  created_by_user_id
-) values (
-  '33000000-0000-4000-8000-000000000290',
+select * from api.register_meta_application(
   '33000000-0000-4000-8000-000000000010',
-  'concurrency-app', 'Concurrency Meta App', 'v24.0', 'active',
-  '33000000-0000-4000-8000-000000000001'
+  'concurrency-app',
+  'Concurrency Meta App',
+  'v24.0',
+  'concurrency-app-secret-value',
+  'concurrency-webhook-verify-token',
+  '33000000-0000-4000-8000-000000000001',
+  'concurrency-meta-register',
+  null
+);
+
+select api.confirm_meta_webhook_verification(
+  (select endpoint_key
+   from app_private.meta_webhook_endpoints
+   where meta_application_id = (
+     select id
+     from app_private.meta_applications
+     where organization_id = '33000000-0000-4000-8000-000000000010'
+       and external_app_id = 'concurrency-app'
+   )),
+  (select credential_version_id
+   from api.verify_meta_webhook_challenge(
+     (select endpoint_key
+      from app_private.meta_webhook_endpoints
+      where meta_application_id = (
+        select id
+        from app_private.meta_applications
+        where organization_id = '33000000-0000-4000-8000-000000000010'
+          and external_app_id = 'concurrency-app'
+      )),
+     'concurrency-webhook-verify-token'
+   )
+   limit 1),
+  'concurrency-meta-verify',
+  null
 );
 
 insert into app_private.channel_connections (
@@ -207,7 +235,11 @@ insert into app_private.channel_connections (
 ) values (
   '33000000-0000-4000-8000-000000000300',
   '33000000-0000-4000-8000-000000000010',
-  'meta', 'whatsapp', '33000000-0000-4000-8000-000000000290',
+  'meta', 'whatsapp',
+  (select id
+   from app_private.meta_applications
+   where organization_id = '33000000-0000-4000-8000-000000000010'
+     and external_app_id = 'concurrency-app'),
   'concurrency-app', 'concurrency-account', 'concurrency-sender',
   'Concurrency WhatsApp', 'v24.0', 'secret-ref://concurrency/token',
   'secret-ref://concurrency/webhook', 'active', now(), now(),
