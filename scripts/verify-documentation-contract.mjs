@@ -31,6 +31,8 @@ const files = {
   publicationResearch: "docs/references/PUBLICATIONS-B2-007-RESEARCH.md",
   publicationPhysical: "docs/architecture/PUBLICATION-WORKFLOW-B2-007.md",
   publicationAudit: "docs/quality/B2-007-DESIGN-AUDIT.md",
+  metaVaultPhysical: "docs/architecture/META-VAULT-CREDENTIALS-B4-001.md",
+  metaVaultAudit: "docs/quality/B4-001-META-VAULT-DESIGN-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -85,7 +87,7 @@ const requiredStatements = new Map([
       "categoría nueva sin deploy",
       "cantidad >4",
       "run `31407961615`",
-      "B2-003/B2-004/B2-005/B2-006/B2-007 completos",
+      "B2-003–B2-009 completos y certificados",
       "run `31551318493`",
       "CI final `31608356030`",
     ],
@@ -255,6 +257,36 @@ const requiredStatements = new Map([
       "nueve referencias sin índice",
       "Meta sigue sin credenciales/capacidades reales",
       "No se deshabilitó ninguna constraint",
+    ],
+  ],
+  [
+    "metaVaultPhysical",
+    [
+      "AgenteFer no guardará App Secrets",
+      "WABA, número o cuenta hardcodeados",
+      "`service_role` es un rol privilegiado administrado por Supabase",
+      "sólo expone `api`",
+      "`graphql_public`; `vault`, `app_private` y `public` quedan fuera",
+      "nunca proyecta `vault_secret_id` al Data API",
+      "SHA-256 sobre el `bytea` crudo",
+      "sin editar código, variables de EasyPanel ni redesplegar",
+      "la App de prueba ni la de Fer",
+    ],
+  ],
+  [
+    "metaVaultAudit",
+    [
+      "VAULT INFRASTRUCTURE CERTIFIED — META CAPABILITY MATRIX PENDING",
+      "15/15 migraciones",
+      "782/782 pgTAP",
+      "51/51 pgTAP",
+      "82/82 pgTAP",
+      "11/11 mutantes críticos eliminados",
+      "Data API",
+      "drift=false",
+      "cero secretos QA residuales",
+      "intentos fallidos se persistió",
+      "permanece abierta",
     ],
   ],
 ]);

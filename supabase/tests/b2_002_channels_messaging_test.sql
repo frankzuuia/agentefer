@@ -496,11 +496,30 @@ values
 
 set constraints all immediate;
 
+insert into app_private.meta_applications (
+  id, organization_id, external_app_id, display_name, api_version, status,
+  created_by_user_id
+)
+values
+  (
+    '41111111-1111-4111-8111-111111111111'::uuid,
+    '11111111-1111-4111-8111-111111111111'::uuid,
+    'qa-app-alpha', 'QA Meta App Alpha', 'v24.0', 'active',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid
+  ),
+  (
+    '42222222-2222-4222-8222-222222222222'::uuid,
+    '22222222-2222-4222-8222-222222222222'::uuid,
+    'qa-app-beta', 'QA Meta App Beta', 'v24.0', 'active',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid
+  );
+
 insert into app_private.channel_connections (
   id,
   organization_id,
   provider,
   channel,
+  meta_application_id,
   external_app_id,
   external_account_id,
   external_sender_id,
@@ -519,6 +538,7 @@ values
     '11111111-1111-4111-8111-111111111111'::uuid,
     'meta',
     'whatsapp',
+    '41111111-1111-4111-8111-111111111111'::uuid,
     'qa-app-alpha',
     'qa-waba-alpha',
     'qa-phone-alpha',
@@ -536,6 +556,7 @@ values
     '22222222-2222-4222-8222-222222222222'::uuid,
     'meta',
     'messenger',
+    '42222222-2222-4222-8222-222222222222'::uuid,
     'qa-app-beta',
     'qa-page-beta',
     'qa-page-beta',

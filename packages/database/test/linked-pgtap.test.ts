@@ -109,6 +109,32 @@ describe("linked migration pgTAP collector", () => {
     expect(transformed.trimEnd().endsWith("rollback;")).toBe(true);
   });
 
+  it("injects mutation SQL after the migration and preserves rollback", () => {
+    const transformed = buildLinkedMigrationPgtapCollector(
+      "begin; create table public.target (id bigint); commit;",
+      "begin; select extensions.plan(1); select extensions.ok(true, 'runs'); rollback;",
+      "alter table public.target add column mutated boolean;",
+    );
+
+    expect(transformed.indexOf("create table public.target")).toBeLessThan(
+      transformed.indexOf("alter table public.target"),
+    );
+    expect(transformed.indexOf("alter table public.target")).toBeLessThan(
+      transformed.indexOf("select extensions.plan"),
+    );
+    expect(transformed.trimEnd().endsWith("rollback;")).toBe(true);
+  });
+
+  it("rejects mutation SQL that can escape the rehearsal transaction", () => {
+    expect(() =>
+      buildLinkedMigrationPgtapCollector(
+        "begin; select 1; commit;",
+        "begin; select extensions.plan(0); rollback;",
+        "commit; drop table public.target;",
+      ),
+    ).toThrow("cannot control the rehearsal transaction");
+  });
+
   it.each([
     ["select 1; commit;", "begin; select extensions.plan(0); rollback;", "must start with BEGIN"],
     [

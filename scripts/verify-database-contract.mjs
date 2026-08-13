@@ -30,8 +30,10 @@ assert.deepEqual(
     "20260812152500_b2_008_agent_runtime.sql",
     "20260813150805_b2_009_authorization_hardening.sql",
     "20260813152105_b2_009_service_role_least_privilege.sql",
+    "20260813192925_b4_001_meta_vault_credentials.sql",
+    "20260813203100_b4_001_constant_time_lint_hardening.sql",
   ],
-  "B2-001 through B2-009 must remain ordered, reviewable production migrations",
+  "B2-001 through B4-001 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -80,6 +82,14 @@ const serviceRoleLeastPrivilegeMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[12]),
   "utf8",
 );
+const metaVaultMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[13]),
+  "utf8",
+);
+const metaVaultLintHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[14]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -116,6 +126,10 @@ const authorizationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_009_authorization_test.sql"),
   "utf8",
 );
+const metaVaultDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_001_meta_vault_credentials_test.sql"),
+  "utf8",
+);
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
 const qualityWorkflow = await readFile(
   path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
@@ -125,6 +139,10 @@ const generatedTypes = await readFile(
   path.join(repositoryRoot, "packages", "database", "src", "database.types.ts"),
   "utf8",
 );
+const generatedApiTypes = generatedTypes.slice(
+  generatedTypes.indexOf("  api: {"),
+  generatedTypes.indexOf("  app_private: {"),
+);
 const databaseIndex = await readFile(
   path.join(repositoryRoot, "packages", "database", "src", "index.ts"),
   "utf8",
@@ -133,6 +151,14 @@ const databaseManifest = JSON.parse(
   await readFile(path.join(repositoryRoot, "packages", "database", "package.json"), "utf8"),
 );
 const rootManifest = JSON.parse(await readFile(path.join(repositoryRoot, "package.json"), "utf8"));
+const b4MutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b4-mutants.mjs"),
+  "utf8",
+);
+const linkedB4MutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-database-mutations.mjs"),
+  "utf8",
+);
 const eslintConfiguration = await readFile(path.join(repositoryRoot, "eslint.config.mjs"), "utf8");
 
 for (const [name, migration] of [
@@ -149,6 +175,8 @@ for (const [name, migration] of [
   ["B2-008", agentRuntimeMigration],
   ["B2-009", authorizationMigration],
   ["B2-009 service-role least privilege", serviceRoleLeastPrivilegeMigration],
+  ["B4-001 Meta Vault credentials", metaVaultMigration],
+  ["B4-001 constant-time lint hardening", metaVaultLintHardeningMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -423,6 +451,55 @@ for (const statement of [
     `B2-004 timestamp hardening must include: ${statement}`,
   );
 }
+
+const requiredMetaVaultMigrationStatements = [
+  "alter role authenticator set pgrst.db_schemas = 'api, graphql_public';",
+  "create table app_private.meta_applications (",
+  "create table app_private.meta_webhook_endpoints (",
+  "create table app_private.meta_credential_versions (",
+  "alter table app_private.meta_applications force row level security;",
+  "alter table app_private.meta_webhook_endpoints force row level security;",
+  "alter table app_private.meta_credential_versions force row level security;",
+  "create function api.register_meta_application(",
+  "create function api.rotate_meta_credential(",
+  "create function api.verify_meta_webhook_challenge(",
+  "create function api.verify_meta_webhook_signature(",
+  "create function api.confirm_meta_webhook_verification(",
+  "vault.create_secret(",
+  "join vault.decrypted_secrets",
+  "notify pgrst, 'reload config';",
+];
+
+for (const statement of requiredMetaVaultMigrationStatements) {
+  assert.ok(
+    metaVaultMigration.includes(statement),
+    `B4-001 Meta Vault migration must include: ${statement}`,
+  );
+}
+for (const forbiddenSchema of ["public", "app_private", "vault"]) {
+  assert.equal(
+    metaVaultMigration.includes(
+      `alter role authenticator set pgrst.db_schemas = '${forbiddenSchema}'`,
+    ),
+    false,
+    `B4-001 cannot expose ${forbiddenSchema} as its Data API schema set`,
+  );
+}
+for (const hardeningStatement of [
+  "create or replace function app_private.constant_time_bytea_equal(",
+  "for byte_index in 0..(value_length - 1) loop",
+  "get_byte(left_value, byte_index) # get_byte(right_value, byte_index)",
+]) {
+  assert.ok(
+    metaVaultLintHardeningMigration.includes(hardeningStatement),
+    `B4-001 lint hardening must include: ${hardeningStatement}`,
+  );
+}
+assert.equal(
+  metaVaultLintHardeningMigration.includes("byte_index integer;"),
+  false,
+  "B4-001 lint hardening cannot redeclare the implicit FOR-loop variable",
+);
 
 for (const statement of [
   "create index price_books_created_by_user_idx",
@@ -1012,7 +1089,7 @@ for (const statement of requiredAgentRuntimeTestStatements) {
 }
 
 const requiredAuthorizationTestStatements = [
-  "select extensions.plan(80);",
+  "select extensions.plan(82);",
   "set local role authenticated;",
   "set local role anon;",
   "set local role service_role;",
@@ -1023,6 +1100,8 @@ const requiredAuthorizationTestStatements = [
   "invited member cannot see tenant data before activation",
   "authenticated cannot execute mutating worker RPCs",
   "authenticated cannot read the hidden prompt template column",
+  "service_role cannot read tenant Vault references from credential metadata",
+  "tenant Vault references are absent from the Data API projection",
   "new API functions require an explicit authenticated signature grant",
   "service_role can insert only into the 36 reviewed entry tables",
   "service_role can update only the 29 reviewed mutable tables",
@@ -1038,6 +1117,39 @@ for (const statement of requiredAuthorizationTestStatements) {
   );
 }
 
+const requiredMetaVaultTestStatements = [
+  "select extensions.plan(51);",
+  "set local role authenticated;",
+  "set local role service_role;",
+  "anonymous callers cannot decrypt Vault secrets",
+  "authenticated callers cannot decrypt Vault secrets",
+  "PostgREST exposes only the reviewed api and graphql schemas",
+  "service_role cannot read Vault references from AgenteFer credential metadata",
+  "service_role cannot bypass audited credential version creation",
+  "an incorrect verify token cannot pass the Meta challenge",
+  "Alpha challenge matches only its Vault verify token",
+  "valid Alpha raw-body HMAC resolves only the Alpha application",
+  "altering one raw-body byte invalidates the signature",
+  "Alpha App Secret cannot authenticate the Beta endpoint",
+  "retiring App Secret remains valid during the configured overlap",
+  "new current App Secret validates immediately after rotation",
+  "revoked verify token stops authenticating immediately",
+  "new verify token authenticates without redeploying the API",
+  "audit events never contain credential values",
+  "RLS prevents Alpha owner from observing Beta metadata",
+  "credential history remains append-only even for table owner operations",
+  "an active channel cannot exist without its tenant Meta application link",
+  "a channel cannot link a Meta application owned by another organization",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredMetaVaultTestStatements) {
+  assert.ok(
+    metaVaultDatabaseTest.includes(statement),
+    `B4-001 Meta Vault database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -1048,6 +1160,7 @@ for (const [name, databaseTest] of [
   ["B2-007", publicationDatabaseTest],
   ["B2-008", agentRuntimeDatabaseTest],
   ["B2-009", authorizationDatabaseTest],
+  ["B4-001", metaVaultDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -1173,6 +1286,28 @@ for (const generatedAgentRuntimeContract of [
     `generated database types must include B2-008 contract: ${generatedAgentRuntimeContract}`,
   );
 }
+for (const generatedMetaVaultContract of [
+  "meta_applications: {",
+  "meta_credential_versions: {",
+  "meta_webhook_endpoints: {",
+  "confirm_meta_webhook_verification: {",
+  "register_meta_application: {",
+  "rotate_meta_credential: {",
+  "verify_meta_webhook_challenge: {",
+  "verify_meta_webhook_signature: {",
+]) {
+  assert.ok(
+    generatedApiTypes.includes(generatedMetaVaultContract),
+    `generated API types must include B4-001 contract: ${generatedMetaVaultContract}`,
+  );
+}
+for (const privateMetaColumn of ["vault_secret_id", "decrypted_secret"]) {
+  assert.equal(
+    generatedApiTypes.includes(privateMetaColumn),
+    false,
+    `generated API types cannot expose Meta private column: ${privateMetaColumn}`,
+  );
+}
 assert.equal(
   generatedTypes.includes("  public: {"),
   false,
@@ -1215,11 +1350,47 @@ assert.equal(
   "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-migration.mjs",
   "root package must expose controlled linked migration rehearsal",
 );
+assert.equal(
+  rootManifest.scripts?.["test:database:linked:mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-database-mutations.mjs",
+  "root package must expose controlled linked B4 mutation testing",
+);
+assert.equal(
+  b4MutationCatalog.split('name: "').length - 1,
+  11,
+  "B4-001 must preserve eleven critical database mutants",
+);
+for (const mutationGuard of [
+  "remove forced RLS from Meta applications",
+  "expose Vault reference through the safe credential view",
+  "allow service role to bypass audited credential insertion",
+  "remove channel to tenant Meta application foreign key",
+  "expose Vault in the PostgREST schema list",
+  "disable valid Meta challenge resolution",
+  "disable valid Meta raw-body HMAC resolution",
+]) {
+  assert.ok(
+    b4MutationCatalog.includes(mutationGuard),
+    `B4 mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "B4 mutation must apply successfully before its test can kill it",
+  '"20260813192925", "20260813203100"',
+]) {
+  assert.ok(
+    linkedB4MutationRunner.includes(runnerGuard),
+    `linked B4 mutation runner must include: ${runnerGuard}`,
+  );
+}
 assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 89 forced-RLS tables, 729 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 92 forced-RLS tables, 782 pgTAP assertions, generated TypeScript schemas locked.`,
 );

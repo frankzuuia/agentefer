@@ -315,8 +315,19 @@ values
     '82000000-0000-4000-8000-000000000001', 'owner', 'active', statement_timestamp()
   );
 
+insert into app_private.meta_applications (
+  id, organization_id, external_app_id, display_name, api_version, status,
+  created_by_user_id
+)
+values (
+  '81000000-0000-4000-8000-000000000015',
+  '81000000-0000-4000-8000-000000000010',
+  'qa-agent-app', 'QA Agent Meta App', 'v24.0', 'active',
+  '81000000-0000-4000-8000-000000000001'
+);
+
 insert into app_private.channel_connections (
-  id, organization_id, provider, channel, external_app_id,
+  id, organization_id, provider, channel, meta_application_id, external_app_id,
   external_account_id, external_sender_id, display_name, api_version,
   credential_reference, webhook_secret_reference, status,
   connected_at, last_verified_at, created_by_user_id
@@ -324,7 +335,8 @@ insert into app_private.channel_connections (
 values (
   '81000000-0000-4000-8000-000000000020',
   '81000000-0000-4000-8000-000000000010',
-  'meta', 'whatsapp', 'qa-agent-app', 'qa-agent-waba', 'qa-agent-phone',
+  'meta', 'whatsapp', '81000000-0000-4000-8000-000000000015',
+  'qa-agent-app', 'qa-agent-waba', 'qa-agent-phone',
   'QA Agent WhatsApp', 'v24.0', 'secret-ref://qa/agent-token',
   'secret-ref://qa/agent-webhook', 'active', statement_timestamp(),
   statement_timestamp(), '81000000-0000-4000-8000-000000000001'

@@ -223,6 +223,7 @@ export const buildLinkedPgtapCollector = (sql: string): string => {
 export const buildLinkedMigrationPgtapCollector = (
   migrationSql: string,
   pgtapSql: string,
+  mutationSql = "",
 ): string => {
   const migrationStatements = splitSqlStatements(migrationSql);
   assert.equal(
@@ -248,9 +249,19 @@ export const buildLinkedMigrationPgtapCollector = (
     "linked migration pgTAP source must end with ROLLBACK",
   );
 
+  const mutationStatements = mutationSql.trim().length === 0 ? [] : splitSqlStatements(mutationSql);
+  assert.equal(
+    mutationStatements.some((statement) =>
+      ["begin", "commit", "rollback"].includes(statement.trim().toLowerCase()),
+    ),
+    false,
+    "linked mutation SQL cannot control the rehearsal transaction",
+  );
+
   const rehearsalStatements = [
     "begin",
     ...migrationStatements.slice(1, -1),
+    ...mutationStatements,
     ...pgtapStatements.slice(1, -1),
     "rollback",
   ];

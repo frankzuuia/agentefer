@@ -111,9 +111,9 @@ Fuentes oficiales consultadas:
 
 ## Variables deliberadamente diferidas
 
-No se inventan todavía variables de Meta, Turnstile, observabilidad, SMTP o dominio:
+No se inventan todavía variables de Turnstile, observabilidad, SMTP o dominio:
 
-- Meta App/Página/WABA/número y permisos se verifican en B4-001 antes de nombrar credenciales.
+- Meta App/Página/WABA/número son datos tenant-aware. App Secret, verify token y access tokens se cifran y versionan en Supabase Vault mediante RPC auditada; no son variables de EasyPanel ni se comparten entre organizaciones. EasyPanel conserva únicamente la `SUPABASE_SECRET_KEY` propia de cada servicio para llegar a esa RPC.
 - Cloudflare/Vercel se configuran en B4-008 cuando existan dominio y artefacto web. Se solicitará al usuario el acceso mínimo justo antes de ese movimiento.
 - Logging/exportadores se cierran en B1-007.
 - Los datos comerciales configurables pertenecen a base de datos versionada, no a env.

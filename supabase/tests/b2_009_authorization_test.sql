@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(80);
+select extensions.plan(82);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -54,8 +54,8 @@ select extensions.is(
     where namespace.nspname = 'app_private'
       and relation.relkind in ('r', 'p')
   ),
-  89,
-  'the private data model contains the 89 reviewed tables'
+  92,
+  'the private data model contains the 92 reviewed tables'
 );
 select extensions.is(
   (
@@ -66,7 +66,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relrowsecurity
   ),
-  89,
+  92,
   'RLS is enabled on every private table'
 );
 select extensions.is(
@@ -78,12 +78,12 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relforcerowsecurity
   ),
-  89,
+  92,
   'RLS is forced on every private table'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private'),
-  87,
+  90,
   'the reviewed tenant read-policy set is complete'
 );
 select extensions.is(
@@ -102,7 +102,7 @@ select extensions.is(
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and cmd = 'SELECT'),
-  87,
+  90,
   'every private policy is read-only'
 );
 select extensions.is(
@@ -112,7 +112,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and roles = array['authenticated']::name[]
   ),
-  87,
+  90,
   'every private policy targets authenticated users only'
 );
 select extensions.is(
@@ -122,7 +122,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and coalesce(qual, '') like '%SELECT auth.uid()%'
   ),
-  87,
+  90,
   'every private policy uses the init-plan auth.uid pattern'
 );
 select extensions.is(
@@ -145,8 +145,8 @@ select extensions.is(
     join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
     where namespace.nspname = 'api' and relation.relkind = 'v'
   ),
-  89,
-  'the explicit API surface contains the 89 reviewed views'
+  92,
+  'the explicit API surface contains the 92 reviewed views'
 );
 select extensions.is(
   (
@@ -158,7 +158,7 @@ select extensions.is(
       and coalesce(relation.reloptions, array[]::text[])
         @> array['security_invoker=true', 'security_barrier=true']::text[]
   ),
-  89,
+  92,
   'every API view invokes caller RLS and acts as a security barrier'
 );
 select extensions.is(
@@ -241,7 +241,7 @@ select extensions.is(
       and relation.relkind = 'v'
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
-  89,
+  92,
   'authenticated can select every reviewed API view'
 );
 select extensions.is(
@@ -343,8 +343,8 @@ select extensions.is(
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_admin_select'),
-  12,
-  'the reviewed admin policy class contains 12 policies'
+  15,
+  'the reviewed admin policy class contains 15 policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_operator_select'),
@@ -597,8 +597,28 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and has_table_privilege('service_role', relation.oid, 'SELECT')
   ),
-  89,
-  'service_role can read all private tables for backend orchestration'
+  91,
+  'service_role can fully read 91 reviewed private tables'
+);
+select extensions.ok(
+  not has_column_privilege(
+    'service_role',
+    'app_private.meta_credential_versions',
+    'vault_secret_id',
+    'SELECT'
+  ),
+  'service_role cannot read tenant Vault references from credential metadata'
+);
+select extensions.is(
+  (
+    select count(*)::integer
+    from information_schema.columns
+    where table_schema = 'api'
+      and table_name = 'meta_credential_versions'
+      and column_name = 'vault_secret_id'
+  ),
+  0,
+  'tenant Vault references are absent from the Data API projection'
 );
 select extensions.is(
   (

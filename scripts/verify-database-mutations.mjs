@@ -4,6 +4,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { b4DatabaseMutants } from "./database-b4-mutants.mjs";
+
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const config = await readFile(path.join(repositoryRoot, "supabase", "config.toml"), "utf8");
@@ -257,6 +259,7 @@ const mutants = [
     sql: "grant select (content_template) on app_private.prompt_versions to authenticated;",
     test: "supabase/tests/b2_009_authorization_test.sql",
   },
+  ...b4DatabaseMutants,
 ];
 
 const run = (command, args, capture = false) => {

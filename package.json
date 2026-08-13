@@ -49,6 +49,7 @@
     "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:acceptance-contract && npm run verify:container-contract && npm run verify:database-contract && npm run verify:dependency-policy && npm run test:coverage && npm run test:mutation",
     "test:coverage": "vitest run --coverage",
     "test:database:linked": "npm run build --workspace @agentefer/database && node ./scripts/run-linked-pgtap.mjs",
+    "test:database:linked:mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-database-mutations.mjs",
     "test:database:linked:rehearsal": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-migration.mjs",
     "test:mutation": "stryker run",
     "verify:acceptance-contract": "node ./scripts/verify-acceptance-contract.mjs",

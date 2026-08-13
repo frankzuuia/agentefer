@@ -1409,6 +1409,7 @@ export type Database = {
           external_sender_id: string | null;
           id: string | null;
           last_verified_at: string | null;
+          meta_application_id: string | null;
           organization_id: string | null;
           provider: string | null;
           status: string | null;
@@ -1426,6 +1427,7 @@ export type Database = {
           external_sender_id?: string | null;
           id?: string | null;
           last_verified_at?: string | null;
+          meta_application_id?: string | null;
           organization_id?: string | null;
           provider?: string | null;
           status?: string | null;
@@ -1443,12 +1445,20 @@ export type Database = {
           external_sender_id?: string | null;
           id?: string | null;
           last_verified_at?: string | null;
+          meta_application_id?: string | null;
           organization_id?: string | null;
           provider?: string | null;
           status?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "channel_connections_meta_application_fk";
+            columns: ["organization_id", "meta_application_id", "external_app_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id", "external_app_id"];
+          },
           {
             foreignKeyName: "channel_connections_organization_fk";
             columns: ["organization_id"];
@@ -3485,6 +3495,170 @@ export type Database = {
               "conversation_id",
               "id",
             ];
+          },
+        ];
+      };
+      meta_applications: {
+        Row: {
+          api_version: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          disabled_at: string | null;
+          display_name: string | null;
+          external_app_id: string | null;
+          id: string | null;
+          organization_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          api_version?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_app_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          api_version?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name?: string | null;
+          external_app_id?: string | null;
+          id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_applications_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      meta_credential_versions: {
+        Row: {
+          activated_at: string | null;
+          channel_connection_id: string | null;
+          created_at: string | null;
+          created_by_user_id: string | null;
+          credential_kind: string | null;
+          id: string | null;
+          meta_application_id: string | null;
+          organization_id: string | null;
+          retire_after: string | null;
+          revoked_at: string | null;
+          status: string | null;
+          version_number: number | null;
+          webhook_endpoint_id: string | null;
+        };
+        Insert: {
+          activated_at?: string | null;
+          channel_connection_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          credential_kind?: string | null;
+          id?: string | null;
+          meta_application_id?: string | null;
+          organization_id?: string | null;
+          retire_after?: string | null;
+          revoked_at?: string | null;
+          status?: string | null;
+          version_number?: number | null;
+          webhook_endpoint_id?: string | null;
+        };
+        Update: {
+          activated_at?: string | null;
+          channel_connection_id?: string | null;
+          created_at?: string | null;
+          created_by_user_id?: string | null;
+          credential_kind?: string | null;
+          id?: string | null;
+          meta_application_id?: string | null;
+          organization_id?: string | null;
+          retire_after?: string | null;
+          revoked_at?: string | null;
+          status?: string | null;
+          version_number?: number | null;
+          webhook_endpoint_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_credential_versions_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_credential_versions_channel_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_credential_versions_webhook_fk";
+            columns: ["organization_id", "meta_application_id", "webhook_endpoint_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_webhook_endpoints";
+            referencedColumns: ["organization_id", "meta_application_id", "id"];
+          },
+        ];
+      };
+      meta_webhook_endpoints: {
+        Row: {
+          created_at: string | null;
+          disabled_at: string | null;
+          endpoint_key: string | null;
+          id: string | null;
+          last_challenge_at: string | null;
+          meta_application_id: string | null;
+          organization_id: string | null;
+          status: string | null;
+          updated_at: string | null;
+          verified_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          disabled_at?: string | null;
+          endpoint_key?: string | null;
+          id?: string | null;
+          last_challenge_at?: string | null;
+          meta_application_id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          verified_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          disabled_at?: string | null;
+          endpoint_key?: string | null;
+          id?: string | null;
+          last_challenge_at?: string | null;
+          meta_application_id?: string | null;
+          organization_id?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          verified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_webhook_endpoints_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -6167,6 +6341,15 @@ export type Database = {
           target_version_id: string;
         }[];
       };
+      confirm_meta_webhook_verification: {
+        Args: {
+          target_correlation_id: string;
+          target_credential_version_id: string;
+          target_endpoint_key: string;
+          target_trace_id?: string;
+        };
+        Returns: undefined;
+      };
       create_agent_policy_version: {
         Args: {
           target_activate: boolean;
@@ -6795,6 +6978,24 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      register_meta_application: {
+        Args: {
+          target_actor_user_id: string;
+          target_api_version: string;
+          target_app_secret: string;
+          target_correlation_id: string;
+          target_display_name: string;
+          target_external_app_id: string;
+          target_organization_id: string;
+          target_trace_id?: string;
+          target_webhook_verify_token: string;
+        };
+        Returns: {
+          endpoint_key: string;
+          meta_application_id: string;
+          webhook_endpoint_id: string;
+        }[];
+      };
       register_prompt_version: {
         Args: {
           target_content_template: string;
@@ -6943,6 +7144,25 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      rotate_meta_credential: {
+        Args: {
+          target_actor_user_id: string;
+          target_channel_connection_id: string;
+          target_correlation_id: string;
+          target_credential_kind: string;
+          target_meta_application_id: string;
+          target_organization_id: string;
+          target_overlap_seconds: number;
+          target_secret_value: string;
+          target_trace_id?: string;
+          target_webhook_endpoint_id: string;
+        };
+        Returns: {
+          activated_at: string;
+          credential_version_id: string;
+          version_number: number;
+        }[];
+      };
       start_agent_job_attempt: {
         Args: {
           target_fallback_ordinal: number;
@@ -7061,6 +7281,30 @@ export type Database = {
         Returns: {
           social_connection_id: string;
           was_replayed: boolean;
+        }[];
+      };
+      verify_meta_webhook_challenge: {
+        Args: { target_endpoint_key: string; target_verify_token: string };
+        Returns: {
+          credential_version_id: string;
+          external_app_id: string;
+          meta_application_id: string;
+          organization_id: string;
+          webhook_endpoint_id: string;
+        }[];
+      };
+      verify_meta_webhook_signature: {
+        Args: {
+          target_endpoint_key: string;
+          target_raw_body: string;
+          target_signature: string;
+        };
+        Returns: {
+          credential_version_id: string;
+          external_app_id: string;
+          meta_application_id: string;
+          organization_id: string;
+          webhook_endpoint_id: string;
         }[];
       };
     };
@@ -8643,6 +8887,7 @@ export type Database = {
           external_sender_id: string | null;
           id: string;
           last_verified_at: string | null;
+          meta_application_id: string | null;
           organization_id: string;
           provider: string;
           status: string;
@@ -8663,6 +8908,7 @@ export type Database = {
           external_sender_id?: string | null;
           id?: string;
           last_verified_at?: string | null;
+          meta_application_id?: string | null;
           organization_id: string;
           provider: string;
           status?: string;
@@ -8683,6 +8929,7 @@ export type Database = {
           external_sender_id?: string | null;
           id?: string;
           last_verified_at?: string | null;
+          meta_application_id?: string | null;
           organization_id?: string;
           provider?: string;
           status?: string;
@@ -8690,6 +8937,13 @@ export type Database = {
           webhook_secret_reference?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "channel_connections_meta_application_fk";
+            columns: ["organization_id", "meta_application_id", "external_app_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id", "external_app_id"];
+          },
           {
             foreignKeyName: "channel_connections_organization_fk";
             columns: ["organization_id"];
@@ -10884,6 +11138,173 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "inbound_events";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+        ];
+      };
+      meta_applications: {
+        Row: {
+          api_version: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          disabled_at: string | null;
+          display_name: string;
+          external_app_id: string;
+          id: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          api_version: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name: string;
+          external_app_id: string;
+          id?: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          api_version?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          disabled_at?: string | null;
+          display_name?: string;
+          external_app_id?: string;
+          id?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_applications_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      meta_credential_versions: {
+        Row: {
+          activated_at: string;
+          channel_connection_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          credential_kind: string;
+          id: string;
+          meta_application_id: string;
+          organization_id: string;
+          retire_after: string | null;
+          revoked_at: string | null;
+          status: string;
+          vault_secret_id: string;
+          version_number: number;
+          webhook_endpoint_id: string | null;
+        };
+        Insert: {
+          activated_at?: string;
+          channel_connection_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          credential_kind: string;
+          id?: string;
+          meta_application_id: string;
+          organization_id: string;
+          retire_after?: string | null;
+          revoked_at?: string | null;
+          status?: string;
+          vault_secret_id: string;
+          version_number: number;
+          webhook_endpoint_id?: string | null;
+        };
+        Update: {
+          activated_at?: string;
+          channel_connection_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          credential_kind?: string;
+          id?: string;
+          meta_application_id?: string;
+          organization_id?: string;
+          retire_after?: string | null;
+          revoked_at?: string | null;
+          status?: string;
+          vault_secret_id?: string;
+          version_number?: number;
+          webhook_endpoint_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_credential_versions_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_credential_versions_channel_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_credential_versions_webhook_fk";
+            columns: ["organization_id", "meta_application_id", "webhook_endpoint_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_webhook_endpoints";
+            referencedColumns: ["organization_id", "meta_application_id", "id"];
+          },
+        ];
+      };
+      meta_webhook_endpoints: {
+        Row: {
+          created_at: string;
+          disabled_at: string | null;
+          endpoint_key: string;
+          id: string;
+          last_challenge_at: string | null;
+          meta_application_id: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+          verified_at: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          disabled_at?: string | null;
+          endpoint_key?: string;
+          id?: string;
+          last_challenge_at?: string | null;
+          meta_application_id: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          disabled_at?: string | null;
+          endpoint_key?: string;
+          id?: string;
+          last_challenge_at?: string | null;
+          meta_application_id?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_webhook_endpoints_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -13776,6 +14197,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      constant_time_bytea_equal: {
+        Args: { left_value: string; right_value: string };
+        Returns: boolean;
+      };
       create_inventory_reservation_core: {
         Args: {
           target_command_id: string;
@@ -13827,6 +14252,40 @@ export type Database = {
           target_subject_type: string;
         };
         Returns: string;
+      };
+      insert_meta_credential_version: {
+        Args: {
+          target_actor_user_id: string;
+          target_channel_connection_id: string;
+          target_credential_kind: string;
+          target_meta_application_id: string;
+          target_organization_id: string;
+          target_overlap_seconds: number;
+          target_secret_value: string;
+          target_webhook_endpoint_id: string;
+        };
+        Returns: {
+          activated_at: string;
+          channel_connection_id: string | null;
+          created_at: string;
+          created_by_user_id: string | null;
+          credential_kind: string;
+          id: string;
+          meta_application_id: string;
+          organization_id: string;
+          retire_after: string | null;
+          revoked_at: string | null;
+          status: string;
+          vault_secret_id: string;
+          version_number: number;
+          webhook_endpoint_id: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "meta_credential_versions";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       insert_publication_event: {
         Args: {

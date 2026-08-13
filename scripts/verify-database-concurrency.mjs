@@ -189,14 +189,26 @@ update app_private.product_variants
 set status = 'active'
 where id = '33000000-0000-4000-8000-000000000160';
 
+insert into app_private.meta_applications (
+  id, organization_id, external_app_id, display_name, api_version, status,
+  created_by_user_id
+) values (
+  '33000000-0000-4000-8000-000000000290',
+  '33000000-0000-4000-8000-000000000010',
+  'concurrency-app', 'Concurrency Meta App', 'v24.0', 'active',
+  '33000000-0000-4000-8000-000000000001'
+);
+
 insert into app_private.channel_connections (
-  id, organization_id, provider, channel, external_app_id, external_account_id,
+  id, organization_id, provider, channel, meta_application_id,
+  external_app_id, external_account_id,
   external_sender_id, display_name, api_version, credential_reference,
   webhook_secret_reference, status, connected_at, last_verified_at, created_by_user_id
 ) values (
   '33000000-0000-4000-8000-000000000300',
   '33000000-0000-4000-8000-000000000010',
-  'meta', 'whatsapp', 'concurrency-app', 'concurrency-account', 'concurrency-sender',
+  'meta', 'whatsapp', '33000000-0000-4000-8000-000000000290',
+  'concurrency-app', 'concurrency-account', 'concurrency-sender',
   'Concurrency WhatsApp', 'v24.0', 'secret-ref://concurrency/token',
   'secret-ref://concurrency/webhook', 'active', now(), now(),
   '33000000-0000-4000-8000-000000000001'

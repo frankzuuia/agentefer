@@ -267,22 +267,43 @@ values
 
 set constraints all immediate;
 
+insert into app_private.meta_applications (
+  id, organization_id, external_app_id, display_name, api_version, status,
+  created_by_user_id
+)
+values
+  (
+    '61000000-0000-4000-8000-000000000015',
+    '61000000-0000-4000-8000-000000000010',
+    'b2-006-app-a', 'B2-006 Meta App A', 'v24.0', 'active',
+    '61000000-0000-4000-8000-000000000001'
+  ),
+  (
+    '62000000-0000-4000-8000-000000000015',
+    '62000000-0000-4000-8000-000000000010',
+    'b2-006-app-b', 'B2-006 Meta App B', 'v24.0', 'active',
+    '62000000-0000-4000-8000-000000000001'
+  );
+
 insert into app_private.channel_connections (
-  id, organization_id, provider, channel, external_app_id, external_account_id,
+  id, organization_id, provider, channel, meta_application_id,
+  external_app_id, external_account_id,
   external_sender_id, display_name, api_version, credential_reference,
   webhook_secret_reference, status, connected_at, last_verified_at, created_by_user_id
 )
 values
   (
     '61000000-0000-4000-8000-000000000020', '61000000-0000-4000-8000-000000000010',
-    'meta', 'whatsapp', 'b2-006-app-a', 'b2-006-account-a', 'b2-006-sender-a',
+    'meta', 'whatsapp', '61000000-0000-4000-8000-000000000015',
+    'b2-006-app-a', 'b2-006-account-a', 'b2-006-sender-a',
     'B2-006 WhatsApp A', 'v24.0', 'secret-ref://b2-006/token-a',
     'secret-ref://b2-006/webhook-a', 'active', now(), now(),
     '61000000-0000-4000-8000-000000000001'
   ),
   (
     '62000000-0000-4000-8000-000000000020', '62000000-0000-4000-8000-000000000010',
-    'meta', 'messenger', 'b2-006-app-b', 'b2-006-account-b', 'b2-006-sender-b',
+    'meta', 'messenger', '62000000-0000-4000-8000-000000000015',
+    'b2-006-app-b', 'b2-006-account-b', 'b2-006-sender-b',
     'B2-006 Messenger B', 'v24.0', 'secret-ref://b2-006/token-b',
     'secret-ref://b2-006/webhook-b', 'active', now(), now(),
     '62000000-0000-4000-8000-000000000001'
