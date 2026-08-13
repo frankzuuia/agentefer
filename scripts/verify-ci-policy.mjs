@@ -93,6 +93,12 @@ assert.ok(
   "CI must define the isolated database contract job",
 );
 assert.ok(
+  qualityWorkflow.includes(
+    "database:\n    name: Database contract\n    needs: verify\n    runs-on: ubuntu-latest\n    timeout-minutes: 30",
+  ),
+  "database CI must retain enough time to finish all mandatory gates and cleanup",
+);
+assert.ok(
   qualityWorkflow.includes("supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9"),
   "database CI must pin the audited Supabase CLI action",
 );

@@ -72,6 +72,19 @@ B2-001/B2-002 lo detectó antes del cierre del bloque. Se generó una migración
 forward-only compensatoria; no se reescribió el historial remoto. La matriz
 final 89/36/29/4 quedó verificada por postflight y pgTAP.
 
+Un segundo run, de documentación, completó migraciones desde cero, 729 pgTAP,
+concurrencia, 47/47 mutantes SQL, lint, advisors y tipos sin drift, pero GitHub
+lo terminó durante el cierre al rebasar por cuatro segundos el timeout global
+de 20 minutos. Se amplió exclusivamente `Database contract` a 30 minutos y se
+añadió una aserción estática para preservar ese presupuesto operativo; ninguna
+puerta fue eliminada, omitida ni relajada.
+
+La repetición local de la puerta completa detectó el advisory
+`GHSA-2v37-7h3g-55p8` en la resolución transitiva `nanoid@3.3.17`, introducida
+por `postcss`. Se fijó globalmente `nanoid@3.3.18`; el lockfile cambió únicamente
+esa versión, tarball e integridad. La política de 654 artefactos, firmas npm y
+auditorías de dependencias completas/productivas quedaron verdes.
+
 ## Cierre
 
 - Commit de implementación: `8f9d79191a8abbbb8b0693e2dcbda4af87990e06`.

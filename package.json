@@ -25,6 +25,7 @@
     "packages/*"
   ],
   "overrides": {
+    "nanoid": "3.3.18",
     "qs": "6.15.3",
     "next": {
       "postcss": "8.5.25",
