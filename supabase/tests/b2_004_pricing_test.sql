@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 -- Physical production contract.
 select extensions.has_table('app_private', 'price_books', 'price_books table exists');
 select extensions.has_table('app_private', 'price_tiers', 'price_tiers table exists');
@@ -153,11 +156,23 @@ select extensions.is(
 );
 
 select extensions.ok(
-  has_table_privilege('authenticated', 'app_private.price_tiers', 'SELECT')
+  not exists (
+    select 1
+    from information_schema.view_column_usage as usage
+    where usage.view_schema = 'api'
+      and usage.table_schema = 'app_private'
+      and usage.table_name = 'price_tiers'
+      and not has_column_privilege(
+        'authenticated',
+        'app_private.price_tiers',
+        usage.column_name,
+        'SELECT'
+      )
+  )
     and not has_table_privilege('authenticated', 'app_private.price_tiers', 'INSERT')
     and not has_table_privilege('authenticated', 'app_private.price_tiers', 'UPDATE')
     and not has_table_privilege('authenticated', 'app_private.price_tiers', 'DELETE'),
-  'authenticated receives read-only private pricing access for invoker views'
+  'authenticated receives only the pricing columns required by invoker views'
 );
 
 select extensions.ok(

@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 -- Physical production contract.
 select extensions.has_table('app_private', 'commercial_commands', 'commercial command ledger exists');
 select extensions.has_table('app_private', 'contact_methods', 'encrypted contact methods table exists');
@@ -177,11 +180,23 @@ select extensions.ok(
   'anonymous commercial access remains disabled before the public catalog block'
 );
 select extensions.ok(
-  has_table_privilege('authenticated', 'app_private.orders', 'SELECT')
+  not exists (
+    select 1
+    from information_schema.view_column_usage as usage
+    where usage.view_schema = 'api'
+      and usage.table_schema = 'app_private'
+      and usage.table_name = 'orders'
+      and not has_column_privilege(
+        'authenticated',
+        'app_private.orders',
+        usage.column_name,
+        'SELECT'
+      )
+  )
     and not has_table_privilege('authenticated', 'app_private.orders', 'INSERT')
     and not has_table_privilege('authenticated', 'app_private.orders', 'UPDATE')
     and not has_table_privilege('authenticated', 'app_private.orders', 'DELETE'),
-  'authenticated receives read-only order access through tenant RLS'
+  'authenticated receives only order columns required by tenant views'
 );
 select extensions.ok(
   not has_column_privilege('authenticated', 'app_private.contact_methods', 'value_ciphertext', 'SELECT')

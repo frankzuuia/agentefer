@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 -- Physical production contract.
 select extensions.has_schema('app_private', 'app_private schema exists');
 select extensions.has_schema('api', 'api schema exists');
@@ -179,10 +182,29 @@ select extensions.is(
         'organization_memberships',
         'business_profiles'
       )
-      and has_table_privilege('authenticated', relation.oid, 'SELECT')
+      and exists (
+        select 1
+        from information_schema.view_column_usage as usage
+        where usage.view_schema = 'api'
+          and usage.table_schema = 'app_private'
+          and usage.table_name = relation.relname
+      )
+      and not exists (
+        select 1
+        from information_schema.view_column_usage as usage
+        where usage.view_schema = 'api'
+          and usage.table_schema = 'app_private'
+          and usage.table_name = relation.relname
+          and not has_column_privilege(
+            'authenticated',
+            format('%I.%I', usage.table_schema, usage.table_name),
+            usage.column_name,
+            'SELECT'
+          )
+      )
   ),
   4,
-  'authenticated receives read access to every B2-001 private relation for RLS evaluation'
+  'authenticated receives every B2-001 base-column grant required by API views'
 );
 
 select extensions.is(

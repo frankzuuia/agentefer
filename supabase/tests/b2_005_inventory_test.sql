@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 -- Physical production contract.
 select extensions.has_table('app_private', 'inventory_items', 'inventory_items table exists');
 select extensions.has_table('app_private', 'inventory_locations', 'inventory_locations table exists');
@@ -247,11 +250,23 @@ select extensions.is(
 );
 
 select extensions.ok(
-  has_table_privilege('authenticated', 'app_private.inventory_balances', 'SELECT')
+  not exists (
+    select 1
+    from information_schema.view_column_usage as usage
+    where usage.view_schema = 'api'
+      and usage.table_schema = 'app_private'
+      and usage.table_name = 'inventory_balances'
+      and not has_column_privilege(
+        'authenticated',
+        'app_private.inventory_balances',
+        usage.column_name,
+        'SELECT'
+      )
+  )
     and not has_table_privilege('authenticated', 'app_private.inventory_balances', 'INSERT')
     and not has_table_privilege('authenticated', 'app_private.inventory_balances', 'UPDATE')
     and not has_table_privilege('authenticated', 'app_private.inventory_balances', 'DELETE'),
-  'authenticated receives read-only inventory access for invoker views'
+  'authenticated receives only inventory columns required by invoker views'
 );
 select extensions.ok(
   has_table_privilege('service_role', 'app_private.inventory_items', 'INSERT')
@@ -1402,10 +1417,10 @@ select extensions.is(
   0,
   'RLS does not leak another organization inventory'
 );
-select extensions.is(
-  (select count(*)::integer from app_private.inventory_commands),
-  0,
-  'viewer cannot read internal idempotency commands'
+select pg_temp.throws_sqlstate(
+  $$select count(*) from app_private.inventory_commands$$,
+  '42501',
+  'viewer cannot query the internal idempotency ledger'
 );
 
 select set_config(
@@ -1413,13 +1428,10 @@ select set_config(
   '51000000-0000-4000-8000-000000000003',
   true
 );
-select extensions.ok(
-  exists (
-    select 1
-    from app_private.inventory_commands
-    where organization_id = '51000000-0000-4000-8000-000000000010'
-  ),
-  'operator can audit own organization idempotency commands'
+select pg_temp.throws_sqlstate(
+  $$select count(*) from app_private.inventory_commands$$,
+  '42501',
+  'operator cannot bypass the API to query the internal idempotency ledger'
 );
 
 select * from extensions.finish();

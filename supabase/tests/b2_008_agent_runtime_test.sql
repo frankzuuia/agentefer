@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 select extensions.is(
   (
     select count(*)::integer

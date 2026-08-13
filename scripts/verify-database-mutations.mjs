@@ -212,6 +212,51 @@ const mutants = [
     sql: "alter table app_private.agent_runs no force row level security;",
     test: "supabase/tests/b2_008_agent_runtime_test.sql",
   },
+  {
+    name: "expose tenant API schema to anon",
+    sql: "grant usage on schema api to anon;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "expose tenant API view to anon",
+    sql: "grant select on api.business_profiles to anon;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "allow authenticated direct private writes",
+    sql: "grant insert on app_private.contacts to authenticated;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "allow authenticated mutating worker RPC",
+    sql: "grant execute on function api.claim_agent_job(uuid, text, integer) to authenticated;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "expose read resolver execution through PUBLIC",
+    sql: "grant execute on function api.resolve_inventory_requirements(uuid, uuid, numeric) to public;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "disable API caller RLS invocation",
+    sql: "alter view api.business_profiles set (security_invoker = false);",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "remove operator contact isolation policy",
+    sql: "drop policy contacts_operator_select on app_private.contacts;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "remove active membership RLS lookup index",
+    sql: "drop index app_private.organization_memberships_active_user_organization_idx;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
+  {
+    name: "expose private prompt content to authenticated",
+    sql: "grant select (content_template) on app_private.prompt_versions to authenticated;",
+    test: "supabase/tests/b2_009_authorization_test.sql",
+  },
 ];
 
 const run = (command, args, capture = false) => {

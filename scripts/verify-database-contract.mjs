@@ -28,8 +28,10 @@ assert.deepEqual(
     "20260811230632_b2_006_commercial_workflow.sql",
     "20260812132809_b2_007_publication_workflow.sql",
     "20260812152500_b2_008_agent_runtime.sql",
+    "20260813150805_b2_009_authorization_hardening.sql",
+    "20260813152105_b2_009_service_role_least_privilege.sql",
   ],
-  "B2-001 through B2-008 must remain ordered, reviewable production migrations",
+  "B2-001 through B2-009 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -70,6 +72,14 @@ const agentRuntimeMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[10]),
   "utf8",
 );
+const authorizationMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[11]),
+  "utf8",
+);
+const serviceRoleLeastPrivilegeMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[12]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -100,6 +110,10 @@ const publicationDatabaseTest = await readFile(
 );
 const agentRuntimeDatabaseTest = await readFile(
   path.join(testDirectory, "b2_008_agent_runtime_test.sql"),
+  "utf8",
+);
+const authorizationDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_009_authorization_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -133,6 +147,8 @@ for (const [name, migration] of [
   ["B2-006", commercialMigration],
   ["B2-007", publicationMigration],
   ["B2-008", agentRuntimeMigration],
+  ["B2-009", authorizationMigration],
+  ["B2-009 service-role least privilege", serviceRoleLeastPrivilegeMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -752,6 +768,52 @@ for (const forbiddenProviderBinding of ["gpt-", "MiniMax-M", "luna-medium"]) {
   );
 }
 
+const requiredAuthorizationMigrationStatements = [
+  "alter default privileges for role postgres\n  revoke execute on functions from public;",
+  "alter default privileges for role postgres in schema app_private",
+  "revoke all on all tables in schema app_private from public, anon, authenticated, service_role;",
+  "revoke all on all functions in schema api from public, anon, authenticated, service_role;",
+  "from information_schema.view_column_usage as usage",
+  "grant select (%s) on table %I.%I to authenticated",
+  "grant select, insert, update, delete on all tables in schema app_private to service_role;",
+  "has_sequence_privilege('anon', relation.oid, 'USAGE')",
+  "B2-009 postflight detected authenticated columns outside the API projection",
+  "grant execute on function api.resolve_price_quote(",
+  "grant execute on function api.resolve_inventory_requirements(",
+];
+
+for (const statement of requiredAuthorizationMigrationStatements) {
+  assert.ok(
+    authorizationMigration.includes(statement),
+    `B2-009 authorization migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  authorizationMigration.includes("grant all on all tables in schema app_private to authenticated"),
+  false,
+  "B2-009 cannot grant browser identities blanket private-table access",
+);
+assert.equal(
+  authorizationMigration.includes("grant usage on schema api to anon"),
+  false,
+  "B2-009 cannot expose the tenant API schema anonymously",
+);
+
+for (const statement of [
+  "revoke all on all tables in schema app_private from service_role;",
+  "grant select on all tables in schema app_private to service_role;",
+  "B2-009 service-role INSERT matrix diverged",
+  "B2-009 service-role UPDATE matrix diverged",
+  "B2-009 service-role DELETE matrix diverged",
+  "B2-009 service-role received unsafe table privileges",
+  "B2-009 service-role received unneeded sequence privileges",
+]) {
+  assert.ok(
+    serviceRoleLeastPrivilegeMigration.includes(statement),
+    `B2-009 service-role correction must include: ${statement}`,
+  );
+}
+
 const requiredFoundationTestStatements = [
   "select extensions.plan(49);",
   "set constraints all immediate;",
@@ -949,6 +1011,33 @@ for (const statement of requiredAgentRuntimeTestStatements) {
   );
 }
 
+const requiredAuthorizationTestStatements = [
+  "select extensions.plan(80);",
+  "set local role authenticated;",
+  "set local role anon;",
+  "set local role service_role;",
+  "owner does not receive another organization business",
+  "operator cannot see admin-class rows",
+  "viewer cannot see operator-class rows",
+  "suspended member cannot see member-class rows",
+  "invited member cannot see tenant data before activation",
+  "authenticated cannot execute mutating worker RPCs",
+  "authenticated cannot read the hidden prompt template column",
+  "new API functions require an explicit authenticated signature grant",
+  "service_role can insert only into the 36 reviewed entry tables",
+  "service_role can update only the 29 reviewed mutable tables",
+  "service_role can delete only from the four reviewed foundation tables",
+  "no third application routine is executable by authenticated",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredAuthorizationTestStatements) {
+  assert.ok(
+    authorizationDatabaseTest.includes(statement),
+    `B2-009 database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -958,6 +1047,7 @@ for (const [name, databaseTest] of [
   ["B2-006", commercialDatabaseTest],
   ["B2-007", publicationDatabaseTest],
   ["B2-008", agentRuntimeDatabaseTest],
+  ["B2-009", authorizationDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -1131,5 +1221,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 89 forced-RLS tables, 649 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 89 forced-RLS tables, 729 pgTAP assertions, generated TypeScript schemas locked.`,
 );

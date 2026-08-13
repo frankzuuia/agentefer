@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 -- Physical production contract.
 select extensions.has_table('app_private', 'channel_connections', 'channel_connections table exists');
 select extensions.has_table('app_private', 'contacts', 'contacts table exists');
@@ -227,10 +230,29 @@ select extensions.is(
         'message_delivery_events',
         'consents'
       )
-      and has_table_privilege('authenticated', relation.oid, 'SELECT')
+      and exists (
+        select 1
+        from information_schema.view_column_usage as usage
+        where usage.view_schema = 'api'
+          and usage.table_schema = 'app_private'
+          and usage.table_name = relation.relname
+      )
+      and not exists (
+        select 1
+        from information_schema.view_column_usage as usage
+        where usage.view_schema = 'api'
+          and usage.table_schema = 'app_private'
+          and usage.table_name = relation.relname
+          and not has_column_privilege(
+            'authenticated',
+            format('%I.%I', usage.table_schema, usage.table_name),
+            usage.column_name,
+            'SELECT'
+          )
+      )
   ),
   8,
-  'authenticated can select only the normalized B2-002 base relations'
+  'authenticated receives all B2-002 base-column grants required by API views'
 );
 
 select extensions.is(

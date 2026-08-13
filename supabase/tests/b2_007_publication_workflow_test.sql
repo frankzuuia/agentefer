@@ -26,6 +26,9 @@ exception
 end;
 $$;
 
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 select extensions.has_table('app_private', 'publication_commands', 'publication command ledger exists');
 select extensions.has_table('app_private', 'social_connections', 'social connections table exists');
 select extensions.has_table('app_private', 'social_capabilities', 'social capabilities table exists');
