@@ -187,7 +187,7 @@ jobs:
           node-version-file: .node-version
 
       - name: Set up pinned Supabase CLI
-        uses: supabase/setup-cli@6ffe784b57613e98e0c04651e5fde0cec28cb1c9 # verified 2026-07-17
+        uses: supabase/setup-cli@aa3515eac405eac768fa4a72147c22d88a283c7b # verified 2026-07-17
         with:
           version: 2.111.0
 
