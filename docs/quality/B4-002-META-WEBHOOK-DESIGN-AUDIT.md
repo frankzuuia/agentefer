@@ -36,6 +36,9 @@ Rama: `develop`.
 4. Un mutante intentó eliminar una constraint con FKs dependientes y no pudo
    compilar. Se convirtió en ataque explícito `CASCADE`; pgTAP lo eliminó y el
    rollback restauró todo.
+5. El primer CI construyó las imágenes, pero el API container falló health
+   porque el `docker run` no pasaba las dos variables Meta nuevas. El workflow
+   y su contrato estático ahora exigen timeout y límite de body explícitos.
 
 ## Evidencia remota verde
 

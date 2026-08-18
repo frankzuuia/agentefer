@@ -116,6 +116,8 @@ jobs:
             --env SUPABASE_PROJECT_REF=agentefercitest \
             --env SUPABASE_PUBLISHABLE_KEY="$publishable_key" \
             --env SUPABASE_SECRET_KEY="$api_secret_key" \
+            --env META_WEBHOOK_RPC_TIMEOUT_MS=100 \
+            --env META_WEBHOOK_MAX_BODY_BYTES=1048576 \
             agentefer-api:ci
 
           docker run --detach --name "$worker_name" \

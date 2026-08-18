@@ -105,6 +105,20 @@ assert.ok(
   "local API binding must remain loopback-only",
 );
 
+const qualityWorkflow = await readFile(
+  path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
+  "utf8",
+);
+for (const requiredApiRuntimeVariable of [
+  "--env META_WEBHOOK_RPC_TIMEOUT_MS=100",
+  "--env META_WEBHOOK_MAX_BODY_BYTES=1048576",
+]) {
+  assert.ok(
+    qualityWorkflow.includes(requiredApiRuntimeVariable),
+    `container CI must pass the required API runtime variable: ${requiredApiRuntimeVariable}`,
+  );
+}
+
 console.log(
   `Container contract verified: ${dockerfilePaths.length} Dockerfiles, ${workspaceManifestPaths.length} workspace manifests.`,
 );
