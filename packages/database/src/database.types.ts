@@ -6193,6 +6193,22 @@ export type Database = {
       };
     };
     Functions: {
+      accept_meta_webhook_challenge: {
+        Args: {
+          target_correlation_id: string;
+          target_endpoint_key: string;
+          target_mode: string;
+          target_trace_id?: string;
+          target_verify_token: string;
+        };
+        Returns: {
+          credential_version_id: string;
+          external_app_id: string;
+          meta_application_id: string;
+          organization_id: string;
+          webhook_endpoint_id: string;
+        }[];
+      };
       append_agent_message: {
         Args: {
           target_channel_connection_id: string;
@@ -6672,6 +6688,26 @@ export type Database = {
         Returns: {
           publication_job_id: string;
           was_replayed: boolean;
+        }[];
+      };
+      ingest_meta_webhook_delivery: {
+        Args: {
+          target_endpoint_key: string;
+          target_raw_body_base64: string;
+          target_request_id: string;
+          target_signature_hex: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          credential_version_id: string;
+          delivery_count: number;
+          delivery_id: string;
+          delivery_status: string;
+          meta_application_id: string;
+          organization_id: string;
+          provider_object_type: string;
+          replayed: boolean;
+          webhook_endpoint_id: string;
         }[];
       };
       link_order_reservation: {
@@ -11257,6 +11293,116 @@ export type Database = {
             columns: ["organization_id", "meta_application_id", "webhook_endpoint_id"];
             isOneToOne: false;
             referencedRelation: "meta_webhook_endpoints";
+            referencedColumns: ["organization_id", "meta_application_id", "id"];
+          },
+        ];
+      };
+      meta_webhook_deliveries: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          completed_at: string | null;
+          delivery_count: number;
+          first_received_at: string;
+          first_request_id: string;
+          first_trace_id: string | null;
+          id: string;
+          initial_credential_version_id: string;
+          last_error_code: string | null;
+          last_received_at: string;
+          latest_credential_version_id: string;
+          latest_request_id: string;
+          latest_trace_id: string | null;
+          meta_application_id: string;
+          organization_id: string;
+          payload: Json;
+          payload_sha256: string;
+          processing_started_at: string | null;
+          provider_object_type: string;
+          signature_verified_at: string;
+          status: string;
+          updated_at: string;
+          webhook_endpoint_id: string;
+        };
+        Insert: {
+          attempt_count?: number;
+          available_at?: string;
+          completed_at?: string | null;
+          delivery_count?: number;
+          first_received_at?: string;
+          first_request_id: string;
+          first_trace_id?: string | null;
+          id?: string;
+          initial_credential_version_id: string;
+          last_error_code?: string | null;
+          last_received_at?: string;
+          latest_credential_version_id: string;
+          latest_request_id: string;
+          latest_trace_id?: string | null;
+          meta_application_id: string;
+          organization_id: string;
+          payload: Json;
+          payload_sha256: string;
+          processing_started_at?: string | null;
+          provider_object_type: string;
+          signature_verified_at?: string;
+          status?: string;
+          updated_at?: string;
+          webhook_endpoint_id: string;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          completed_at?: string | null;
+          delivery_count?: number;
+          first_received_at?: string;
+          first_request_id?: string;
+          first_trace_id?: string | null;
+          id?: string;
+          initial_credential_version_id?: string;
+          last_error_code?: string | null;
+          last_received_at?: string;
+          latest_credential_version_id?: string;
+          latest_request_id?: string;
+          latest_trace_id?: string | null;
+          meta_application_id?: string;
+          organization_id?: string;
+          payload?: Json;
+          payload_sha256?: string;
+          processing_started_at?: string | null;
+          provider_object_type?: string;
+          signature_verified_at?: string;
+          status?: string;
+          updated_at?: string;
+          webhook_endpoint_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_webhook_deliveries_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_webhook_deliveries_endpoint_fk";
+            columns: ["organization_id", "meta_application_id", "webhook_endpoint_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_webhook_endpoints";
+            referencedColumns: ["organization_id", "meta_application_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_webhook_deliveries_initial_credential_fk";
+            columns: ["organization_id", "meta_application_id", "initial_credential_version_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_credential_versions";
+            referencedColumns: ["organization_id", "meta_application_id", "id"];
+          },
+          {
+            foreignKeyName: "meta_webhook_deliveries_latest_credential_fk";
+            columns: ["organization_id", "meta_application_id", "latest_credential_version_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_credential_versions";
             referencedColumns: ["organization_id", "meta_application_id", "id"];
           },
         ];

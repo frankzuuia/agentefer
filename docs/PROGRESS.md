@@ -1,6 +1,6 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001–B2-009 completos y certificados. La infraestructura Vault habilitante de B4-001 está aplicada y certificada en Supabase AgenteFer; todavía no existe despliegue de aplicación, conexión Meta ni datos reales del negocio.  
+Estado global: Bloque 1 y B2-001–B2-009 completos y certificados. Vault B4-001 y el ingreso autenticado B4-002 están aplicados y certificados en Supabase AgenteFer; todavía no existe despliegue HTTPS, conexión Meta real ni datos reales del negocio.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
@@ -87,12 +87,14 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 | B4-009 | BL-003–BL-016                                  | E2E Meta→API→worker→LLM/tools→DB→respuesta                                   | conversación real staging y trazas completas            | [ ]      |
 | B4-010 | RQ-070, SC-026                                 | Marketplace                                                                  | `NO-BUILD` hasta API/permisos oficiales reales          | NO-BUILD |
 
-Avance habilitante B4-001: credenciales Meta multi-tenant cifradas en Supabase
-Vault, rotación sin redespliegue, challenge/HMAC dentro de SQL y vistas sin
-secretos. Certificación remota: 15/15 migraciones, 92 tablas con RLS forzado,
-782/782 pgTAP, 11/11 mutantes críticos, lint/advisors sin hallazgos, tipos sin
-drift y Data API privada cerrada. La fila permanece abierta hasta probar la
-capability matrix real de App/Página/WABA/número/permisos.
+Avance habilitante B4-001/B4-002: credenciales Meta multi-tenant cifradas en
+Supabase Vault, rotación sin redespliegue, challenge/HMAC sobre bytes crudos,
+inbox autenticado privado, replay idempotente y endpoint API provider-neutral.
+Certificación remota: 16/16 migraciones, 93 tablas con RLS forzado, 830/830
+pgTAP, 23/23 mutantes B4 críticos, lint sin hallazgos, tipos sincronizados y
+cero datos/secretos QA residuales. Las filas permanecen abiertas hasta probar
+la capability matrix real y challenge/evento por HTTPS de
+App/Página/WABA/número/permisos.
 
 ## Bloque 5 — Cerebro LLM, voz, visión, memoria y evaluaciones
 
@@ -173,7 +175,7 @@ capability matrix real de App/Página/WABA/número/permisos.
 - Project boundary: aprobado.
 - Requirement/business/spec coverage: `MATCH PERFECT` (RQ-001–110, BL-001–025 y SC-001–037; cero faltantes).
 - Technical ingestion: aprobada para B1-001/B1-002; scaffold B1-003 y dependencias B1-004 verificados.
-- Functional implementation: B2-003–B2-009 completos y certificados; infraestructura Vault Meta habilitante de B4-001 aplicada y certificada remotamente. La capability matrix Meta real, tools de dominio, adapters LLM/Meta y UI todavía están pendientes.
+- Functional implementation: B2-003–B2-009 completos y certificados; Vault B4-001 e ingreso autenticado B4-002 aplicados y certificados remotamente. La capability matrix Meta real, HTTPS público, tools de dominio, adapters LLM/Meta y UI todavía están pendientes.
 - External integrations: no configuradas.
 - Production: no creada.
 

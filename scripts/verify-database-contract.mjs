@@ -32,8 +32,9 @@ assert.deepEqual(
     "20260813152105_b2_009_service_role_least_privilege.sql",
     "20260813192925_b4_001_meta_vault_credentials.sql",
     "20260813203100_b4_001_constant_time_lint_hardening.sql",
+    "20260817173316_b4_002_meta_webhook_ingress.sql",
   ],
-  "B2-001 through B4-001 must remain ordered, reviewable production migrations",
+  "B2-001 through B4-002 must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -90,6 +91,10 @@ const metaVaultLintHardeningMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[14]),
   "utf8",
 );
+const metaWebhookIngressMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[15]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -128,6 +133,10 @@ const authorizationDatabaseTest = await readFile(
 );
 const metaVaultDatabaseTest = await readFile(
   path.join(testDirectory, "b4_001_meta_vault_credentials_test.sql"),
+  "utf8",
+);
+const metaWebhookIngressDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_002_meta_webhook_ingress_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -181,6 +190,7 @@ for (const [name, migration] of [
   ["B2-009 service-role least privilege", serviceRoleLeastPrivilegeMigration],
   ["B4-001 Meta Vault credentials", metaVaultMigration],
   ["B4-001 constant-time lint hardening", metaVaultLintHardeningMigration],
+  ["B4-002 Meta webhook ingress", metaWebhookIngressMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -504,6 +514,38 @@ assert.equal(
   false,
   "B4-001 lint hardening cannot redeclare the implicit FOR-loop variable",
 );
+
+const requiredMetaWebhookIngressMigrationStatements = [
+  "create table app_private.meta_webhook_deliveries (",
+  "meta_webhook_deliveries_endpoint_payload_unique",
+  "create function api.accept_meta_webhook_challenge(",
+  "create function api.ingest_meta_webhook_delivery(",
+  "from api.verify_meta_webhook_signature(",
+  "payload_hash := extensions.digest(raw_body, 'sha256');",
+  "on conflict on constraint meta_webhook_deliveries_endpoint_payload_unique do nothing",
+  "alter table app_private.meta_webhook_deliveries force row level security;",
+  "revoke all on app_private.meta_webhook_deliveries",
+  "grant execute on function api.ingest_meta_webhook_delivery(uuid, text, text, text, text)",
+  "notify pgrst, 'reload schema';",
+];
+
+for (const statement of requiredMetaWebhookIngressMigrationStatements) {
+  assert.ok(
+    metaWebhookIngressMigration.includes(statement),
+    `B4-002 Meta webhook ingress migration must include: ${statement}`,
+  );
+}
+for (const forbiddenStatement of [
+  "create view api.meta_webhook_deliveries",
+  "grant select on app_private.meta_webhook_deliveries to service_role",
+  "grant insert on app_private.meta_webhook_deliveries to service_role",
+]) {
+  assert.equal(
+    metaWebhookIngressMigration.includes(forbiddenStatement),
+    false,
+    `B4-002 cannot expose or bypass the private delivery inbox: ${forbiddenStatement}`,
+  );
+}
 
 for (const statement of [
   "create index price_books_created_by_user_idx",
@@ -1154,6 +1196,31 @@ for (const statement of requiredMetaVaultTestStatements) {
   );
 }
 
+const requiredMetaWebhookIngressTestStatements = [
+  "select extensions.plan(48);",
+  "private authenticated Meta delivery inbox exists",
+  "authenticated deliveries remain backend-only with default deny",
+  "non-subscribe Meta challenge modes fail closed",
+  "a different tenant verify token cannot activate an endpoint",
+  "an invalid raw-body signature is rejected before persistence",
+  "an Alpha signature cannot authenticate the Beta endpoint",
+  "signed batches above one hundred entries are rejected",
+  "raw bodies above one MiB are rejected before cryptographic work",
+  "an exact provider retry is identified as a replay",
+  "the same bytes at another tenant endpoint create independent work",
+  "credential rotation does not reset replay accounting",
+  "service role cannot bypass authenticated ingestion with direct DML",
+  "even the table owner cannot mutate authenticated delivery evidence",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredMetaWebhookIngressTestStatements) {
+  assert.ok(
+    metaWebhookIngressDatabaseTest.includes(statement),
+    `B4-002 Meta webhook ingress database test must include: ${statement}`,
+  );
+}
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -1165,6 +1232,7 @@ for (const [name, databaseTest] of [
   ["B2-008", agentRuntimeDatabaseTest],
   ["B2-009", authorizationDatabaseTest],
   ["B4-001", metaVaultDatabaseTest],
+  ["B4-002", metaWebhookIngressDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -1371,8 +1439,8 @@ assert.equal(
 );
 assert.equal(
   b4MutationCatalog.split('name: "').length - 1,
-  11,
-  "B4-001 must preserve eleven critical database mutants",
+  23,
+  "B4 must preserve eleven Vault mutants and twelve authenticated ingress mutants",
 );
 for (const mutationGuard of [
   "remove forced RLS from Meta applications",
@@ -1382,6 +1450,14 @@ for (const mutationGuard of [
   "expose Vault in the PostgREST schema list",
   "disable valid Meta challenge resolution",
   "disable valid Meta raw-body HMAC resolution",
+  "remove forced RLS from authenticated Meta deliveries",
+  "allow service role to read authenticated Meta delivery payloads",
+  "remove authenticated Meta replay uniqueness",
+  "remove authenticated Meta credential scope identity and evidence links",
+  "remove authenticated Meta delivery evidence immutability",
+  "expose raw Meta delivery ingestion to anonymous callers",
+  "disable atomic Meta challenge acceptance",
+  "disable atomic authenticated Meta delivery persistence",
 ]) {
   assert.ok(
     b4MutationCatalog.includes(mutationGuard),
@@ -1393,7 +1469,10 @@ for (const runnerGuard of [
   'const expectedProjectName = "AgenteFer";',
   'transactionOutcome: "rolled_back_per_mutant"',
   "B4 mutation must apply successfully before its test can kill it",
-  '"20260813192925", "20260813203100"',
+  '"20260817173316"',
+  "new Set(b4DatabaseMutants.map((mutant) => mutant.test))",
+  "testSources.get(mutant.test)",
+  "B4 mutation test must remain inside the AgenteFer Supabase test directory",
 ]) {
   assert.ok(
     linkedB4MutationRunner.includes(runnerGuard),
@@ -1406,5 +1485,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 92 forced-RLS tables, 782 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 93 forced-RLS tables, 830 pgTAP assertions, generated TypeScript schemas locked.`,
 );

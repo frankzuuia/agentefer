@@ -54,8 +54,8 @@ select extensions.is(
     where namespace.nspname = 'app_private'
       and relation.relkind in ('r', 'p')
   ),
-  92,
-  'the private data model contains the 92 reviewed tables'
+  93,
+  'the private data model contains the 93 reviewed tables'
 );
 select extensions.is(
   (
@@ -66,7 +66,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relrowsecurity
   ),
-  92,
+  93,
   'RLS is enabled on every private table'
 );
 select extensions.is(
@@ -78,7 +78,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relforcerowsecurity
   ),
-  92,
+  93,
   'RLS is forced on every private table'
 );
 select extensions.is(
@@ -97,8 +97,8 @@ select extensions.is(
         select 1 from pg_catalog.pg_policy as policy where policy.polrelid = relation.oid
       )
   ),
-  'inbound_events, outbox_events',
-  'only backend inbox and outbox tables remain default deny without read policies'
+  'inbound_events, meta_webhook_deliveries, outbox_events',
+  'only authenticated backend inbox and outbox tables remain default deny without read policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and cmd = 'SELECT'),
@@ -320,11 +320,11 @@ select extensions.is(
     from pg_catalog.pg_class as relation
     join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
     where namespace.nspname = 'app_private'
-      and relation.relname in ('inbound_events', 'outbox_events')
+      and relation.relname in ('inbound_events', 'meta_webhook_deliveries', 'outbox_events')
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
   0,
-  'backend inbox and outbox remain unreadable to authenticated users'
+  'authenticated backend inbox and outbox remain unreadable to authenticated users'
 );
 select extensions.ok(
   not has_column_privilege('authenticated', 'app_private.prompt_versions', 'content_template', 'SELECT'),

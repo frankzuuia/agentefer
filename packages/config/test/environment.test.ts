@@ -42,6 +42,8 @@ const validApiEnvironment = (): RawEnvironment => ({
   SUPABASE_PROJECT_REF: projectRef,
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_unit_test_only",
   SUPABASE_SECRET_KEY: apiSupabaseTestSecret,
+  META_WEBHOOK_RPC_TIMEOUT_MS: "3500",
+  META_WEBHOOK_MAX_BODY_BYTES: "1048576",
 });
 
 const validWorkerEnvironment = (): RawEnvironment => ({
@@ -143,6 +145,10 @@ describe("api environment", () => {
     const configuration = parseApiEnvironment(validApiEnvironment());
 
     expect(configuration.server.port).toBe(3001);
+    expect(configuration.metaWebhook).toEqual({
+      rpcTimeoutMilliseconds: 3500,
+      maximumBodyBytes: 1_048_576,
+    });
     expect(configuration.supabase.secretKey.reveal()).toBe(apiSupabaseTestSecret);
     expect(JSON.stringify(configuration)).not.toContain(apiSupabaseTestSecret);
     expect(JSON.stringify(configuration)).toContain("[REDACTED]");
@@ -158,6 +164,27 @@ describe("api environment", () => {
       "does not match the declared Supabase project ref",
     );
   });
+
+  it("rejects a webhook dependency timeout above the Meta response budget", () => {
+    expect(() =>
+      parseApiEnvironment({
+        ...validApiEnvironment(),
+        META_WEBHOOK_RPC_TIMEOUT_MS: "4001",
+      }),
+    ).toThrow("must not exceed Meta's four-second persistence budget");
+  });
+
+  it.each(["1", "1048577"])(
+    "rejects a webhook body limit outside the certified database envelope: %s",
+    (maximumBodyBytes) => {
+      expect(() =>
+        parseApiEnvironment({
+          ...validApiEnvironment(),
+          META_WEBHOOK_MAX_BODY_BYTES: maximumBodyBytes,
+        }),
+      ).toThrow("must be between 2 bytes and the one MiB database envelope limit");
+    },
+  );
 });
 
 describe("worker environment", () => {

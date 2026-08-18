@@ -46,6 +46,8 @@ beforeAll(async () => {
     SUPABASE_PROJECT_REF: "agenteferapimain",
     SUPABASE_PUBLISHABLE_KEY: ["sb", "publishable", "api", "main", "test"].join("_"),
     SUPABASE_SECRET_KEY: ["sb", "secret", "api", "main", "test"].join("_"),
+    META_WEBHOOK_RPC_TIMEOUT_MS: "1000",
+    META_WEBHOOK_MAX_BODY_BYTES: "1048576",
   });
 
   const entrypoint = await import("../src/main.js");

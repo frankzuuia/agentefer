@@ -11,12 +11,6 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const expectedProjectRef = "hprdctmblmfcoagugvyp";
 const expectedProjectName = "AgenteFer";
-const testPath = path.join(
-  repositoryRoot,
-  "supabase",
-  "tests",
-  "b4_001_meta_vault_credentials_test.sql",
-);
 const npmExecutable = process.env.npm_execpath;
 const maxBuffer = 50 * 1024 * 1024;
 
@@ -45,32 +39,6 @@ assert.equal(linkedProjects.length, 1, "exactly one Supabase project must be lin
 assert.equal(linkedProjects[0]?.ref, expectedProjectRef, "CLI linked ref must be AgenteFer");
 assert.equal(linkedProjects[0]?.name, expectedProjectName, "linked project must be AgenteFer");
 
-const migrationsResult = spawnSync(
-  npxCommand,
-  [...npxArguments, "migration", "list", "--linked", "--output", "json"],
-  { cwd: repositoryRoot, encoding: "utf8", maxBuffer },
-);
-assert.equal(migrationsResult.status, 0, "linked migration identity query must succeed");
-const appliedMigrationVersions = JSON.parse(migrationsResult.stdout).migrations.map(
-  (migration) => migration.remote,
-);
-for (const requiredMigrationVersion of ["20260813192925", "20260813203100"]) {
-  assert.ok(
-    appliedMigrationVersions.includes(requiredMigrationVersion),
-    `linked B4 mutation testing requires applied migration ${requiredMigrationVersion}`,
-  );
-}
-
-const testSource = await readFile(testPath, "utf8");
-const appliedSchemaSource = "begin; select 1; commit;";
-const mutationPreflightTest = `
-begin;
-create extension if not exists pgtap with schema extensions;
-select extensions.plan(1);
-select extensions.ok(true, 'mutation SQL applied inside rollback');
-select * from extensions.finish();
-rollback;
-`;
 const temporaryDirectory = path.join(repositoryRoot, "tmp");
 const reportDirectory = path.join(repositoryRoot, "reports", "database-quality");
 const reportFile = path.join(reportDirectory, "linked-b4-mutation-summary.json");
@@ -104,6 +72,39 @@ const executeSql = async (sql, suffix) => {
   }
 };
 
+const migrationsResult = await executeSql(
+  "select version from supabase_migrations.schema_migrations order by version;\n",
+  "history",
+);
+assert.equal(migrationsResult.status, 0, "linked migration identity query must succeed");
+const appliedMigrationVersions = JSON.parse(migrationsResult.stdout).rows.map((row) =>
+  String(row.version),
+);
+for (const requiredMigrationVersion of ["20260813192925", "20260813203100", "20260817173316"]) {
+  assert.ok(
+    appliedMigrationVersions.includes(requiredMigrationVersion),
+    `linked B4 mutation testing requires applied migration ${requiredMigrationVersion}`,
+  );
+}
+
+const testSources = new Map();
+for (const test of new Set(b4DatabaseMutants.map((mutant) => mutant.test))) {
+  const absoluteTestPath = path.resolve(repositoryRoot, test);
+  assert.ok(
+    absoluteTestPath.startsWith(`${path.join(repositoryRoot, "supabase", "tests")}${path.sep}`),
+    `B4 mutation test must remain inside the AgenteFer Supabase test directory: ${test}`,
+  );
+  testSources.set(test, await readFile(absoluteTestPath, "utf8"));
+}
+const appliedSchemaSource = "begin; select 1; commit;";
+const mutationPreflightTest = `
+begin;
+create extension if not exists pgtap with schema extensions;
+select extensions.plan(1);
+select extensions.ok(true, 'mutation SQL applied inside rollback');
+select * from extensions.finish();
+rollback;
+`;
 const outcomes = [];
 
 for (const [index, mutant] of b4DatabaseMutants.entries()) {
@@ -126,7 +127,7 @@ for (const [index, mutant] of b4DatabaseMutants.entries()) {
 
   const mutatedTestSql = buildLinkedMigrationPgtapCollector(
     appliedSchemaSource,
-    testSource,
+    testSources.get(mutant.test),
     mutant.sql,
   );
   const testResult = await executeSql(mutatedTestSql, `${index}-test`);

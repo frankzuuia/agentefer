@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,26 +8,23 @@ import { buildLinkedMigrationPgtapCollector } from "../packages/database/dist/li
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
-const requestedMigration =
-  process.argv[2] ?? "supabase/migrations/20260809200347_b2_004_pricing.sql";
-const requestedTest = process.argv[3] ?? "supabase/tests/b2_004_pricing_test.sql";
-const migrationPath = path.resolve(repositoryRoot, requestedMigration);
-const testPath = path.resolve(repositoryRoot, requestedTest);
-const migrationRoot = `${path.join(repositoryRoot, "supabase", "migrations")}${path.sep}`;
-const testRoot = `${path.join(repositoryRoot, "supabase", "tests")}${path.sep}`;
+const explicitMigration = process.argv[2];
+const explicitTest = process.argv[3];
+const migrationDirectory = path.join(repositoryRoot, "supabase", "migrations");
+const testDirectory = path.join(repositoryRoot, "supabase", "tests");
+const migrationRoot = `${migrationDirectory}${path.sep}`;
+const testRoot = `${testDirectory}${path.sep}`;
 const expectedProjectRef = "hprdctmblmfcoagugvyp";
 const expectedProjectName = "AgenteFer";
 const npmExecutable = process.env.npm_execpath;
 const maxBuffer = 50 * 1024 * 1024;
 
 assert.ok(npmExecutable, "linked migration rehearsal must be invoked through npm");
-assert.ok(
-  migrationPath.startsWith(migrationRoot),
-  "migration must stay inside supabase/migrations",
+assert.equal(
+  explicitMigration === undefined,
+  explicitTest === undefined,
+  "migration and pgTAP test must be supplied together or selected automatically",
 );
-assert.ok(testPath.startsWith(testRoot), "pgTAP test must stay inside supabase/tests");
-assert.ok(migrationPath.endsWith(".sql"), "migration must use the .sql extension");
-assert.ok(testPath.endsWith(".sql"), "pgTAP test must use the .sql extension");
 
 const npxExecutable = path.join(path.dirname(npmExecutable), "npx-cli.js");
 const npxCommand = process.execPath;
@@ -55,12 +52,91 @@ assert.equal(linkedProjects.length, 1, "exactly one Supabase project must be lin
 assert.equal(linkedProjects[0]?.ref, expectedProjectRef, "CLI linked ref must be AgenteFer");
 assert.equal(linkedProjects[0]?.name, expectedProjectName, "linked project must be AgenteFer");
 
+const temporaryDirectory = path.join(repositoryRoot, "tmp");
+await mkdir(temporaryDirectory, { recursive: true });
+
+const selectPendingMigration = async () => {
+  const historyFile = path.join(temporaryDirectory, `linked-migration-history-${process.pid}.sql`);
+  await writeFile(
+    historyFile,
+    "select version from supabase_migrations.schema_migrations order by version;\n",
+    "utf8",
+  );
+
+  let historyResult;
+  try {
+    historyResult = spawnSync(
+      npxCommand,
+      [
+        ...npxArguments,
+        "db",
+        "query",
+        "--linked",
+        "--file",
+        historyFile,
+        "--output-format",
+        "json",
+      ],
+      { cwd: repositoryRoot, encoding: "utf8", maxBuffer },
+    );
+  } finally {
+    await rm(historyFile, { force: true });
+  }
+
+  assert.equal(historyResult.status, 0, "linked migration history query must succeed");
+  const remoteVersions = new Set(
+    JSON.parse(historyResult.stdout).rows.map((row) => String(row.version)),
+  );
+  const migrationFiles = (await readdir(migrationDirectory))
+    .filter(
+      (fileName) =>
+        fileName.endsWith(".sql") &&
+        fileName.length > 19 &&
+        fileName[14] === "_" &&
+        Array.from(fileName.slice(0, 14)).every(
+          (character) => character >= "0" && character <= "9",
+        ),
+    )
+    .sort();
+  const pendingFiles = migrationFiles.filter(
+    (fileName) => !remoteVersions.has(fileName.slice(0, 14)),
+  );
+
+  assert.equal(
+    pendingFiles.length,
+    1,
+    "automatic linked rehearsal requires exactly one pending local migration",
+  );
+  const migrationFile = pendingFiles[0];
+  assert.ok(migrationFile, "pending migration filename must exist");
+  const testFile = `${migrationFile.slice(15, -4)}_test.sql`;
+
+  return Object.freeze({
+    migration: path.join("supabase", "migrations", migrationFile),
+    test: path.join("supabase", "tests", testFile),
+  });
+};
+
+const selected =
+  explicitMigration === undefined
+    ? await selectPendingMigration()
+    : Object.freeze({ migration: explicitMigration, test: explicitTest });
+const migrationPath = path.resolve(repositoryRoot, selected.migration);
+const testPath = path.resolve(repositoryRoot, selected.test);
+
+assert.ok(
+  migrationPath.startsWith(migrationRoot),
+  "migration must stay inside supabase/migrations",
+);
+assert.ok(testPath.startsWith(testRoot), "pgTAP test must stay inside supabase/tests");
+assert.ok(migrationPath.endsWith(".sql"), "migration must use the .sql extension");
+assert.ok(testPath.endsWith(".sql"), "pgTAP test must use the .sql extension");
+
 const [migrationSource, testSource] = await Promise.all([
   readFile(migrationPath, "utf8"),
   readFile(testPath, "utf8"),
 ]);
 const collectedSql = buildLinkedMigrationPgtapCollector(migrationSource, testSource);
-const temporaryDirectory = path.join(repositoryRoot, "tmp");
 const temporaryFile = path.join(
   temporaryDirectory,
   `linked-migration-rehearsal-${process.pid}.sql`,

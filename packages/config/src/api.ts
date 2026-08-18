@@ -29,6 +29,8 @@ export const apiEnvironmentVariables = [
   "SUPABASE_PROJECT_REF",
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SECRET_KEY",
+  "META_WEBHOOK_RPC_TIMEOUT_MS",
+  "META_WEBHOOK_MAX_BODY_BYTES",
 ] as const;
 
 const apiEnvironmentSchema = z
@@ -44,6 +46,14 @@ const apiEnvironmentSchema = z
     SUPABASE_PROJECT_REF: supabaseProjectRefSchema,
     SUPABASE_PUBLISHABLE_KEY: supabasePublishableKeySchema,
     SUPABASE_SECRET_KEY: supabaseSecretKeySchema,
+    META_WEBHOOK_RPC_TIMEOUT_MS: positiveIntegerSchema.refine(
+      (value) => value <= 4_000,
+      "must not exceed Meta's four-second persistence budget",
+    ),
+    META_WEBHOOK_MAX_BODY_BYTES: positiveIntegerSchema.refine(
+      (value) => value >= 2 && value <= 1_048_576,
+      "must be between 2 bytes and the one MiB database envelope limit",
+    ),
   })
   .superRefine((environment, context) => {
     validateDeploymentMetadata(environment.APP_ENV, environment.DEPLOYMENT_COMMIT_SHA, context);
@@ -81,6 +91,10 @@ const apiEnvironmentSchema = z
       projectRef: environment.SUPABASE_PROJECT_REF,
       publishableKey: environment.SUPABASE_PUBLISHABLE_KEY,
       secretKey: environment.SUPABASE_SECRET_KEY,
+    },
+    metaWebhook: {
+      rpcTimeoutMilliseconds: environment.META_WEBHOOK_RPC_TIMEOUT_MS,
+      maximumBodyBytes: environment.META_WEBHOOK_MAX_BODY_BYTES,
     },
   }));
 

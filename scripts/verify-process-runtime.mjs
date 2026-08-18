@@ -150,6 +150,8 @@ await verifyRuntime({
     SUPABASE_PROJECT_REF: "agenteferprocesstest",
     SUPABASE_PUBLISHABLE_KEY: ["sb", "publishable", "process", "test", "only"].join("_"),
     SUPABASE_SECRET_KEY: ["sb", "secret", "api", "process", "test", "only"].join("_"),
+    META_WEBHOOK_RPC_TIMEOUT_MS: "100",
+    META_WEBHOOK_MAX_BODY_BYTES: "1048576",
   },
 });
 

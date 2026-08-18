@@ -44,6 +44,8 @@ const apiEnvironment = (port: number) => ({
   SUPABASE_PROJECT_REF: "agenteferapitest",
   SUPABASE_PUBLISHABLE_KEY: ["sb", "publishable", "api", "runtime", "test"].join("_"),
   SUPABASE_SECRET_KEY: ["sb", "secret", "api", "runtime", "test"].join("_"),
+  META_WEBHOOK_RPC_TIMEOUT_MS: "1000",
+  META_WEBHOOK_MAX_BODY_BYTES: "1048576",
 });
 
 afterEach(async () => {

@@ -4,6 +4,7 @@ import { createReadinessState } from "@agentefer/observability";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { buildApi } from "../src/app.js";
+import { buildApiTestInput } from "./support.js";
 
 const applications: ReturnType<typeof buildApi>[] = [];
 
@@ -14,7 +15,7 @@ afterEach(async () => {
 describe("API health endpoints over TCP", () => {
   it("separates liveness from readiness without exposing internals", async () => {
     const readiness = createReadinessState();
-    const application = buildApi({ readiness });
+    const application = buildApi(buildApiTestInput(readiness));
     applications.push(application);
     await application.listen({ host: "127.0.0.1", port: 0 });
     const address = application.server.address() as AddressInfo;

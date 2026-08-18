@@ -53,6 +53,8 @@ La guardia de exposición inspecciona todas las variables `NEXT_PUBLIC_*` presen
 | `SUPABASE_PROJECT_REF`     | interna            | siempre    | frontera explícita del proyecto                                 |
 | `SUPABASE_PUBLISHABLE_KEY` | interna/no secreta | siempre    | operaciones con contexto de usuario/RLS                         |
 | `SUPABASE_SECRET_KEY`      | secreta            | siempre    | key exclusiva del API; bypass RLS sólo tras autorización propia |
+| `META_WEBHOOK_RPC_TIMEOUT_MS` | interna         | siempre    | entero 1–4,000; deja margen dentro del presupuesto de Meta       |
+| `META_WEBHOOK_MAX_BODY_BYTES` | interna         | siempre    | entero 2–1,048,576; coincide con el límite certificado en SQL    |
 
 ### Worker
 
@@ -129,4 +131,4 @@ No se inventan todavía variables de Turnstile, observabilidad, SMTP o dominio:
 
 ## Pruebas actuales
 
-`packages/config/test/environment.test.ts` cubre 15 casos sin mocks externos: sincronización exacta de ejemplos, happy paths, exposición pública, redacción, HTTPS, frontera Supabase, selección OpenAI/MiniMax, modelo futuro, credenciales condicionales, fallback y ceilings.
+`packages/config/test/environment.test.ts` cubre 36 casos sin mocks externos: sincronización exacta de ejemplos, happy paths, exposición pública, redacción, HTTPS, frontera Supabase, presupuesto y tamaño del webhook Meta, selección OpenAI/MiniMax, modelo futuro, credenciales condicionales, fallback y ceilings.

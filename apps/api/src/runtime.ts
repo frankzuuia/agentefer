@@ -1,7 +1,12 @@
 import { parseApiEnvironment, type RawEnvironment } from "@agentefer/config";
-import { createReadinessState, createStructuredLogger } from "@agentefer/observability";
+import {
+  createOperationalMetrics,
+  createReadinessState,
+  createStructuredLogger,
+} from "@agentefer/observability";
 
 import { buildApi } from "./app.js";
+import { createMetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
 export type ApiTerminationSignal = "SIGINT" | "SIGTERM";
 
@@ -16,8 +21,20 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     environment: configuration.runtime.environment,
     level: configuration.runtime.logLevel,
   });
+  const metrics = createOperationalMetrics({ component: "api" });
   const readiness = createReadinessState();
-  const application = buildApi({ readiness });
+  const metaWebhookRpcClient = createMetaWebhookRpcClient({
+    supabaseUrl: configuration.supabase.url,
+    secretKey: configuration.supabase.secretKey,
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
+  const application = buildApi({
+    readiness,
+    logger,
+    metrics,
+    metaWebhookRpcClient,
+    metaWebhookMaximumBodyBytes: configuration.metaWebhook.maximumBodyBytes,
+  });
   let shutdownPromise: Promise<void> | undefined;
 
   const shutdown = (signal: ApiTerminationSignal): Promise<void> => {
