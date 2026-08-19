@@ -19,6 +19,7 @@ import {
   responseForMetaWebhookFailure,
 } from "../src/meta-webhook-routes.js";
 import { createMetaWebhookRpcClient } from "../src/meta-webhook-rpc.js";
+import { buildApiTestInput } from "./support.js";
 
 const applications: FastifyInstance[] = [];
 const dependencyServers: Server[] = [];
@@ -29,7 +30,9 @@ type CapturedRequest = Readonly<{
   body: Readonly<Record<string, unknown>>;
 }>;
 
-const readJsonBody = async (request: IncomingMessage): Promise<Readonly<Record<string, unknown>>> => {
+const readJsonBody = async (
+  request: IncomingMessage,
+): Promise<Readonly<Record<string, unknown>>> => {
   request.setEncoding("utf8");
   let body = "";
   for await (const chunk of request) {
@@ -73,7 +76,7 @@ const startApi = async (
 ): Promise<string> => {
   const readiness = createReadinessState();
   const application = buildApi({
-    readiness,
+    ...buildApiTestInput(readiness),
     logger: createStructuredLogger({
       component: "api",
       environment: "test",
@@ -289,17 +292,14 @@ describe("Meta webhook routes over real TCP", () => {
       writeJson(response, 500, {});
     });
     const apiUrl = await startApi(dependencyUrl, 128);
-    const response = await fetch(
-      `${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
-        },
-        body: JSON.stringify({ object: "page", entry: [{ value: "x".repeat(256) }] }),
+    const response = await fetch(`${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
       },
-    );
+      body: JSON.stringify({ object: "page", entry: [{ value: "x".repeat(256) }] }),
+    });
 
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({ status: "invalid" });
@@ -325,17 +325,14 @@ describe("Meta webhook routes over real TCP", () => {
         logs += chunk;
       });
       const apiUrl = await startApi(dependencyUrl, 1_024, logDestination);
-      const response = await fetch(
-        `${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
-          },
-          body: '{"object":"page","entry":[{}]}',
+      const response = await fetch(`${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
         },
-      );
+        body: '{"object":"page","entry":[{}]}',
+      });
 
       expect(response.status).toBe(expectedStatus);
       expect(response.headers.get("retry-after")).toBe(retryAfter);
@@ -364,17 +361,14 @@ describe("Meta webhook routes over real TCP", () => {
       writeJson(response, 200, []);
     });
     const apiUrl = await startApi(dependencyUrl, 1_024);
-    const response = await fetch(
-      `${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
-        },
-        body: '{"object":"page","entry":[{}]}',
+    const response = await fetch(`${apiUrl}/webhooks/meta/b4021000-0000-4000-8000-000000000003`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": `sha256=${"a1".repeat(32)}`,
       },
-    );
+      body: '{"object":"page","entry":[{}]}',
+    });
 
     expect(response.status).toBe(503);
     expect(response.headers.get("retry-after")).toBe("1");

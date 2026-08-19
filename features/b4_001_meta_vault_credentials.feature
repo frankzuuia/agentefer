@@ -118,3 +118,40 @@ Característica: Credenciales Meta cifradas y aisladas por organización
       Dado un owner de A y credenciales de B
       Cuando consulta las vistas seguras por el ID de B
       Entonces obtiene cero filas sin confirmar su existencia
+
+  Regla: La incorporación administrativa conserva la frontera multi-tenant
+
+    Escenario: Un owner registra su App desde el panel
+      Dado una sesión Supabase vigente y una organización donde el usuario es owner
+      Cuando envía App ID App Secret versión Graph y verify token desde el panel seguro
+      Entonces el API valida la sesión en Auth y la RPC cifra las credenciales para esa organización
+
+    Escenario: Un usuario intenta registrar una App sin sesión
+      Dado el formulario administrativo publicado
+      Cuando llama el endpoint de registro sin bearer token
+      Entonces recibe una respuesta no autenticada y Supabase no recibe ninguna credencial
+
+    Escenario: Un owner intenta seleccionar una organización ajena
+      Dado una sesión válida de la organización A
+      Cuando intenta registrar la App usando el ID de la organización B
+      Entonces la RPC rechaza la operación y Vault no crea secretos para ninguna de las dos
+
+    Escenario: Frank y Fer usan el mismo panel
+      Dado dos owners con organizaciones y activos Meta distintos
+      Cuando cada uno inicia sesión y consulta el selector de negocio
+      Entonces RLS muestra solamente sus organizaciones y cada alta conserva su endpoint independiente
+
+    Escenario: El navegador recarga después de registrar la App
+      Dado que el panel mostró el verify token únicamente en memoria
+      Cuando el usuario recarga o cierra la sesión
+      Entonces el JWT App Secret y verify token desaparecen del navegador y deben recuperarse por rotación autorizada
+
+    Escenario: Se observa una solicitud administrativa
+      Dado un App Secret verify token y JWT válidos
+      Cuando el alta termina con éxito conflicto rechazo o dependencia no disponible
+      Entonces respuestas logs y métricas contienen sólo resultado IDs seguros y categoría sin material secreto
+
+    Escenario: El owner configura Meta desde un teléfono
+      Dado una pantalla de 375 píxeles de ancho
+      Cuando abre el panel de integraciones
+      Entonces autenticación contexto formulario y resultado se presentan en una columna sin desplazamiento horizontal

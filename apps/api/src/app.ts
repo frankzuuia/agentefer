@@ -6,6 +6,8 @@ import {
   type StructuredLogger,
 } from "@agentefer/observability";
 
+import { type AdminMetaGateway } from "./admin-meta-gateway.js";
+import { registerAdminMetaRoutes } from "./admin-meta-routes.js";
 import { registerHealthRoutes } from "./health.js";
 import { registerMetaWebhookRoutes } from "./meta-webhook-routes.js";
 import { type MetaWebhookRpcClient } from "./meta-webhook-rpc.js";
@@ -14,6 +16,10 @@ export interface BuildApiInput {
   readonly readiness: ReadinessState;
   readonly logger: StructuredLogger;
   readonly metrics: OperationalMetrics;
+  readonly adminMetaGateway: AdminMetaGateway;
+  readonly apiPublicUrl: string;
+  readonly supabaseUrl: string;
+  readonly supabasePublishableKey: string;
   readonly metaWebhookRpcClient: MetaWebhookRpcClient;
   readonly metaWebhookMaximumBodyBytes: number;
 }
@@ -31,6 +37,14 @@ export function buildApi(input: BuildApiInput): FastifyInstance {
   });
 
   registerHealthRoutes(application, input.readiness);
+  registerAdminMetaRoutes(application, {
+    gateway: input.adminMetaGateway,
+    logger: input.logger,
+    metrics: input.metrics,
+    apiPublicUrl: input.apiPublicUrl,
+    supabaseUrl: input.supabaseUrl,
+    supabasePublishableKey: input.supabasePublishableKey,
+  });
   registerMetaWebhookRoutes(application, {
     rpcClient: input.metaWebhookRpcClient,
     logger: input.logger,

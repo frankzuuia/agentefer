@@ -5,6 +5,7 @@ import {
   createStructuredLogger,
 } from "@agentefer/observability";
 
+import { createAdminMetaGateway } from "./admin-meta-gateway.js";
 import { buildApi } from "./app.js";
 import { createMetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
@@ -23,6 +24,12 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
   });
   const metrics = createOperationalMetrics({ component: "api" });
   const readiness = createReadinessState();
+  const adminMetaGateway = createAdminMetaGateway({
+    supabaseUrl: configuration.supabase.url,
+    publishableKey: configuration.supabase.publishableKey,
+    secretKey: configuration.supabase.secretKey,
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
   const metaWebhookRpcClient = createMetaWebhookRpcClient({
     supabaseUrl: configuration.supabase.url,
     secretKey: configuration.supabase.secretKey,
@@ -32,6 +39,10 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     readiness,
     logger,
     metrics,
+    adminMetaGateway,
+    apiPublicUrl: configuration.server.publicUrl,
+    supabaseUrl: configuration.supabase.url,
+    supabasePublishableKey: configuration.supabase.publishableKey,
     metaWebhookRpcClient,
     metaWebhookMaximumBodyBytes: configuration.metaWebhook.maximumBodyBytes,
   });

@@ -1,21 +1,30 @@
 import { SensitiveValue } from "@agentefer/config";
-import {
-  createOperationalMetrics,
-  createStructuredLogger,
-} from "@agentefer/observability";
+import { createOperationalMetrics, createStructuredLogger } from "@agentefer/observability";
 
+import { createAdminMetaGateway } from "../src/admin-meta-gateway.js";
 import { type BuildApiInput } from "../src/app.js";
 import { createMetaWebhookRpcClient } from "../src/meta-webhook-rpc.js";
 
-export const buildApiTestInput = (
-  readiness: BuildApiInput["readiness"],
-): BuildApiInput => ({
+const supabaseTestUrl = "http://127.0.0.1:9";
+const supabaseTestPublishableKey = "sb_publishable_api_test_only";
+const supabaseTestSecret = new SensitiveValue(["sb", "secret", "api", "test", "only"].join("_"));
+
+export const buildApiTestInput = (readiness: BuildApiInput["readiness"]): BuildApiInput => ({
   readiness,
   logger: createStructuredLogger({ component: "api", environment: "test", level: "fatal" }),
   metrics: createOperationalMetrics({ component: "api-test" }),
+  adminMetaGateway: createAdminMetaGateway({
+    supabaseUrl: supabaseTestUrl,
+    publishableKey: supabaseTestPublishableKey,
+    secretKey: supabaseTestSecret,
+    timeoutMilliseconds: 50,
+  }),
+  apiPublicUrl: "https://agentefer.example.test",
+  supabaseUrl: supabaseTestUrl,
+  supabasePublishableKey: supabaseTestPublishableKey,
   metaWebhookRpcClient: createMetaWebhookRpcClient({
-    supabaseUrl: "http://127.0.0.1:9",
-    secretKey: new SensitiveValue(["sb", "secret", "api", "test", "only"].join("_")),
+    supabaseUrl: supabaseTestUrl,
+    secretKey: supabaseTestSecret,
     timeoutMilliseconds: 50,
   }),
   metaWebhookMaximumBodyBytes: 1_048_576,

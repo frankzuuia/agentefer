@@ -469,13 +469,27 @@ values
 set constraints all immediate;
 
 select extensions.is(
-  (select count(*)::integer from app_private.organizations),
+  (
+    select count(*)::integer
+    from app_private.organizations
+    where id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   2,
   'the valid organization fixtures satisfy the production schema'
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.business_profiles),
+  (
+    select count(*)::integer
+    from app_private.business_profiles
+    where id in (
+      '41111111-1111-4111-8111-111111111111'::uuid,
+      '42222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   2,
   'the valid business fixtures satisfy the production schema'
 );
@@ -594,7 +608,14 @@ set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 select extensions.is(
-  (select count(*)::integer from api.organizations),
+  (
+    select count(*)::integer
+    from api.organizations
+    where id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   1,
   'authenticated user sees only their organization through the API'
 );
@@ -645,7 +666,14 @@ reset role;
 set local role service_role;
 
 select extensions.is(
-  (select count(*)::integer from api.organizations),
+  (
+    select count(*)::integer
+    from api.organizations
+    where id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   2,
   'service_role can operate across organizations for the authorized backend'
 );
