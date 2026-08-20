@@ -7,6 +7,7 @@ import {
 
 import { createAdminMetaGateway } from "./admin-meta-gateway.js";
 import { buildApi } from "./app.js";
+import { createMetaGraphGateway } from "./meta-graph-gateway.js";
 import { createMetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
 export type ApiTerminationSignal = "SIGINT" | "SIGTERM";
@@ -35,11 +36,16 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     secretKey: configuration.supabase.secretKey,
     timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
   });
+  const metaGraphGateway = createMetaGraphGateway({
+    baseUrl: "https://graph.facebook.com",
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
   const application = buildApi({
     readiness,
     logger,
     metrics,
     adminMetaGateway,
+    metaGraphGateway,
     apiPublicUrl: configuration.server.publicUrl,
     supabaseUrl: configuration.supabase.url,
     supabasePublishableKey: configuration.supabase.publishableKey,

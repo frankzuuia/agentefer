@@ -9,6 +9,7 @@ import {
 import { type AdminMetaGateway } from "./admin-meta-gateway.js";
 import { registerAdminMetaRoutes } from "./admin-meta-routes.js";
 import { registerHealthRoutes } from "./health.js";
+import { type MetaGraphGateway } from "./meta-graph-gateway.js";
 import { registerMetaWebhookRoutes } from "./meta-webhook-routes.js";
 import { type MetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
@@ -17,6 +18,7 @@ export interface BuildApiInput {
   readonly logger: StructuredLogger;
   readonly metrics: OperationalMetrics;
   readonly adminMetaGateway: AdminMetaGateway;
+  readonly metaGraphGateway: MetaGraphGateway;
   readonly apiPublicUrl: string;
   readonly supabaseUrl: string;
   readonly supabasePublishableKey: string;
@@ -39,6 +41,7 @@ export function buildApi(input: BuildApiInput): FastifyInstance {
   registerHealthRoutes(application, input.readiness);
   registerAdminMetaRoutes(application, {
     gateway: input.adminMetaGateway,
+    metaGraphGateway: input.metaGraphGateway,
     logger: input.logger,
     metrics: input.metrics,
     apiPublicUrl: input.apiPublicUrl,

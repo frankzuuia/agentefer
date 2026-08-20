@@ -15,6 +15,18 @@ export type AdminMetaRegistrationInput = Readonly<{
   webhookVerifyToken: SensitiveValue;
 }>;
 
+export type AdminOrganizationQuery = Readonly<{
+  organizationId: string;
+}>;
+
+export type AdminMetaWhatsAppRegistrationInput = Readonly<{
+  organizationId: string;
+  metaApplicationId: string;
+  wabaId: string;
+  phoneNumberId: string;
+  accessToken: SensitiveValue;
+}>;
+
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -68,6 +80,55 @@ const readSecret = (
   return new SensitiveValue(value);
 };
 
+const readMetaNumericIdentifier = (
+  source: Readonly<Record<string, unknown>>,
+  field: string,
+): string | undefined => {
+  const value = readBoundedText(source, field, 64);
+  if (value === undefined) {
+    return undefined;
+  }
+  for (const character of value) {
+    if (character < "0" || character > "9") {
+      return undefined;
+    }
+  }
+  return value;
+};
+
+const readGraphApiVersion = (
+  source: Readonly<Record<string, unknown>>,
+  field: string,
+): string | undefined => {
+  const value = readBoundedText(source, field, 32, 4);
+  if (!value?.startsWith("v")) {
+    return undefined;
+  }
+
+  let decimalPointSeen = false;
+  let digitBeforeDecimal = false;
+  let digitAfterDecimal = false;
+  for (const character of value.slice(1)) {
+    if (character === ".") {
+      if (decimalPointSeen || !digitBeforeDecimal) {
+        return undefined;
+      }
+      decimalPointSeen = true;
+      continue;
+    }
+    if (character < "0" || character > "9") {
+      return undefined;
+    }
+    if (decimalPointSeen) {
+      digitAfterDecimal = true;
+    } else {
+      digitBeforeDecimal = true;
+    }
+  }
+
+  return decimalPointSeen && digitAfterDecimal ? value : undefined;
+};
+
 export const parseBearerAccessToken = (authorization: unknown): SensitiveValue | undefined => {
   if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) {
     return undefined;
@@ -103,9 +164,9 @@ export const parseAdminMetaRegistrationBody = (
   }
 
   const organizationId = parseMetaEndpointKey(value.organizationId);
-  const externalAppId = readBoundedText(value, "externalAppId", 255);
+  const externalAppId = readMetaNumericIdentifier(value, "externalAppId");
   const displayName = readBoundedText(value, "displayName", 160);
-  const apiVersion = readBoundedText(value, "apiVersion", 32, 2);
+  const apiVersion = readGraphApiVersion(value, "apiVersion");
   const appSecret = readSecret(value, "appSecret");
   const webhookVerifyToken = readSecret(value, "webhookVerifyToken");
 
@@ -127,5 +188,46 @@ export const parseAdminMetaRegistrationBody = (
     apiVersion,
     appSecret,
     webhookVerifyToken,
+  });
+};
+
+export const parseAdminOrganizationQuery = (value: unknown): AdminOrganizationQuery | undefined => {
+  if (!isRecord(value) || Object.keys(value).length !== 1) {
+    return undefined;
+  }
+
+  const organizationId = parseMetaEndpointKey(value.organizationId);
+  return organizationId === undefined ? undefined : Object.freeze({ organizationId });
+};
+
+export const parseAdminMetaWhatsAppRegistrationBody = (
+  value: unknown,
+): AdminMetaWhatsAppRegistrationInput | undefined => {
+  if (!isRecord(value) || Object.keys(value).length !== 5) {
+    return undefined;
+  }
+
+  const organizationId = parseMetaEndpointKey(value.organizationId);
+  const metaApplicationId = parseMetaEndpointKey(value.metaApplicationId);
+  const wabaId = readMetaNumericIdentifier(value, "wabaId");
+  const phoneNumberId = readMetaNumericIdentifier(value, "phoneNumberId");
+  const accessToken = readSecret(value, "accessToken");
+
+  if (
+    organizationId === undefined ||
+    metaApplicationId === undefined ||
+    wabaId === undefined ||
+    phoneNumberId === undefined ||
+    accessToken === undefined
+  ) {
+    return undefined;
+  }
+
+  return Object.freeze({
+    organizationId,
+    metaApplicationId,
+    wabaId,
+    phoneNumberId,
+    accessToken,
   });
 };

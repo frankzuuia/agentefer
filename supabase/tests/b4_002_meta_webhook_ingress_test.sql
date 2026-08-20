@@ -268,7 +268,15 @@ select extensions.lives_ok(
   'Beta endpoint accepts its independent Vault-backed challenge atomically'
 );
 select extensions.is(
-  (select count(*)::integer from api.meta_webhook_endpoints where status = 'active'),
+  (
+    select count(*)::integer
+    from api.meta_webhook_endpoints
+    where organization_id in (
+      'b4021000-0000-4000-8000-000000000001',
+      'b4022000-0000-4000-8000-000000000001'
+    )
+      and status = 'active'
+  ),
   2,
   'both tenant endpoints become independently active'
 );

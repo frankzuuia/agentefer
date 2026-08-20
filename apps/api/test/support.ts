@@ -3,6 +3,7 @@ import { createOperationalMetrics, createStructuredLogger } from "@agentefer/obs
 
 import { createAdminMetaGateway } from "../src/admin-meta-gateway.js";
 import { type BuildApiInput } from "../src/app.js";
+import { createMetaGraphGateway } from "../src/meta-graph-gateway.js";
 import { createMetaWebhookRpcClient } from "../src/meta-webhook-rpc.js";
 
 const supabaseTestUrl = "http://127.0.0.1:9";
@@ -17,6 +18,10 @@ export const buildApiTestInput = (readiness: BuildApiInput["readiness"]): BuildA
     supabaseUrl: supabaseTestUrl,
     publishableKey: supabaseTestPublishableKey,
     secretKey: supabaseTestSecret,
+    timeoutMilliseconds: 50,
+  }),
+  metaGraphGateway: createMetaGraphGateway({
+    baseUrl: supabaseTestUrl,
     timeoutMilliseconds: 50,
   }),
   apiPublicUrl: "https://agentefer.example.test",

@@ -225,12 +225,26 @@ select extensions.is(
   'Beta application receives an independent endpoint and Vault credentials'
 );
 select extensions.is(
-  (select count(*)::integer from api.meta_applications),
+  (
+    select count(*)::integer
+    from api.meta_applications
+    where organization_id in (
+      'b4100000-0000-4000-8000-000000000001',
+      'b4200000-0000-4000-8000-000000000001'
+    )
+  ),
   2,
   'both tenant applications exist without sharing a row'
 );
 select extensions.is(
-  (select count(distinct endpoint_key)::integer from api.meta_webhook_endpoints),
+  (
+    select count(distinct endpoint_key)::integer
+    from api.meta_webhook_endpoints
+    where organization_id in (
+      'b4100000-0000-4000-8000-000000000001',
+      'b4200000-0000-4000-8000-000000000001'
+    )
+  ),
   2,
   'each Meta application receives a different unguessable endpoint key'
 );
@@ -369,7 +383,15 @@ select extensions.lives_ok(
   'Beta endpoint verifies without affecting Alpha'
 );
 select extensions.is(
-  (select count(*)::integer from api.meta_webhook_endpoints where status = 'active'),
+  (
+    select count(*)::integer
+    from api.meta_webhook_endpoints
+    where organization_id in (
+      'b4100000-0000-4000-8000-000000000001',
+      'b4200000-0000-4000-8000-000000000001'
+    )
+      and status = 'active'
+  ),
   2,
   'both verified webhook endpoints become independently active'
 );

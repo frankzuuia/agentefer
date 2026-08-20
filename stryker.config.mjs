@@ -4,6 +4,7 @@ export default {
     "apps/api/src/admin-meta-gateway.ts",
     "apps/api/src/admin-meta-protocol.ts",
     "apps/api/src/admin-meta-routes.ts",
+    "apps/api/src/meta-graph-gateway.ts",
     "apps/api/src/meta-webhook-protocol.ts",
     "apps/api/src/meta-webhook-routes.ts",
     "apps/api/src/meta-webhook-rpc.ts",

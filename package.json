@@ -50,6 +50,7 @@
     "test:coverage": "vitest run --coverage",
     "test:database:linked": "npm run build --workspace @agentefer/database && node ./scripts/run-linked-pgtap.mjs",
     "test:database:linked:mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-database-mutations.mjs",
+    "test:database:linked:pending-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-pending-database-mutations.mjs",
     "test:database:linked:rehearsal": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-migration.mjs",
     "test:mutation": "stryker run",
     "verify:acceptance-contract": "node ./scripts/verify-acceptance-contract.mjs",

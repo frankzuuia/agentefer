@@ -85,6 +85,10 @@ Regla: esta matriz describe capacidades documentadas, no permisos concedidos a l
 - WhatsApp Cloud API requiere un Meta business portfolio, WABA, número de negocio y permisos como whatsapp_business_management y whatsapp_business_messaging.
 - Para producción, Meta recomienda token de system user en lugar de token temporal.
 - La aplicación debe suscribirse al WABA y recibir mensajes/estados por webhook.
+- La identidad de un access token puede inspeccionarse con `debug_token`; AgenteFer exige que el
+  App ID, vigencia y permisos coincidan con la App tenant seleccionada.
+- Los números de un WABA se enumeran mediante `/{WABA-ID}/phone_numbers`, y la suscripción de la
+  App al WABA se realiza mediante `/{WABA-ID}/subscribed_apps`.
 - Los eventos pueden contener texto, imagen, audio, documento, pedido y referencias de producto/publicación.
 - Los estados pueden llegar fuera de orden; la reconciliación debe usar ID externo y timestamp, no orden de recepción.
 - Dentro de la ventana de atención iniciada/refrescada por el usuario se puede responder conforme a política; fuera de ella, el negocio sólo puede usar mecanismos oficiales autorizados.

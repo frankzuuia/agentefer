@@ -20,8 +20,10 @@ const organizationId = "b4032000-0000-4000-8000-000000000002";
 const metaApplicationId = "b4032000-0000-4000-8000-000000000003";
 const webhookEndpointId = "b4032000-0000-4000-8000-000000000004";
 const endpointKey = "b4032000-0000-4000-8000-000000000005";
+const channelConnectionId = "b4032000-0000-4000-8000-000000000006";
 const appSecret = "real-meta-app-secret-contract-value";
 const verifyToken = "real-meta-verify-token-contract-value";
+const channelAccessToken = "real-meta-channel-access-token-contract-value";
 
 const errorContracts = {
   invalid: {
@@ -138,7 +140,42 @@ const registrationInput = () => ({
   traceId: "0123456789abcdef0123456789abcdef",
 });
 
+const whatsappRegistrationInput = () => ({
+  organizationId,
+  metaApplicationId,
+  wabaId: "111111111111111",
+  phoneNumberId: "222222222222222",
+  displayPhoneNumber: "+52 664 555 0101",
+  verifiedName: "AgenteFer Pruebas",
+  qualityRating: "GREEN",
+  nameStatus: "APPROVED",
+  tokenType: "SYSTEM_USER",
+  grantedScopes: ["whatsapp_business_management", "whatsapp_business_messaging"],
+  tokenExpiresAt: "2100-01-01T00:00:00.000Z",
+  accessToken: new SensitiveValue(channelAccessToken),
+  actorUserId: userId,
+  requestId: "request-admin-meta-whatsapp-contract",
+  traceId: "fedcba9876543210fedcba9876543210",
+});
+
 describe("admin Meta Supabase gateway over real TCP", () => {
+  it.each(Object.entries(errorContracts))(
+    "exposes the exact redacted %s operational error contract",
+    (kind, contract) => {
+      const error = new AdminMetaGatewayError(
+        kind as keyof typeof errorContracts,
+        new Error(appSecret),
+      );
+
+      expect(error).toMatchObject({
+        name: "AdminMetaGatewayError",
+        kind,
+        ...contract,
+      });
+      expect(JSON.stringify(error)).not.toContain(appSecret);
+    },
+  );
+
   it("authenticates, honors RLS headers and registers the exact tenant-scoped RPC", async () => {
     const requests: Readonly<{
       url: string;
@@ -220,6 +257,145 @@ describe("admin Meta Supabase gateway over real TCP", () => {
     });
   });
 
+  it("lists tenant Meta state through RLS and registers the exact WhatsApp RPC", async () => {
+    const rpcBodies: Readonly<Record<string, unknown>>[] = [];
+    const baseUrl = await startServer(async (request, response) => {
+      expect(request.headers.accept).toBe("application/json");
+      const url = new URL(request.url ?? "", baseUrl);
+
+      if (url.pathname === "/rest/v1/meta_applications") {
+        expect(request.method).toBe("GET");
+        expect(request.headers.apikey).toBe(publishableKey);
+        expect(request.headers.authorization).toBe(`Bearer ${accessToken.reveal()}`);
+        expect(request.headers["accept-profile"]).toBe("api");
+        expect(url.searchParams.get("select")).toBe(
+          "id,organization_id,external_app_id,display_name,api_version,status",
+        );
+        expect(url.searchParams.get("organization_id")).toBe(`eq.${organizationId}`);
+        expect(url.searchParams.get("status")).toBe("eq.active");
+        expect(url.searchParams.get("order")).toBe("display_name.asc");
+        expect(url.searchParams.get("limit")).toBe("100");
+        writeJson(response, 200, [
+          {
+            id: metaApplicationId,
+            organization_id: organizationId,
+            external_app_id: "216409300082702",
+            display_name: "AgenteFer - Pruebas Frank",
+            api_version: "v26.0",
+            status: "active",
+          },
+        ]);
+        return;
+      }
+
+      if (url.pathname === "/rest/v1/meta_whatsapp_connections") {
+        expect(request.method).toBe("GET");
+        expect(request.headers.apikey).toBe(publishableKey);
+        expect(request.headers.authorization).toBe(`Bearer ${accessToken.reveal()}`);
+        expect(request.headers["accept-profile"]).toBe("api");
+        expect(url.searchParams.get("select")).toBe(
+          "id,organization_id,meta_application_id,waba_id,phone_number_id," +
+            "display_phone_number,verified_name,api_version,status,connected_at",
+        );
+        expect(url.searchParams.get("organization_id")).toBe(`eq.${organizationId}`);
+        expect(url.searchParams.get("status")).toBe("eq.active");
+        expect(url.searchParams.get("order")).toBe("created_at.desc");
+        expect(url.searchParams.get("limit")).toBe("100");
+        writeJson(response, 200, [
+          {
+            id: channelConnectionId,
+            organization_id: organizationId,
+            meta_application_id: metaApplicationId,
+            waba_id: "111111111111111",
+            phone_number_id: "222222222222222",
+            display_phone_number: "+52 664 555 0101",
+            verified_name: "AgenteFer Pruebas",
+            api_version: "v26.0",
+            status: "active",
+            connected_at: "2026-08-20T14:00:00.000Z",
+          },
+        ]);
+        return;
+      }
+
+      if (url.pathname === "/rest/v1/rpc/register_meta_whatsapp_connection") {
+        expect(request.method).toBe("POST");
+        expect(request.headers.apikey).toBe(serviceSecret);
+        expect(request.headers["accept-profile"]).toBe("api");
+        expect(request.headers["content-profile"]).toBe("api");
+        expect(request.headers["content-type"]).toBe("application/json");
+        rpcBodies.push(await readJsonBody(request));
+        writeJson(response, 200, [
+          {
+            channel_connection_id: channelConnectionId,
+            display_phone_number: "+52 664 555 0101",
+            verified_name: "AgenteFer Pruebas",
+            connection_status: "active",
+          },
+        ]);
+        return;
+      }
+
+      writeJson(response, 404, {});
+    });
+    const gateway = createGateway(baseUrl);
+
+    await expect(gateway.listMetaApplications(accessToken, organizationId)).resolves.toEqual([
+      {
+        id: metaApplicationId,
+        organizationId,
+        externalAppId: "216409300082702",
+        displayName: "AgenteFer - Pruebas Frank",
+        apiVersion: "v26.0",
+        status: "active",
+      },
+    ]);
+    await expect(gateway.listMetaWhatsAppConnections(accessToken, organizationId)).resolves.toEqual(
+      [
+        {
+          id: channelConnectionId,
+          organizationId,
+          metaApplicationId,
+          wabaId: "111111111111111",
+          phoneNumberId: "222222222222222",
+          displayPhoneNumber: "+52 664 555 0101",
+          verifiedName: "AgenteFer Pruebas",
+          apiVersion: "v26.0",
+          status: "active",
+          connectedAt: "2026-08-20T14:00:00.000Z",
+        },
+      ],
+    );
+    await expect(
+      gateway.registerMetaWhatsAppConnection(whatsappRegistrationInput()),
+    ).resolves.toEqual({
+      channelConnectionId,
+      displayPhoneNumber: "+52 664 555 0101",
+      verifiedName: "AgenteFer Pruebas",
+      status: "active",
+    });
+
+    expect(rpcBodies).toHaveLength(1);
+    expect(rpcBodies[0]).toEqual({
+      target_organization_id: organizationId,
+      target_meta_application_id: metaApplicationId,
+      target_waba_id: "111111111111111",
+      target_phone_number_id: "222222222222222",
+      target_display_phone_number: "+52 664 555 0101",
+      target_verified_name: "AgenteFer Pruebas",
+      target_quality_rating: "GREEN",
+      target_name_status: "APPROVED",
+      target_token_type: "SYSTEM_USER",
+      target_granted_scopes: ["whatsapp_business_management", "whatsapp_business_messaging"],
+      target_token_expires_at: "2100-01-01T00:00:00.000Z",
+      target_data_access_expires_at: null,
+      target_access_token: channelAccessToken,
+      target_actor_user_id: userId,
+      target_correlation_id: "request-admin-meta-whatsapp-contract",
+      target_trace_id: "fedcba9876543210fedcba9876543210",
+    });
+  });
+
   it.each([
     { operation: "authenticate", status: 400, kind: "unauthenticated" },
     { operation: "authenticate", status: 401, kind: "unauthenticated" },
@@ -260,6 +436,26 @@ describe("admin Meta Supabase gateway over real TCP", () => {
       ...errorContracts[kind],
     });
     expect(JSON.stringify(capturedError)).not.toContain(appSecret);
+  });
+
+  it("maps a WhatsApp registration conflict without exposing its token", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 409, { diagnostic: channelAccessToken });
+    });
+
+    let capturedError: unknown;
+    try {
+      await createGateway(baseUrl).registerMetaWhatsAppConnection(whatsappRegistrationInput());
+    } catch (error) {
+      capturedError = error;
+    }
+
+    expect(capturedError).toMatchObject({
+      name: "AdminMetaGatewayError",
+      kind: "conflict",
+      ...errorContracts.conflict,
+    });
+    expect(JSON.stringify(capturedError)).not.toContain(channelAccessToken);
   });
 
   it.each([
@@ -382,6 +578,176 @@ describe("admin Meta Supabase gateway over real TCP", () => {
       errorContracts.dependency,
     );
   });
+
+  it.each([
+    {
+      operation: "applications",
+      body: {},
+    },
+    {
+      operation: "applications",
+      body: [null],
+    },
+    {
+      operation: "applications",
+      body: [[]],
+    },
+    {
+      operation: "applications",
+      body: [
+        {
+          id: metaApplicationId,
+          organization_id: organizationId,
+          external_app_id: "216409300082702",
+          display_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "inactive",
+        },
+      ],
+    },
+    {
+      operation: "applications",
+      body: [
+        {
+          id: metaApplicationId,
+          organization_id: "b4032000-0000-4000-8000-000000000099",
+          external_app_id: "216409300082702",
+          display_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "active",
+        },
+      ],
+    },
+    {
+      operation: "applications",
+      body: [
+        {
+          id: metaApplicationId,
+          organization_id: organizationId,
+          external_app_id: "",
+          display_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "active",
+        },
+      ],
+    },
+    {
+      operation: "whatsapp-connections",
+      body: {},
+    },
+    {
+      operation: "whatsapp-connections",
+      body: [null],
+    },
+    {
+      operation: "whatsapp-connections",
+      body: [[]],
+    },
+    {
+      operation: "whatsapp-connections",
+      body: [
+        {
+          id: channelConnectionId,
+          organization_id: organizationId,
+          meta_application_id: metaApplicationId,
+          waba_id: "111111111111111",
+          phone_number_id: "222222222222222",
+          display_phone_number: "+52 664 555 0101",
+          verified_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "inactive",
+          connected_at: "2026-08-20T14:00:00.000Z",
+        },
+      ],
+    },
+    {
+      operation: "whatsapp-connections",
+      body: [
+        {
+          id: channelConnectionId,
+          organization_id: "b4032000-0000-4000-8000-000000000099",
+          meta_application_id: metaApplicationId,
+          waba_id: "111111111111111",
+          phone_number_id: "222222222222222",
+          display_phone_number: "+52 664 555 0101",
+          verified_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "active",
+          connected_at: "2026-08-20T14:00:00.000Z",
+        },
+      ],
+    },
+    {
+      operation: "whatsapp-connections",
+      body: [
+        {
+          id: channelConnectionId,
+          organization_id: organizationId,
+          meta_application_id: metaApplicationId,
+          waba_id: "111111111111111",
+          phone_number_id: "222222222222222",
+          display_phone_number: "+52 664 555 0101",
+          verified_name: "AgenteFer",
+          api_version: "v26.0",
+          status: "active",
+          connected_at: "not-a-timestamp",
+        },
+      ],
+    },
+  ] as const)("rejects an invalid $operation collection contract", async ({ operation, body }) => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 200, body);
+    });
+    const gateway = createGateway(baseUrl);
+    const promise =
+      operation === "applications"
+        ? gateway.listMetaApplications(accessToken, organizationId)
+        : gateway.listMetaWhatsAppConnections(accessToken, organizationId);
+
+    await expect(promise).rejects.toMatchObject(errorContracts.dependency);
+  });
+
+  it.each(["applications", "whatsapp-connections"] as const)(
+    "accepts 100 %s rows and rejects response 101",
+    async (operation) => {
+      const applicationRow = {
+        id: metaApplicationId,
+        organization_id: organizationId,
+        external_app_id: "216409300082702",
+        display_name: "AgenteFer",
+        api_version: "v26.0",
+        status: "active",
+      };
+      const connectionRow = {
+        id: channelConnectionId,
+        organization_id: organizationId,
+        meta_application_id: metaApplicationId,
+        waba_id: "111111111111111",
+        phone_number_id: "222222222222222",
+        display_phone_number: "+52 664 555 0101",
+        verified_name: "AgenteFer",
+        api_version: "v26.0",
+        status: "active",
+        connected_at: "2026-08-20T14:00:00.000Z",
+      };
+      const rows = Array.from({ length: 101 }, () =>
+        operation === "applications" ? applicationRow : connectionRow,
+      );
+      let requestCount = 0;
+      const baseUrl = await startServer((_request, response) => {
+        requestCount += 1;
+        writeJson(response, 200, requestCount === 1 ? rows.slice(0, 100) : rows);
+      });
+      const gateway = createGateway(baseUrl);
+      const invoke = () =>
+        operation === "applications"
+          ? gateway.listMetaApplications(accessToken, organizationId)
+          : gateway.listMetaWhatsAppConnections(accessToken, organizationId);
+
+      await expect(invoke()).resolves.toHaveLength(100);
+      await expect(invoke()).rejects.toMatchObject(errorContracts.dependency);
+    },
+  );
 
   it("rejects invalid UTF-8 JSON without exposing its content", async () => {
     const baseUrl = await startServer((_request, response) => {

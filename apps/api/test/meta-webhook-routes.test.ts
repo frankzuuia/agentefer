@@ -8,13 +8,22 @@ import {
   createOperationalMetrics,
   createReadinessState,
   createStructuredLogger,
+  type OperationalMetrics,
 } from "@agentefer/observability";
+import {
+  AggregationTemporality,
+  DataPointType,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import { type FastifyInstance } from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { buildApi } from "../src/app.js";
 import {
   classifyMetaWebhookFailure,
+  classifyMetaWebhookParserFailure,
   readFastifyErrorCode,
   responseForMetaWebhookFailure,
 } from "../src/meta-webhook-routes.js";
@@ -23,6 +32,7 @@ import { buildApiTestInput } from "./support.js";
 
 const applications: FastifyInstance[] = [];
 const dependencyServers: Server[] = [];
+const metricProviders: MeterProvider[] = [];
 const rpcSecret = ["sb", "secret", "routes", "contract", "test"].join("_");
 
 type CapturedRequest = Readonly<{
@@ -73,6 +83,7 @@ const startApi = async (
   dependencyUrl: string,
   maximumBodyBytes: number,
   logDestination?: PassThrough,
+  operationalMetrics?: OperationalMetrics,
 ): Promise<string> => {
   const readiness = createReadinessState();
   const application = buildApi({
@@ -83,7 +94,7 @@ const startApi = async (
       level: logDestination === undefined ? "fatal" : "info",
       ...(logDestination === undefined ? {} : { destination: logDestination }),
     }),
-    metrics: createOperationalMetrics({ component: "api-routes-test" }),
+    metrics: operationalMetrics ?? createOperationalMetrics({ component: "api-routes-test" }),
     metaWebhookRpcClient: createMetaWebhookRpcClient({
       supabaseUrl: dependencyUrl,
       secretKey: new SensitiveValue(rpcSecret),
@@ -99,6 +110,60 @@ const startApi = async (
   readiness.markReady();
   const address = application.server.address() as AddressInfo;
   return `http://127.0.0.1:${String(address.port)}`;
+};
+
+const createMetricsHarness = () => {
+  const exporter = new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE);
+  const reader = new PeriodicExportingMetricReader({
+    exporter,
+    exportIntervalMillis: 60_000,
+  });
+  const provider = new MeterProvider({ readers: [reader] });
+  metricProviders.push(provider);
+  return Object.freeze({
+    exporter,
+    provider,
+    metrics: createOperationalMetrics({
+      component: "meta-webhook-routes-test",
+      meter: provider.getMeter("meta-webhook-routes-integration"),
+    }),
+  });
+};
+
+const readCompletedAndDurationMetrics = async (
+  harness: ReturnType<typeof createMetricsHarness>,
+) => {
+  await harness.provider.forceFlush();
+  const metricData = harness.exporter
+    .getMetrics()
+    .flatMap((resource) => resource.scopeMetrics)
+    .flatMap((scope) => scope.metrics);
+  const completed = metricData.find(
+    (metric) => metric.descriptor.name === "agentefer.operation.completed",
+  );
+  const duration = metricData.find(
+    (metric) => metric.descriptor.name === "agentefer.operation.duration",
+  );
+
+  expect(completed?.dataPointType).toBe(DataPointType.SUM);
+  expect(duration?.dataPointType).toBe(DataPointType.HISTOGRAM);
+  if (
+    completed?.dataPointType !== DataPointType.SUM ||
+    duration?.dataPointType !== DataPointType.HISTOGRAM
+  ) {
+    throw new TypeError("Expected sum and histogram webhook metrics");
+  }
+  for (const point of duration.dataPoints) {
+    const sum = point.value.sum;
+    if (sum === undefined) {
+      throw new TypeError("Webhook duration histogram did not expose its sum");
+    }
+    expect(point.value.count).toBeGreaterThan(0);
+    expect(sum).toBeGreaterThanOrEqual(0);
+    expect(sum / point.value.count).toBeLessThan(1_000);
+  }
+
+  return Object.freeze({ completed, duration });
 };
 
 const closeServer = async (server: Server): Promise<void> => {
@@ -117,10 +182,12 @@ const closeServer = async (server: Server): Promise<void> => {
 afterEach(async () => {
   await Promise.all(applications.splice(0).map(async (application) => application.close()));
   await Promise.all(dependencyServers.splice(0).map(closeServer));
+  await Promise.all(metricProviders.splice(0).map(async (provider) => provider.shutdown()));
 });
 
 describe("Meta webhook routes over real TCP", () => {
   it("returns the exact challenge and acknowledges a durably accepted raw delivery", async () => {
+    const metricsHarness = createMetricsHarness();
     const captured: CapturedRequest[] = [];
     const dependencyUrl = await startDependencyServer(async (request, response) => {
       captured.push({ url: request.url ?? "", body: await readJsonBody(request) });
@@ -156,7 +223,7 @@ describe("Meta webhook routes over real TCP", () => {
     logDestination.on("data", (chunk: string) => {
       logs += chunk;
     });
-    const apiUrl = await startApi(dependencyUrl, 1_048_576, logDestination);
+    const apiUrl = await startApi(dependencyUrl, 1_048_576, logDestination, metricsHarness.metrics);
     const endpointKey = "b4021000-0000-4000-8000-000000000003";
     const challengeResponse = await fetch(
       `${apiUrl}/webhooks/meta/${endpointKey}?hub.mode=subscribe&hub.verify_token=exact-verify-token-value&hub.challenge=0012345`,
@@ -227,16 +294,38 @@ describe("Meta webhook routes over real TCP", () => {
         },
       }),
     );
+    const { completed, duration } = await readCompletedAndDurationMetrics(metricsHarness);
+    expect(completed.dataPoints).toHaveLength(2);
+    expect(completed.dataPoints.map((point) => point.attributes)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          "operation.name": "meta.webhook.challenge",
+          "operation.outcome": "succeeded",
+        }),
+        expect.objectContaining({
+          "operation.name": "meta.webhook.delivery",
+          "operation.outcome": "succeeded",
+        }),
+      ]),
+    );
+    expect(duration.dataPoints).toHaveLength(2);
   });
 
   it("rejects malformed requests locally without contacting Supabase", async () => {
+    const metricsHarness = createMetricsHarness();
+    const logDestination = new PassThrough();
+    logDestination.setEncoding("utf8");
+    let logs = "";
+    logDestination.on("data", (chunk: string) => {
+      logs += chunk;
+    });
     let requestCount = 0;
     const dependencyUrl = await startDependencyServer(async (request, response) => {
       requestCount += 1;
       await readJsonBody(request);
       writeJson(response, 500, {});
     });
-    const apiUrl = await startApi(dependencyUrl, 256);
+    const apiUrl = await startApi(dependencyUrl, 256, logDestination, metricsHarness.metrics);
     const endpointKey = "b4021000-0000-4000-8000-000000000003";
 
     const malformedEndpoint = await fetch(
@@ -282,6 +371,24 @@ describe("Meta webhook routes over real TCP", () => {
     expect(nonJsonBody.status).toBe(400);
     expect(unsupportedMediaType.status).toBe(415);
     expect(requestCount).toBe(0);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(logs).toContain('"error_severity":"warning"');
+    expect(logs).toContain('"error_category":"validation"');
+    expect(logs).toContain('"error_category":"authentication"');
+    const { completed, duration } = await readCompletedAndDurationMetrics(metricsHarness);
+    expect(completed.dataPoints.map((point) => point.attributes)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          "operation.name": "meta.webhook.challenge",
+          "operation.outcome": "failed",
+        }),
+        expect.objectContaining({
+          "operation.name": "meta.webhook.delivery",
+          "operation.outcome": "failed",
+        }),
+      ]),
+    );
+    expect(duration.dataPoints.length).toBeGreaterThanOrEqual(2);
   });
 
   it("enforces the configured body boundary before RPC invocation", async () => {
@@ -398,9 +505,11 @@ describe("Meta webhook fail-closed HTTP classification", () => {
 
     expect(failure.statusCode).toBe(500);
     expect(failure.error).toMatchObject({
+      name: "MetaWebhookHttpError",
       code: "META_WEBHOOK_UNCLASSIFIED",
       category: "internal",
       retryable: false,
+      severity: "error",
     });
     expect(responseForMetaWebhookFailure(failure.statusCode)).toEqual({ status: "failed" });
     expect(failure.error.message).not.toContain("private-runtime-diagnostic");
@@ -418,4 +527,42 @@ describe("Meta webhook fail-closed HTTP classification", () => {
       "FST_ERR_CTP_BODY_TOO_LARGE",
     );
   });
+
+  it.each([
+    {
+      errorCode: "FST_ERR_CTP_BODY_TOO_LARGE",
+      statusCode: 413,
+      code: "META_WEBHOOK_ENVELOPE_REJECTED",
+      category: "validation",
+      severity: "warning",
+    },
+    {
+      errorCode: "FST_ERR_CTP_INVALID_MEDIA_TYPE",
+      statusCode: 415,
+      code: "META_WEBHOOK_ENVELOPE_REJECTED",
+      category: "validation",
+      severity: "warning",
+    },
+    {
+      errorCode: undefined,
+      statusCode: 500,
+      code: "META_WEBHOOK_PARSER_FAILED",
+      category: "internal",
+      severity: "error",
+    },
+  ] as const)(
+    "classifies parser failure $errorCode as HTTP $statusCode",
+    ({ errorCode, statusCode, code, category, severity }) => {
+      const failure = classifyMetaWebhookParserFailure(errorCode);
+
+      expect(failure.statusCode).toBe(statusCode);
+      expect(failure.error).toMatchObject({
+        name: "MetaWebhookHttpError",
+        code,
+        category,
+        retryable: false,
+        severity,
+      });
+    },
+  );
 });

@@ -20,19 +20,10 @@ import {
   parseMetaEndpointKey,
   parseMetaSignatureHeader,
 } from "./meta-webhook-protocol.js";
-import {
-  MetaWebhookRpcError,
-  type MetaWebhookRpcClient,
-} from "./meta-webhook-rpc.js";
+import { MetaWebhookRpcError, type MetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
-const CHALLENGE_OPERATION = "meta.webhook.challenge";
-const DELIVERY_OPERATION = "meta.webhook.delivery";
-const EVENT_RECEIVED_RESPONSE = "EVENT_RECEIVED";
-
-const INVALID_RESPONSE = Object.freeze({ status: "invalid" });
-const REJECTED_RESPONSE = Object.freeze({ status: "rejected" });
-const UNAVAILABLE_RESPONSE = Object.freeze({ status: "unavailable" });
-const FAILED_RESPONSE = Object.freeze({ status: "failed" });
+const webhookOperation = (kind: "challenge" | "delivery"): string =>
+  kind === "challenge" ? "meta.webhook.challenge" : "meta.webhook.delivery";
 
 type MetaWebhookRouteInput = Readonly<{
   rpcClient: MetaWebhookRpcClient;
@@ -95,15 +86,15 @@ export const responseForMetaWebhookFailure = (
     case 400:
     case 413:
     case 415:
-      return INVALID_RESPONSE;
+      return Object.freeze({ status: "invalid" });
     case 401:
     case 403:
     case 404:
-      return REJECTED_RESPONSE;
+      return Object.freeze({ status: "rejected" });
     case 503:
-      return UNAVAILABLE_RESPONSE;
+      return Object.freeze({ status: "unavailable" });
     default:
-      return FAILED_RESPONSE;
+      return Object.freeze({ status: "failed" });
   }
 };
 
@@ -114,6 +105,25 @@ export const readFastifyErrorCode = (error: unknown): string | undefined => {
 
   const code = (error as Readonly<Record<string, unknown>>).code;
   return typeof code === "string" ? code : undefined;
+};
+
+export const classifyMetaWebhookParserFailure = (
+  errorCode: string | undefined,
+): ClassifiedMetaWebhookFailure => {
+  const statusCode =
+    errorCode === "FST_ERR_CTP_BODY_TOO_LARGE"
+      ? 413
+      : errorCode === "FST_ERR_CTP_INVALID_MEDIA_TYPE"
+        ? 415
+        : 500;
+  return Object.freeze({
+    error: new MetaWebhookHttpError(
+      statusCode === 500 ? "META_WEBHOOK_PARSER_FAILED" : "META_WEBHOOK_ENVELOPE_REJECTED",
+      statusCode === 500 ? "internal" : "validation",
+      statusCode,
+    ),
+    statusCode,
+  });
 };
 
 const recordFailure = (
@@ -133,10 +143,7 @@ const recordFailure = (
   });
 };
 
-const sendFailure = (
-  reply: FastifyReply,
-  failure: ClassifiedMetaWebhookFailure,
-): void => {
+const sendFailure = (reply: FastifyReply, failure: ClassifiedMetaWebhookFailure): void => {
   if (failure.statusCode === 503) {
     reply.header("retry-after", "1");
   }
@@ -164,10 +171,11 @@ const handleChallenge = async (
   input: MetaWebhookRouteInput,
 ): Promise<void> => {
   const scope = createCorrelationScope();
+  const operation = webhookOperation("challenge");
 
   await runWithCorrelation(scope, async () => {
     const startedAt = performance.now();
-    input.metrics.recordStarted(CHALLENGE_OPERATION);
+    input.metrics.recordStarted(operation);
 
     try {
       const endpointKey = requireEndpointKey(request);
@@ -185,7 +193,7 @@ const handleChallenge = async (
       });
 
       input.metrics.recordCompleted({
-        operation: CHALLENGE_OPERATION,
+        operation,
         outcome: "succeeded",
         durationMilliseconds: performance.now() - startedAt,
       });
@@ -199,7 +207,7 @@ const handleChallenge = async (
       reply.type("text/plain; charset=utf-8").code(200).send(challenge.challenge);
     } catch (error) {
       const failure = classifyMetaWebhookFailure(error);
-      recordFailure(input, CHALLENGE_OPERATION, startedAt, failure);
+      recordFailure(input, operation, startedAt, failure);
       sendFailure(reply, failure);
     }
   });
@@ -211,10 +219,11 @@ const handleDelivery = async (
   input: MetaWebhookRouteInput,
 ): Promise<void> => {
   const scope = createCorrelationScope();
+  const operation = webhookOperation("delivery");
 
   await runWithCorrelation(scope, async () => {
     const startedAt = performance.now();
-    input.metrics.recordStarted(DELIVERY_OPERATION);
+    input.metrics.recordStarted(operation);
 
     try {
       const endpointKey = requireEndpointKey(request);
@@ -235,7 +244,7 @@ const handleDelivery = async (
       });
 
       input.metrics.recordCompleted({
-        operation: DELIVERY_OPERATION,
+        operation,
         outcome: "succeeded",
         durationMilliseconds: performance.now() - startedAt,
       });
@@ -251,10 +260,10 @@ const handleDelivery = async (
         delivery_status: result.deliveryStatus,
       });
 
-      reply.type("text/plain; charset=utf-8").code(200).send(EVENT_RECEIVED_RESPONSE);
+      reply.type("text/plain; charset=utf-8").code(200).send("EVENT_RECEIVED");
     } catch (error) {
       const failure = classifyMetaWebhookFailure(error);
-      recordFailure(input, DELIVERY_OPERATION, startedAt, failure);
+      recordFailure(input, operation, startedAt, failure);
       sendFailure(reply, failure);
     }
   });
@@ -279,23 +288,10 @@ export function registerMetaWebhookRoutes(
     });
     scope.setErrorHandler((error, _request, reply) => {
       const startedAt = performance.now();
-      input.metrics.recordStarted(DELIVERY_OPERATION);
-      const errorCode = readFastifyErrorCode(error);
-      const statusCode =
-        errorCode === "FST_ERR_CTP_BODY_TOO_LARGE"
-          ? 413
-          : errorCode === "FST_ERR_CTP_INVALID_MEDIA_TYPE"
-            ? 415
-            : 500;
-      const failure = Object.freeze({
-        error: new MetaWebhookHttpError(
-          statusCode === 500 ? "META_WEBHOOK_PARSER_FAILED" : "META_WEBHOOK_ENVELOPE_REJECTED",
-          statusCode === 500 ? "internal" : "validation",
-          statusCode,
-        ),
-        statusCode,
-      });
-      recordFailure(input, DELIVERY_OPERATION, startedAt, failure);
+      const operation = webhookOperation("delivery");
+      input.metrics.recordStarted(operation);
+      const failure = classifyMetaWebhookParserFailure(readFastifyErrorCode(error));
+      recordFailure(input, operation, startedAt, failure);
       sendFailure(reply, failure);
     });
     scope.get("/webhooks/meta/:endpointKey", (request, reply) =>

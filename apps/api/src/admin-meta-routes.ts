@@ -21,15 +21,25 @@ import {
   ADMIN_META_HTML,
   ADMIN_META_JAVASCRIPT,
 } from "./admin-meta-page.js";
-import { parseAdminMetaRegistrationBody, parseBearerAccessToken } from "./admin-meta-protocol.js";
+import {
+  parseAdminMetaRegistrationBody,
+  parseAdminMetaWhatsAppRegistrationBody,
+  parseAdminOrganizationQuery,
+  parseBearerAccessToken,
+} from "./admin-meta-protocol.js";
+import { MetaGraphGatewayError, type MetaGraphGateway } from "./meta-graph-gateway.js";
 import { readFastifyErrorCode } from "./meta-webhook-routes.js";
 
 const ORGANIZATIONS_OPERATION = "admin.meta.organizations";
+const APPLICATIONS_OPERATION = "admin.meta.applications";
+const WHATSAPP_CONNECTIONS_OPERATION = "admin.meta.whatsapp_connections";
 const REGISTER_OPERATION = "admin.meta.register";
+const REGISTER_WHATSAPP_OPERATION = "admin.meta.whatsapp_register";
 const MAXIMUM_ADMIN_BODY_BYTES = 140_000;
 
 type AdminMetaRouteInput = Readonly<{
   gateway: AdminMetaGateway;
+  metaGraphGateway: MetaGraphGateway;
   logger: StructuredLogger;
   metrics: OperationalMetrics;
   apiPublicUrl: string;
@@ -76,6 +86,18 @@ export const classifyAdminMetaFailure = (error: unknown): ClassifiedAdminMetaFai
         return Object.freeze({ error, statusCode: 403 });
       case "conflict":
         return Object.freeze({ error, statusCode: 409 });
+      case "timeout":
+      case "dependency":
+        return Object.freeze({ error, statusCode: 503 });
+    }
+  }
+
+  if (error instanceof MetaGraphGatewayError) {
+    switch (error.kind) {
+      case "invalid":
+        return Object.freeze({ error, statusCode: 400 });
+      case "unauthorized":
+        return Object.freeze({ error, statusCode: 403 });
       case "timeout":
       case "dependency":
         return Object.freeze({ error, statusCode: 503 });
@@ -215,6 +237,90 @@ const handleOrganizations = async (
   });
 };
 
+const handleApplications = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminMetaRouteInput,
+): Promise<void> => {
+  const query = parseAdminOrganizationQuery(request.query);
+  const scope = createCorrelationScope({ organizationId: query?.organizationId });
+
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(APPLICATIONS_OPERATION);
+
+    try {
+      if (query === undefined) {
+        throw new AdminMetaHttpError("ADMIN_META_QUERY_INVALID", "validation", 400);
+      }
+      const accessToken = requireAccessToken(request);
+      const identity = await input.gateway.authenticate(accessToken);
+      const applications = await input.gateway.listMetaApplications(
+        accessToken,
+        query.organizationId,
+      );
+
+      input.metrics.recordCompleted({
+        operation: APPLICATIONS_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      input.logger.info("admin.meta.applications.listed", "succeeded", {
+        organization_id: query.organizationId,
+        actor_user_id: identity.userId,
+        application_count: applications.length,
+      });
+      reply.code(200).send({ applications });
+    } catch (error) {
+      const failure = classifyAdminMetaFailure(error);
+      recordFailure(input, APPLICATIONS_OPERATION, startedAt, failure);
+      sendFailure(reply, failure);
+    }
+  });
+};
+
+const handleWhatsAppConnections = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminMetaRouteInput,
+): Promise<void> => {
+  const query = parseAdminOrganizationQuery(request.query);
+  const scope = createCorrelationScope({ organizationId: query?.organizationId });
+
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(WHATSAPP_CONNECTIONS_OPERATION);
+
+    try {
+      if (query === undefined) {
+        throw new AdminMetaHttpError("ADMIN_META_QUERY_INVALID", "validation", 400);
+      }
+      const accessToken = requireAccessToken(request);
+      const identity = await input.gateway.authenticate(accessToken);
+      const connections = await input.gateway.listMetaWhatsAppConnections(
+        accessToken,
+        query.organizationId,
+      );
+
+      input.metrics.recordCompleted({
+        operation: WHATSAPP_CONNECTIONS_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      input.logger.info("admin.meta.whatsapp_connections.listed", "succeeded", {
+        organization_id: query.organizationId,
+        actor_user_id: identity.userId,
+        connection_count: connections.length,
+      });
+      reply.code(200).send({ connections });
+    } catch (error) {
+      const failure = classifyAdminMetaFailure(error);
+      recordFailure(input, WHATSAPP_CONNECTIONS_OPERATION, startedAt, failure);
+      sendFailure(reply, failure);
+    }
+  });
+};
+
 const handleRegistration = async (
   request: FastifyRequest,
   reply: FastifyReply,
@@ -267,6 +373,99 @@ const handleRegistration = async (
     } catch (error) {
       const failure = classifyAdminMetaFailure(error);
       recordFailure(input, REGISTER_OPERATION, startedAt, failure);
+      sendFailure(reply, failure);
+    }
+  });
+};
+
+const handleWhatsAppRegistration = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminMetaRouteInput,
+): Promise<void> => {
+  const registration = parseAdminMetaWhatsAppRegistrationBody(request.body);
+  const scope = createCorrelationScope({ organizationId: registration?.organizationId });
+
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(REGISTER_WHATSAPP_OPERATION);
+
+    try {
+      requireJsonContentType(request);
+      if (registration === undefined) {
+        throw new AdminMetaHttpError("ADMIN_META_WHATSAPP_INVALID", "validation", 400);
+      }
+
+      const sessionToken = requireAccessToken(request);
+      const identity = await input.gateway.authenticate(sessionToken);
+      const applications = await input.gateway.listMetaApplications(
+        sessionToken,
+        registration.organizationId,
+      );
+      const application = applications.find(
+        (candidate) => candidate.id === registration.metaApplicationId,
+      );
+      if (application === undefined) {
+        throw new AdminMetaGatewayError("unauthorized");
+      }
+
+      const validation = await input.metaGraphGateway.validateAndSubscribeWhatsAppConnection({
+        apiVersion: application.apiVersion,
+        expectedAppId: application.externalAppId,
+        wabaId: registration.wabaId,
+        phoneNumberId: registration.phoneNumberId,
+        accessToken: registration.accessToken,
+      });
+      const result = await input.gateway.registerMetaWhatsAppConnection({
+        organizationId: registration.organizationId,
+        metaApplicationId: registration.metaApplicationId,
+        wabaId: registration.wabaId,
+        phoneNumberId: registration.phoneNumberId,
+        displayPhoneNumber: validation.displayPhoneNumber,
+        verifiedName: validation.verifiedName,
+        ...(validation.qualityRating === undefined
+          ? {}
+          : { qualityRating: validation.qualityRating }),
+        ...(validation.nameStatus === undefined ? {} : { nameStatus: validation.nameStatus }),
+        tokenType: validation.tokenType,
+        grantedScopes: validation.grantedScopes,
+        ...(validation.tokenExpiresAt === undefined
+          ? {}
+          : { tokenExpiresAt: validation.tokenExpiresAt }),
+        ...(validation.dataAccessExpiresAt === undefined
+          ? {}
+          : { dataAccessExpiresAt: validation.dataAccessExpiresAt }),
+        accessToken: registration.accessToken,
+        actorUserId: identity.userId,
+        requestId: scope.identifiers.requestId,
+        traceId: scope.identifiers.traceId,
+      });
+
+      input.metrics.recordCompleted({
+        operation: REGISTER_WHATSAPP_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      input.logger.info("admin.meta.whatsapp_connection.registered", "succeeded", {
+        organization_id: registration.organizationId,
+        actor_user_id: identity.userId,
+        meta_application_id: registration.metaApplicationId,
+        channel_connection_id: result.channelConnectionId,
+        waba_id: registration.wabaId,
+        phone_number_id: registration.phoneNumberId,
+      });
+
+      reply.code(201).send({
+        status: "connected",
+        connection: {
+          id: result.channelConnectionId,
+          displayPhoneNumber: result.displayPhoneNumber,
+          verifiedName: result.verifiedName,
+        },
+      });
+    } catch (error) {
+      const failure = classifyAdminMetaFailure(error);
+      recordFailure(input, REGISTER_WHATSAPP_OPERATION, startedAt, failure);
       sendFailure(reply, failure);
     }
   });
@@ -337,10 +536,21 @@ export function registerAdminMetaRoutes(
     scope.get("/admin/organizations", (request, reply) =>
       handleOrganizations(request, reply, input),
     );
+    scope.get("/admin/meta/applications", (request, reply) =>
+      handleApplications(request, reply, input),
+    );
+    scope.get("/admin/meta/whatsapp-connections", (request, reply) =>
+      handleWhatsAppConnections(request, reply, input),
+    );
     scope.post(
       "/admin/meta/applications",
       { bodyLimit: MAXIMUM_ADMIN_BODY_BYTES },
       (request, reply) => handleRegistration(request, reply, input),
+    );
+    scope.post(
+      "/admin/meta/whatsapp-connections",
+      { bodyLimit: MAXIMUM_ADMIN_BODY_BYTES },
+      (request, reply) => handleWhatsAppRegistration(request, reply, input),
     );
     done();
   };

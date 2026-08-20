@@ -33,8 +33,10 @@ assert.deepEqual(
     "20260813192925_b4_001_meta_vault_credentials.sql",
     "20260813203100_b4_001_constant_time_lint_hardening.sql",
     "20260817173316_b4_002_meta_webhook_ingress.sql",
+    "20260820201112_b4_001b_meta_whatsapp_onboarding.sql",
+    "20260820223000_b4_001c_meta_whatsapp_profile_least_privilege.sql",
   ],
-  "B2-001 through B4-002 must remain ordered, reviewable production migrations",
+  "B2-001 through B4-001C must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -95,6 +97,14 @@ const metaWebhookIngressMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[15]),
   "utf8",
 );
+const metaWhatsAppOnboardingMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[16]),
+  "utf8",
+);
+const metaWhatsAppProfileLeastPrivilegeMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[17]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -139,6 +149,14 @@ const metaWebhookIngressDatabaseTest = await readFile(
   path.join(testDirectory, "b4_002_meta_webhook_ingress_test.sql"),
   "utf8",
 );
+const metaWhatsAppOnboardingDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_001b_meta_whatsapp_onboarding_test.sql"),
+  "utf8",
+);
+const metaWhatsAppProfileLeastPrivilegeDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_001c_meta_whatsapp_profile_least_privilege_test.sql"),
+  "utf8",
+);
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
 const qualityWorkflow = await readFile(
   path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
@@ -168,6 +186,18 @@ const linkedB4MutationRunner = await readFile(
   path.join(repositoryRoot, "scripts", "verify-linked-database-mutations.mjs"),
   "utf8",
 );
+const b4001bMutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b4-001b-mutants.mjs"),
+  "utf8",
+);
+const b4001cMutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b4-001c-mutants.mjs"),
+  "utf8",
+);
+const linkedB4001cMutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-pending-database-mutations.mjs"),
+  "utf8",
+);
 const databaseConcurrencyScript = await readFile(
   path.join(repositoryRoot, "scripts", "verify-database-concurrency.mjs"),
   "utf8",
@@ -191,6 +221,8 @@ for (const [name, migration] of [
   ["B4-001 Meta Vault credentials", metaVaultMigration],
   ["B4-001 constant-time lint hardening", metaVaultLintHardeningMigration],
   ["B4-002 Meta webhook ingress", metaWebhookIngressMigration],
+  ["B4-001B Meta WhatsApp onboarding", metaWhatsAppOnboardingMigration],
+  ["B4-001C Meta WhatsApp profile least privilege", metaWhatsAppProfileLeastPrivilegeMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -544,6 +576,70 @@ for (const forbiddenStatement of [
     metaWebhookIngressMigration.includes(forbiddenStatement),
     false,
     `B4-002 cannot expose or bypass the private delivery inbox: ${forbiddenStatement}`,
+  );
+}
+
+for (const statement of [
+  "revoke select on app_private.meta_whatsapp_connection_profiles",
+  "from authenticated;",
+  "grant select (",
+  "display_phone_number,",
+  "last_validated_at",
+  ") on app_private.meta_whatsapp_connection_profiles",
+  "to authenticated;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    metaWhatsAppProfileLeastPrivilegeMigration.includes(statement),
+    `B4-001C Meta WhatsApp profile least-privilege migration must include: ${statement}`,
+  );
+}
+for (const forbiddenColumn of ["created_at", "updated_at"]) {
+  const grantBlock = metaWhatsAppProfileLeastPrivilegeMigration.slice(
+    metaWhatsAppProfileLeastPrivilegeMigration.indexOf("grant select ("),
+    metaWhatsAppProfileLeastPrivilegeMigration.indexOf(
+      ") on app_private.meta_whatsapp_connection_profiles",
+    ),
+  );
+  assert.equal(
+    grantBlock.includes(forbiddenColumn),
+    false,
+    `B4-001C cannot grant authenticated access to internal profile column: ${forbiddenColumn}`,
+  );
+}
+
+const requiredMetaWhatsAppOnboardingMigrationStatements = [
+  "create table app_private.meta_whatsapp_connection_profiles (",
+  "create function api.register_meta_whatsapp_connection(",
+  "create trigger meta_whatsapp_connection_profiles_validate_connection",
+  "create trigger meta_whatsapp_connection_profiles_prevent_reassignment",
+  "alter table app_private.meta_whatsapp_connection_profiles force row level security;",
+  "create policy meta_whatsapp_connection_profiles_admin_select",
+  "create view api.meta_whatsapp_connections",
+  "or not normalized_scopes @> array[",
+  "'whatsapp_business_management',",
+  "'whatsapp_business_messaging'",
+  "target_credential := app_private.insert_meta_credential_version(",
+  "grant execute on function api.register_meta_whatsapp_connection(",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+];
+
+for (const statement of requiredMetaWhatsAppOnboardingMigrationStatements) {
+  assert.ok(
+    metaWhatsAppOnboardingMigration.includes(statement),
+    `B4-001B Meta WhatsApp onboarding migration must include: ${statement}`,
+  );
+}
+for (const forbiddenStatement of [
+  "grant execute on function api.register_meta_whatsapp_connection(\n  uuid, uuid, text, text, text, text, text, text, text, text[],\n  timestamptz, timestamptz, text, uuid, text, text\n) to authenticated",
+  "target_access_token as access_token",
+  "vault_secret_id",
+]) {
+  assert.equal(
+    metaWhatsAppOnboardingMigration.includes(forbiddenStatement),
+    false,
+    `B4-001B cannot expose or delegate WhatsApp secrets: ${forbiddenStatement}`,
   );
 }
 
@@ -1189,6 +1285,22 @@ const requiredMetaVaultTestStatements = [
   "select * from extensions.finish();",
 ];
 
+assert.equal(
+  metaVaultDatabaseTest.split("(select count(*)::integer from api.meta_applications),").length - 1,
+  1,
+  "B4-001 preserves only the authenticated RLS visibility count as an unqualified application query",
+);
+for (const unscopedAssertion of [
+  "(select count(distinct endpoint_key)::integer from api.meta_webhook_endpoints),",
+  "(select count(*)::integer from api.meta_webhook_endpoints where status = 'active'),",
+]) {
+  assert.equal(
+    metaVaultDatabaseTest.includes(unscopedAssertion),
+    false,
+    `B4-001 fixtures cannot count tenant data globally: ${unscopedAssertion}`,
+  );
+}
+
 for (const statement of requiredMetaVaultTestStatements) {
   assert.ok(
     metaVaultDatabaseTest.includes(statement),
@@ -1220,6 +1332,46 @@ for (const statement of requiredMetaWebhookIngressTestStatements) {
     `B4-002 Meta webhook ingress database test must include: ${statement}`,
   );
 }
+assert.equal(
+  metaWebhookIngressDatabaseTest.includes(
+    "(select count(*)::integer from api.meta_webhook_endpoints where status = 'active'),",
+  ),
+  false,
+  "B4-002 fixtures cannot count active endpoints across real tenant data",
+);
+
+const requiredMetaWhatsAppOnboardingTestStatements = [
+  "select extensions.plan(36);",
+  "WhatsApp connection profiles have RLS forced",
+  "only the tenant admin read policy exists for WhatsApp profiles",
+  "authenticated callers cannot inject WhatsApp tokens",
+  "the WhatsApp API projection exposes no secret or opaque secret reference",
+  "both documented WhatsApp permissions are mandatory",
+  "Alpha owner cannot observe Beta WhatsApp metadata",
+  "one operational phone number cannot belong to two tenants",
+  "all rejected registrations roll back without adding Vault secrets",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredMetaWhatsAppOnboardingTestStatements) {
+  assert.ok(
+    metaWhatsAppOnboardingDatabaseTest.includes(statement),
+    `B4-001B Meta WhatsApp onboarding database test must include: ${statement}`,
+  );
+}
+
+for (const statement of [
+  "select extensions.plan(3);",
+  "authenticated can read only the twelve WhatsApp profile columns required by the API view",
+  "authenticated cannot read the internal WhatsApp profile creation timestamp",
+  "authenticated cannot read the internal WhatsApp profile update timestamp",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    metaWhatsAppProfileLeastPrivilegeDatabaseTest.includes(statement),
+    `B4-001C Meta WhatsApp profile least-privilege database test must include: ${statement}`,
+  );
+}
 
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
@@ -1233,6 +1385,8 @@ for (const [name, databaseTest] of [
   ["B2-009", authorizationDatabaseTest],
   ["B4-001", metaVaultDatabaseTest],
   ["B4-002", metaWebhookIngressDatabaseTest],
+  ["B4-001B", metaWhatsAppOnboardingDatabaseTest],
+  ["B4-001C", metaWhatsAppProfileLeastPrivilegeDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -1438,6 +1592,11 @@ assert.equal(
   "root package must expose controlled linked B4 mutation testing",
 );
 assert.equal(
+  rootManifest.scripts?.["test:database:linked:pending-mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-pending-database-mutations.mjs",
+  "root package must expose controlled pending WhatsApp mutation testing",
+);
+assert.equal(
   b4MutationCatalog.split('name: "').length - 1,
   23,
   "B4 must preserve eleven Vault mutants and twelve authenticated ingress mutants",
@@ -1479,11 +1638,59 @@ for (const runnerGuard of [
     `linked B4 mutation runner must include: ${runnerGuard}`,
   );
 }
+assert.equal(
+  b4001bMutationCatalog.split('name: "').length - 1,
+  6,
+  "B4-001B must preserve six WhatsApp onboarding database mutants",
+);
+for (const mutationGuard of [
+  "remove forced RLS from WhatsApp connection profiles",
+  "remove WhatsApp connection tenant policy",
+  "remove WhatsApp operational connection integrity trigger",
+  "remove WhatsApp tenant reassignment guard",
+  "revoke the audited WhatsApp registrar from service role",
+  "expose the token-bearing WhatsApp registrar to authenticated callers",
+]) {
+  assert.ok(
+    b4001bMutationCatalog.includes(mutationGuard),
+    `B4-001B mutation catalog must include: ${mutationGuard}`,
+  );
+}
+assert.equal(
+  b4001cMutationCatalog.split('name: "').length - 1,
+  4,
+  "B4-001C must preserve four WhatsApp profile least-privilege database mutants",
+);
+for (const mutationGuard of [
+  "restore broad authenticated WhatsApp profile reads",
+  "remove one API-required authenticated WhatsApp profile column",
+  "expose the internal WhatsApp profile creation timestamp",
+  "expose the internal WhatsApp profile update timestamp",
+]) {
+  assert.ok(
+    b4001cMutationCatalog.includes(mutationGuard),
+    `B4-001C mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "20260820223000_b4_001c_meta_whatsapp_profile_least_privilege.sql",
+  "b4_001c_meta_whatsapp_profile_least_privilege_test.sql",
+  "buildLinkedMigrationPgtapCollector",
+  "outcomes.every((outcome) => outcome.killed)",
+]) {
+  assert.ok(
+    linkedB4001cMutationRunner.includes(runnerGuard),
+    `linked B4-001C mutation runner must include: ${runnerGuard}`,
+  );
+}
 assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 93 forced-RLS tables, 830 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 869 pgTAP assertions, generated TypeScript schemas locked.`,
 );

@@ -5,6 +5,8 @@ import { parseMetaEndpointKey } from "./meta-webhook-protocol.js";
 
 const MAXIMUM_RESPONSE_BYTES = 65_536;
 const MAXIMUM_ORGANIZATIONS = 100;
+const MAXIMUM_META_APPLICATIONS = 100;
+const MAXIMUM_WHATSAPP_CONNECTIONS = 100;
 
 export const ADMIN_META_GATEWAY_FAILURE_KINDS = [
   "invalid",
@@ -80,6 +82,28 @@ export type AdminOrganization = Readonly<{
   status: "active";
 }>;
 
+export type AdminMetaApplication = Readonly<{
+  id: string;
+  organizationId: string;
+  externalAppId: string;
+  displayName: string;
+  apiVersion: string;
+  status: "active";
+}>;
+
+export type AdminMetaWhatsAppConnection = Readonly<{
+  id: string;
+  organizationId: string;
+  metaApplicationId: string;
+  wabaId: string;
+  phoneNumberId: string;
+  displayPhoneNumber: string;
+  verifiedName: string;
+  apiVersion: string;
+  status: "active";
+  connectedAt: string;
+}>;
+
 export type RegisterAdminMetaApplicationInput = Readonly<{
   organizationId: string;
   externalAppId: string;
@@ -98,12 +122,49 @@ export type RegisteredAdminMetaApplication = Readonly<{
   endpointKey: string;
 }>;
 
+export type RegisterAdminMetaWhatsAppConnectionInput = Readonly<{
+  organizationId: string;
+  metaApplicationId: string;
+  wabaId: string;
+  phoneNumberId: string;
+  displayPhoneNumber: string;
+  verifiedName: string;
+  qualityRating?: string;
+  nameStatus?: string;
+  tokenType: string;
+  grantedScopes: readonly string[];
+  tokenExpiresAt?: string;
+  dataAccessExpiresAt?: string;
+  accessToken: SensitiveValue;
+  actorUserId: string;
+  requestId: string;
+  traceId: string;
+}>;
+
+export type RegisteredAdminMetaWhatsAppConnection = Readonly<{
+  channelConnectionId: string;
+  displayPhoneNumber: string;
+  verifiedName: string;
+  status: "active";
+}>;
+
 export type AdminMetaGateway = Readonly<{
   authenticate(accessToken: SensitiveValue): Promise<AdminIdentity>;
   listOrganizations(accessToken: SensitiveValue): Promise<readonly AdminOrganization[]>;
+  listMetaApplications(
+    accessToken: SensitiveValue,
+    organizationId: string,
+  ): Promise<readonly AdminMetaApplication[]>;
+  listMetaWhatsAppConnections(
+    accessToken: SensitiveValue,
+    organizationId: string,
+  ): Promise<readonly AdminMetaWhatsAppConnection[]>;
   registerMetaApplication(
     input: RegisterAdminMetaApplicationInput,
   ): Promise<RegisteredAdminMetaApplication>;
+  registerMetaWhatsAppConnection(
+    input: RegisterAdminMetaWhatsAppConnectionInput,
+  ): Promise<RegisteredAdminMetaWhatsAppConnection>;
 }>;
 
 export type CreateAdminMetaGatewayInput = Readonly<{
@@ -113,7 +174,13 @@ export type CreateAdminMetaGatewayInput = Readonly<{
   timeoutMilliseconds: number;
 }>;
 
-type RequestOperation = "authenticate" | "organizations" | "register";
+type RequestOperation =
+  | "authenticate"
+  | "organizations"
+  | "applications"
+  | "whatsapp-connections"
+  | "register"
+  | "register-whatsapp";
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -143,6 +210,14 @@ const readText = (
   }
 
   return normalized;
+};
+
+const readTimestamp = (value: Readonly<Record<string, unknown>>, field: string): string => {
+  const candidate = readText(value, field, 64);
+  if (!Number.isFinite(Date.parse(candidate))) {
+    throw new AdminMetaGatewayError("dependency");
+  }
+  return candidate;
 };
 
 const decodeJsonResponse = async (response: Response): Promise<unknown> => {
@@ -186,7 +261,7 @@ const failureKindForResponse = (
     return "unauthorized";
   }
 
-  if (operation === "register" && status === 409) {
+  if ((operation === "register" || operation === "register-whatsapp") && status === 409) {
     return "conflict";
   }
 
@@ -294,6 +369,105 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
       );
     },
 
+    async listMetaApplications(accessToken, organizationId) {
+      const url = new URL(baseUrl);
+      url.pathname = "/rest/v1/meta_applications";
+      url.searchParams.set(
+        "select",
+        "id,organization_id,external_app_id,display_name,api_version,status",
+      );
+      url.searchParams.set("organization_id", `eq.${organizationId}`);
+      url.searchParams.set("status", "eq.active");
+      url.searchParams.set("order", "display_name.asc");
+      url.searchParams.set("limit", String(MAXIMUM_META_APPLICATIONS));
+
+      const value = await execute("applications", url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "accept-profile": "api",
+          apikey: input.publishableKey,
+          authorization: `Bearer ${accessToken.reveal()}`,
+        },
+      });
+
+      if (!Array.isArray(value) || value.length > MAXIMUM_META_APPLICATIONS) {
+        throw new AdminMetaGatewayError("dependency");
+      }
+
+      return Object.freeze(
+        value.map((row) => {
+          if (!isRecord(row) || row.status !== "active") {
+            throw new AdminMetaGatewayError("dependency");
+          }
+          const rowOrganizationId = readUuid(row, "organization_id");
+          if (rowOrganizationId !== organizationId) {
+            throw new AdminMetaGatewayError("dependency");
+          }
+          return Object.freeze({
+            id: readUuid(row, "id"),
+            organizationId: rowOrganizationId,
+            externalAppId: readText(row, "external_app_id", 255),
+            displayName: readText(row, "display_name", 160),
+            apiVersion: readText(row, "api_version", 32),
+            status: "active" as const,
+          });
+        }),
+      );
+    },
+
+    async listMetaWhatsAppConnections(accessToken, organizationId) {
+      const url = new URL(baseUrl);
+      url.pathname = "/rest/v1/meta_whatsapp_connections";
+      url.searchParams.set(
+        "select",
+        "id,organization_id,meta_application_id,waba_id,phone_number_id," +
+          "display_phone_number,verified_name,api_version,status,connected_at",
+      );
+      url.searchParams.set("organization_id", `eq.${organizationId}`);
+      url.searchParams.set("status", "eq.active");
+      url.searchParams.set("order", "created_at.desc");
+      url.searchParams.set("limit", String(MAXIMUM_WHATSAPP_CONNECTIONS));
+
+      const value = await execute("whatsapp-connections", url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          "accept-profile": "api",
+          apikey: input.publishableKey,
+          authorization: `Bearer ${accessToken.reveal()}`,
+        },
+      });
+
+      if (!Array.isArray(value) || value.length > MAXIMUM_WHATSAPP_CONNECTIONS) {
+        throw new AdminMetaGatewayError("dependency");
+      }
+
+      return Object.freeze(
+        value.map((row) => {
+          if (!isRecord(row) || row.status !== "active") {
+            throw new AdminMetaGatewayError("dependency");
+          }
+          const rowOrganizationId = readUuid(row, "organization_id");
+          if (rowOrganizationId !== organizationId) {
+            throw new AdminMetaGatewayError("dependency");
+          }
+          return Object.freeze({
+            id: readUuid(row, "id"),
+            organizationId: rowOrganizationId,
+            metaApplicationId: readUuid(row, "meta_application_id"),
+            wabaId: readText(row, "waba_id", 64),
+            phoneNumberId: readText(row, "phone_number_id", 64),
+            displayPhoneNumber: readText(row, "display_phone_number", 64),
+            verifiedName: readText(row, "verified_name", 160),
+            apiVersion: readText(row, "api_version", 32),
+            status: "active" as const,
+            connectedAt: readTimestamp(row, "connected_at"),
+          });
+        }),
+      );
+    },
+
     async registerMetaApplication(inputValue) {
       const url = new URL(baseUrl);
       url.pathname = "/rest/v1/rpc/register_meta_application";
@@ -325,6 +499,51 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
         metaApplicationId: readUuid(row, "meta_application_id"),
         webhookEndpointId: readUuid(row, "webhook_endpoint_id"),
         endpointKey: readUuid(row, "endpoint_key"),
+      });
+    },
+
+    async registerMetaWhatsAppConnection(inputValue) {
+      const url = new URL(baseUrl);
+      url.pathname = "/rest/v1/rpc/register_meta_whatsapp_connection";
+
+      const value = await execute("register-whatsapp", url, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "accept-profile": "api",
+          apikey: input.secretKey.reveal(),
+          "content-profile": "api",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          target_organization_id: inputValue.organizationId,
+          target_meta_application_id: inputValue.metaApplicationId,
+          target_waba_id: inputValue.wabaId,
+          target_phone_number_id: inputValue.phoneNumberId,
+          target_display_phone_number: inputValue.displayPhoneNumber,
+          target_verified_name: inputValue.verifiedName,
+          target_quality_rating: inputValue.qualityRating ?? null,
+          target_name_status: inputValue.nameStatus ?? null,
+          target_token_type: inputValue.tokenType,
+          target_granted_scopes: inputValue.grantedScopes,
+          target_token_expires_at: inputValue.tokenExpiresAt ?? null,
+          target_data_access_expires_at: inputValue.dataAccessExpiresAt ?? null,
+          target_access_token: inputValue.accessToken.reveal(),
+          target_actor_user_id: inputValue.actorUserId,
+          target_correlation_id: inputValue.requestId,
+          target_trace_id: inputValue.traceId,
+        }),
+      });
+
+      const row = readSingleRow(value);
+      if (row.connection_status !== "active") {
+        throw new AdminMetaGatewayError("dependency");
+      }
+      return Object.freeze({
+        channelConnectionId: readUuid(row, "channel_connection_id"),
+        displayPhoneNumber: readText(row, "display_phone_number", 64),
+        verifiedName: readText(row, "verified_name", 160),
+        status: "active" as const,
       });
     },
   });

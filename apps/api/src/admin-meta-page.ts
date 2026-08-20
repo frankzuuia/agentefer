@@ -116,6 +116,7 @@ export const ADMIN_META_HTML = `<!doctype html>
             <button id="logout-button" class="button button-quiet" type="button">Cerrar sesión</button>
           </aside>
 
+          <div class="integration-stack">
           <div class="card integration-card">
             <div class="card-heading card-heading-wide">
               <div>
@@ -264,6 +265,132 @@ export const ADMIN_META_HTML = `<!doctype html>
                 a mostrar el token después de recargar.
               </p>
             </section>
+          </div>
+
+          <div class="card integration-card" id="whatsapp-panel">
+            <div class="card-heading card-heading-wide">
+              <div>
+                <p class="section-kicker">Canal operativo</p>
+                <h2>WhatsApp Cloud API</h2>
+                <p>
+                  AgenteFer comprobará la App, los permisos, el WABA y el número directamente con
+                  Meta antes de cifrar el token.
+                </p>
+              </div>
+              <div class="vault-badge">Token aislado por negocio</div>
+            </div>
+
+            <section class="connection-summary" aria-labelledby="connections-title">
+              <div class="connection-summary-heading">
+                <div>
+                  <p class="token-title" id="connections-title">Números conectados</p>
+                  <p class="token-copy">Solo aparecen canales activos de la organización actual.</p>
+                </div>
+                <button id="refresh-meta-state" class="button button-secondary" type="button">
+                  Actualizar estado
+                </button>
+              </div>
+              <div id="whatsapp-connections" class="connection-list" aria-live="polite"></div>
+            </section>
+
+            <form id="whatsapp-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="meta-application-select">Aplicación verificada</label>
+                  <select id="meta-application-select" name="metaApplicationId" required></select>
+                  <small>Debe tener el webhook validado y estado activo en AgenteFer.</small>
+                </div>
+
+                <div class="field">
+                  <label for="waba-id">WhatsApp Business Account ID</label>
+                  <input
+                    id="waba-id"
+                    name="wabaId"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="64"
+                    required
+                  >
+                  <small>El WABA ID mostrado en WhatsApp Manager o en Configuración de la API.</small>
+                </div>
+
+                <div class="field">
+                  <label for="phone-number-id">Identificador del número de teléfono</label>
+                  <input
+                    id="phone-number-id"
+                    name="phoneNumberId"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="64"
+                    required
+                  >
+                  <small>Es el Phone Number ID de Meta, no el número escrito con lada.</small>
+                </div>
+
+                <div class="field">
+                  <label for="whatsapp-access-token">Token de acceso</label>
+                  <div class="input-action">
+                    <input
+                      id="whatsapp-access-token"
+                      name="accessToken"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="16"
+                      required
+                    >
+                    <button
+                      class="field-action"
+                      type="button"
+                      data-toggle-secret="whatsapp-access-token"
+                      aria-pressed="false"
+                    >Mostrar</button>
+                  </div>
+                  <small>Usa un token de usuario del sistema con los dos permisos de WhatsApp.</small>
+                </div>
+              </div>
+
+              <div class="requirement-panel">
+                <strong>Validación automática</strong>
+                <span>whatsapp_business_management</span>
+                <span>whatsapp_business_messaging</span>
+                <span>App ↔ WABA ↔ Phone Number ID</span>
+              </div>
+
+              <p id="whatsapp-message" class="form-message" role="status" aria-live="polite"></p>
+
+              <div class="form-actions">
+                <p>
+                  Meta se valida primero. Si falla cualquier paso, no se crea la conexión ni se
+                  guarda el token.
+                </p>
+                <button id="whatsapp-submit" class="button button-primary" type="submit">
+                  Validar y conectar
+                </button>
+              </div>
+            </form>
+
+            <section id="whatsapp-result" class="result-panel" hidden aria-labelledby="whatsapp-result-title">
+              <div class="result-heading">
+                <div>
+                  <p class="section-kicker">Canal conectado</p>
+                  <h3 id="whatsapp-result-title">WhatsApp está enlazado con esta organización.</h3>
+                </div>
+                <span class="success-badge">Activo</span>
+              </div>
+              <dl class="connection-result-grid">
+                <div>
+                  <dt>Nombre verificado</dt>
+                  <dd id="whatsapp-result-name"></dd>
+                </div>
+                <div>
+                  <dt>Número</dt>
+                  <dd id="whatsapp-result-phone"></dd>
+                </div>
+              </dl>
+            </section>
+          </div>
           </div>
         </section>
       </main>
@@ -699,6 +826,12 @@ input[readonly] {
   margin-bottom: 80px;
 }
 
+.integration-stack {
+  display: grid;
+  min-width: 0;
+  gap: 22px;
+}
+
 .context-panel {
   position: sticky;
   top: 22px;
@@ -855,6 +988,134 @@ input[readonly] {
   color: var(--warning);
 }
 
+.connection-summary {
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background: rgba(10, 13, 11, 0.62);
+}
+
+.connection-summary-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.connection-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.connection-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: center;
+  border: 1px solid rgba(62, 207, 142, 0.16);
+  border-radius: 10px;
+  padding: 14px;
+  background: rgba(62, 207, 142, 0.04);
+}
+
+.connection-item strong,
+.connection-item span {
+  display: block;
+}
+
+.connection-item strong {
+  font-size: 0.84rem;
+}
+
+.connection-item span,
+.empty-state {
+  color: var(--text-soft);
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+
+.connection-pill {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  border: 1px solid rgba(62, 207, 142, 0.25);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #9ce5c1 !important;
+  background: rgba(62, 207, 142, 0.07);
+  font-size: 0.67rem !important;
+  font-weight: 650;
+}
+
+.empty-state {
+  margin: 0;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.requirement-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: rgba(10, 13, 11, 0.5);
+}
+
+.requirement-panel strong,
+.requirement-panel span {
+  font-size: 0.7rem;
+}
+
+.requirement-panel strong {
+  margin-right: 4px;
+  color: #dce5df;
+}
+
+.requirement-panel span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--text-muted);
+  background: #151916;
+}
+
+.connection-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(62, 207, 142, 0.18);
+  border-radius: 10px;
+  background: rgba(62, 207, 142, 0.18);
+}
+
+.connection-result-grid div {
+  padding: 14px;
+  background: #111713;
+}
+
+.connection-result-grid dt {
+  margin-bottom: 6px;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.connection-result-grid dd {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 570;
+  overflow-wrap: anywhere;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -942,13 +1203,15 @@ footer {
 
   .card-heading-wide,
   .form-actions,
-  .result-heading {
+  .result-heading,
+  .connection-summary-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
   .form-actions .button,
-  .token-panel .button {
+  .token-panel .button,
+  .connection-summary-heading .button {
     width: 100%;
   }
 
@@ -979,6 +1242,17 @@ footer {
     border-radius: 0 0 8px 0;
   }
 
+  .connection-item,
+  .connection-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .connection-pill {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: start;
+  }
+
   footer {
     flex-direction: column;
   }
@@ -1000,6 +1274,7 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
     config: null,
     accessToken: null,
     verifyToken: "",
+    applications: [],
   };
 
   const element = (id) => {
@@ -1026,6 +1301,16 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
   const registrationResult = element("registration-result");
   const callbackUrl = element("callback-url");
   const resultToken = element("result-token");
+  const whatsappForm = element("whatsapp-form");
+  const whatsappSubmit = element("whatsapp-submit");
+  const whatsappMessage = element("whatsapp-message");
+  const whatsappAccessToken = element("whatsapp-access-token");
+  const metaApplicationSelect = element("meta-application-select");
+  const whatsappConnections = element("whatsapp-connections");
+  const whatsappResult = element("whatsapp-result");
+  const whatsappResultName = element("whatsapp-result-name");
+  const whatsappResultPhone = element("whatsapp-result-phone");
+  const refreshMetaState = element("refresh-meta-state");
 
   const setMessage = (target, message, stateName) => {
     target.textContent = message;
@@ -1076,15 +1361,22 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
   const resetSession = () => {
     state.accessToken = null;
     state.verifyToken = "";
+    state.applications = [];
     loginPassword.value = "";
     appSecret.value = "";
+    whatsappAccessToken.value = "";
     metaForm.reset();
+    whatsappForm.reset();
     organizationSelect.replaceChildren();
+    metaApplicationSelect.replaceChildren();
+    whatsappConnections.replaceChildren();
     registrationResult.hidden = true;
+    whatsappResult.hidden = true;
     workspace.hidden = true;
     loginPanel.hidden = false;
     setMessage(loginMessage, "", undefined);
     setMessage(metaMessage, "", undefined);
+    setMessage(whatsappMessage, "", undefined);
   };
 
   const loadOrganizations = async () => {
@@ -1120,6 +1412,92 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
     if (payload.organizations.length === 0) {
       throw new Error("Tu usuario no tiene una organización activa.");
     }
+  };
+
+  const renderApplications = (applications) => {
+    state.applications = applications;
+    metaApplicationSelect.replaceChildren();
+    if (applications.length === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "Primero verifica una aplicación en Meta";
+      metaApplicationSelect.append(option);
+      whatsappSubmit.disabled = true;
+      return;
+    }
+
+    for (const application of applications) {
+      const option = document.createElement("option");
+      option.value = application.id;
+      option.textContent = application.displayName + " · " + application.apiVersion;
+      metaApplicationSelect.append(option);
+    }
+    whatsappSubmit.disabled = false;
+  };
+
+  const renderConnections = (connections) => {
+    whatsappConnections.replaceChildren();
+    if (connections.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "Todavía no hay números de WhatsApp activos en este negocio.";
+      whatsappConnections.append(empty);
+      return;
+    }
+
+    for (const connection of connections) {
+      const item = document.createElement("article");
+      item.className = "connection-item";
+      const identity = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = connection.verifiedName;
+      const phone = document.createElement("span");
+      phone.textContent = connection.displayPhoneNumber + " · Phone ID " + connection.phoneNumberId;
+      identity.append(name, phone);
+      const status = document.createElement("span");
+      status.className = "connection-pill";
+      status.textContent = "Activo";
+      item.append(identity, status);
+      whatsappConnections.append(item);
+    }
+  };
+
+  const loadTenantState = async () => {
+    if (state.accessToken === null || organizationSelect.value.length === 0) {
+      throw new Error("Selecciona una organización activa.");
+    }
+    const query = "?organizationId=" + encodeURIComponent(organizationSelect.value);
+    const requestOptions = {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        authorization: "Bearer " + state.accessToken,
+      },
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
+    };
+    const responses = await Promise.all([
+      fetch("/admin/meta/applications" + query, requestOptions),
+      fetch("/admin/meta/whatsapp-connections" + query, requestOptions),
+    ]);
+
+    if (responses.some((response) => response.status === 401)) {
+      resetSession();
+      throw new Error("Tu sesión venció. Inicia sesión otra vez.");
+    }
+
+    const payloads = await Promise.all(responses.map(readJson));
+    if (
+      !responses.every((response) => response.ok) ||
+      !Array.isArray(payloads[0].applications) ||
+      !Array.isArray(payloads[1].connections)
+    ) {
+      throw new Error("No fue posible cargar el estado de Meta para este negocio.");
+    }
+
+    renderApplications(payloads[0].applications);
+    renderConnections(payloads[1].connections);
   };
 
   const initialize = async () => {
@@ -1179,9 +1557,11 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
       state.accessToken = payload.access_token;
       payload = null;
       await loadOrganizations();
+      await loadTenantState();
       loginPanel.hidden = true;
       workspace.hidden = false;
       setMessage(metaMessage, "Sesión verificada. Selecciona el negocio y registra su App.", "success");
+      setMessage(whatsappMessage, "Estado de Meta cargado para este negocio.", "success");
     } catch (error) {
       state.accessToken = null;
       loginPassword.value = "";
@@ -1263,6 +1643,133 @@ export const ADMIN_META_JAVASCRIPT = `"use strict";
       );
     } finally {
       setButtonBusy(metaSubmit, false, "Cifrando en Vault…", "Registrar aplicación");
+    }
+  });
+
+  whatsappForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setMessage(whatsappMessage, "", undefined);
+    whatsappResult.hidden = true;
+
+    if (!whatsappForm.checkValidity()) {
+      whatsappForm.reportValidity();
+      return;
+    }
+    if (state.accessToken === null || state.applications.length === 0) {
+      setMessage(whatsappMessage, "Necesitas una sesión y una App verificada.", undefined);
+      return;
+    }
+
+    setButtonBusy(whatsappSubmit, true, "Validando con Meta…", "Validar y conectar");
+    let requestBody = JSON.stringify({
+      organizationId: organizationSelect.value,
+      metaApplicationId: metaApplicationSelect.value,
+      wabaId: element("waba-id").value.trim(),
+      phoneNumberId: element("phone-number-id").value.trim(),
+      accessToken: whatsappAccessToken.value,
+    });
+    try {
+      const responsePromise = fetch("/admin/meta/whatsapp-connections", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer " + state.accessToken,
+          "content-type": "application/json",
+        },
+        body: requestBody,
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+      });
+      whatsappAccessToken.value = "";
+      requestBody = "";
+      const response = await responsePromise;
+      const payload = await readJson(response);
+
+      if (response.status === 401) {
+        resetSession();
+        throw new Error("Tu sesión venció. Inicia sesión otra vez.");
+      }
+      if (response.status === 403) {
+        throw new Error("El token, sus permisos o la App seleccionada no corresponden a este negocio.");
+      }
+      if (response.status === 409) {
+        throw new Error("Ese Phone Number ID ya pertenece a una conexión operativa.");
+      }
+      if (response.status === 503) {
+        throw new Error("Meta o Vault no están disponibles temporalmente. Intenta nuevamente.");
+      }
+      if (
+        !response.ok ||
+        payload.status !== "connected" ||
+        typeof payload.connection !== "object" ||
+        payload.connection === null ||
+        typeof payload.connection.verifiedName !== "string" ||
+        typeof payload.connection.displayPhoneNumber !== "string"
+      ) {
+        throw new Error("Meta no pudo validar la combinación de App, WABA, número y token.");
+      }
+
+      whatsappResultName.textContent = payload.connection.verifiedName;
+      whatsappResultPhone.textContent = payload.connection.displayPhoneNumber;
+      whatsappResult.hidden = false;
+      setMessage(whatsappMessage, "Canal validado, suscrito y cifrado en Vault.", "success");
+      try {
+        await loadTenantState();
+      } catch {
+        setMessage(
+          whatsappMessage,
+          "Canal conectado y cifrado. No se pudo actualizar la lista; usa Actualizar estado sin repetir la conexión.",
+          "success",
+        );
+      }
+      whatsappResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (error) {
+      whatsappAccessToken.value = "";
+      requestBody = "";
+      setMessage(
+        whatsappMessage,
+        error instanceof Error ? error.message : "No fue posible conectar WhatsApp.",
+        undefined,
+      );
+    } finally {
+      requestBody = "";
+      setButtonBusy(whatsappSubmit, false, "Validando con Meta…", "Validar y conectar");
+      whatsappSubmit.disabled = state.applications.length === 0;
+    }
+  });
+
+  organizationSelect.addEventListener("change", async () => {
+    registrationResult.hidden = true;
+    whatsappResult.hidden = true;
+    setMessage(metaMessage, "", undefined);
+    setMessage(whatsappMessage, "Actualizando el contexto del negocio…", undefined);
+    try {
+      await loadTenantState();
+      setMessage(whatsappMessage, "Estado de Meta cargado para este negocio.", "success");
+    } catch (error) {
+      setMessage(
+        whatsappMessage,
+        error instanceof Error ? error.message : "No fue posible cambiar de negocio.",
+        undefined,
+      );
+    }
+  });
+
+  refreshMetaState.addEventListener("click", async () => {
+    setButtonBusy(refreshMetaState, true, "Actualizando…", "Actualizar estado");
+    setMessage(whatsappMessage, "", undefined);
+    try {
+      await loadTenantState();
+      setMessage(whatsappMessage, "Apps y números actualizados.", "success");
+    } catch (error) {
+      setMessage(
+        whatsappMessage,
+        error instanceof Error ? error.message : "No fue posible actualizar Meta.",
+        undefined,
+      );
+    } finally {
+      setButtonBusy(refreshMetaState, false, "Actualizando…", "Actualizar estado");
     }
   });
 

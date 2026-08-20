@@ -616,6 +616,13 @@ export type Database = {
             referencedColumns: ["organization_id", "id"];
           },
           {
+            foreignKeyName: "agent_runs_channel_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_whatsapp_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
             foreignKeyName: "agent_runs_conversation_fk";
             columns: ["organization_id", "channel_connection_id", "conversation_id"];
             isOneToOne: false;
@@ -1529,6 +1536,13 @@ export type Database = {
             referencedColumns: ["organization_id", "id"];
           },
           {
+            foreignKeyName: "channel_identities_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_whatsapp_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
             foreignKeyName: "channel_identities_contact_fk";
             columns: ["organization_id", "contact_id"];
             isOneToOne: false;
@@ -2070,6 +2084,13 @@ export type Database = {
             columns: ["organization_id", "channel_connection_id"];
             isOneToOne: false;
             referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "conversations_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_whatsapp_connections";
             referencedColumns: ["organization_id", "id"];
           },
           {
@@ -3607,6 +3628,13 @@ export type Database = {
             referencedColumns: ["organization_id", "id"];
           },
           {
+            foreignKeyName: "meta_credential_versions_channel_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_whatsapp_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
             foreignKeyName: "meta_credential_versions_webhook_fk";
             columns: ["organization_id", "meta_application_id", "webhook_endpoint_id"];
             isOneToOne: false;
@@ -3659,6 +3687,48 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "meta_applications";
             referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      meta_whatsapp_connections: {
+        Row: {
+          api_version: string | null;
+          connected_at: string | null;
+          created_at: string | null;
+          data_access_expires_at: string | null;
+          disabled_at: string | null;
+          display_phone_number: string | null;
+          external_app_id: string | null;
+          granted_scopes: string[] | null;
+          id: string | null;
+          last_validated_at: string | null;
+          meta_application_id: string | null;
+          name_status: string | null;
+          organization_id: string | null;
+          phone_number_id: string | null;
+          quality_rating: string | null;
+          status: string | null;
+          subscribed_at: string | null;
+          token_expires_at: string | null;
+          token_type: string | null;
+          updated_at: string | null;
+          verified_name: string | null;
+          waba_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_meta_application_fk";
+            columns: ["organization_id", "meta_application_id", "external_app_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id", "external_app_id"];
+          },
+          {
+            foreignKeyName: "channel_connections_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -5686,6 +5756,13 @@ export type Database = {
             referencedColumns: ["organization_id", "id"];
           },
           {
+            foreignKeyName: "social_connections_messenger_connection_fk";
+            columns: ["organization_id", "messenger_channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_whatsapp_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
             foreignKeyName: "social_connections_organization_fk";
             columns: ["organization_id"];
             isOneToOne: false;
@@ -7030,6 +7107,32 @@ export type Database = {
           endpoint_key: string;
           meta_application_id: string;
           webhook_endpoint_id: string;
+        }[];
+      };
+      register_meta_whatsapp_connection: {
+        Args: {
+          target_access_token: string;
+          target_actor_user_id: string;
+          target_correlation_id: string;
+          target_data_access_expires_at: string;
+          target_display_phone_number: string;
+          target_granted_scopes: string[];
+          target_meta_application_id: string;
+          target_name_status: string;
+          target_organization_id: string;
+          target_phone_number_id: string;
+          target_quality_rating: string;
+          target_token_expires_at: string;
+          target_token_type: string;
+          target_trace_id?: string;
+          target_verified_name: string;
+          target_waba_id: string;
+        };
+        Returns: {
+          channel_connection_id: string;
+          connection_status: string;
+          display_phone_number: string;
+          verified_name: string;
         }[];
       };
       register_prompt_version: {
@@ -11450,6 +11553,65 @@ export type Database = {
             columns: ["organization_id", "meta_application_id"];
             isOneToOne: false;
             referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      meta_whatsapp_connection_profiles: {
+        Row: {
+          channel_connection_id: string;
+          created_at: string;
+          data_access_expires_at: string | null;
+          display_phone_number: string;
+          granted_scopes: string[];
+          last_validated_at: string;
+          name_status: string | null;
+          organization_id: string;
+          quality_rating: string | null;
+          subscribed_at: string;
+          token_expires_at: string | null;
+          token_type: string;
+          updated_at: string;
+          verified_name: string;
+        };
+        Insert: {
+          channel_connection_id: string;
+          created_at?: string;
+          data_access_expires_at?: string | null;
+          display_phone_number: string;
+          granted_scopes: string[];
+          last_validated_at?: string;
+          name_status?: string | null;
+          organization_id: string;
+          quality_rating?: string | null;
+          subscribed_at?: string;
+          token_expires_at?: string | null;
+          token_type: string;
+          updated_at?: string;
+          verified_name: string;
+        };
+        Update: {
+          channel_connection_id?: string;
+          created_at?: string;
+          data_access_expires_at?: string | null;
+          display_phone_number?: string;
+          granted_scopes?: string[];
+          last_validated_at?: string;
+          name_status?: string | null;
+          organization_id?: string;
+          quality_rating?: string | null;
+          subscribed_at?: string;
+          token_expires_at?: string | null;
+          token_type?: string;
+          updated_at?: string;
+          verified_name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_whatsapp_profiles_channel_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
             referencedColumns: ["organization_id", "id"];
           },
         ];

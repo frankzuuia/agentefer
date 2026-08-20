@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  parseAdminMetaWhatsAppRegistrationBody,
   parseAdminMetaRegistrationBody,
+  parseAdminOrganizationQuery,
   parseBearerAccessToken,
 } from "../src/admin-meta-protocol.js";
 
@@ -70,17 +72,17 @@ describe("admin Meta protocol", () => {
     const registrations = [
       {
         ...validRegistration(),
-        externalAppId: "x",
+        externalAppId: "1",
         displayName: "x",
-        apiVersion: "v1",
+        apiVersion: "v1.0",
         appSecret: "x".repeat(16),
         webhookVerifyToken: "y".repeat(16),
       },
       {
         ...validRegistration(),
-        externalAppId: "x".repeat(255),
+        externalAppId: "9".repeat(64),
         displayName: "x".repeat(160),
-        apiVersion: "x".repeat(32),
+        apiVersion: `v${"1".repeat(29)}.0`,
         appSecret: "x".repeat(65_536),
         webhookVerifyToken: "y".repeat(65_536),
       },
@@ -115,12 +117,17 @@ describe("admin Meta protocol", () => {
     { ...validRegistration(), organizationId: 42 },
     { ...validRegistration(), externalAppId: "" },
     { ...validRegistration(), externalAppId: 42 },
+    { ...validRegistration(), externalAppId: "app-216409300082702" },
+    { ...validRegistration(), externalAppId: "1".repeat(65) },
     { ...validRegistration(), externalAppId: "x".repeat(256) },
     { ...validRegistration(), displayName: "bad\nname" },
     { ...validRegistration(), displayName: "bad\u007fname" },
     { ...validRegistration(), displayName: null },
     { ...validRegistration(), displayName: "x".repeat(161) },
     { ...validRegistration(), apiVersion: "v" },
+    { ...validRegistration(), apiVersion: "v26" },
+    { ...validRegistration(), apiVersion: "26.0" },
+    { ...validRegistration(), apiVersion: "v26.0/path" },
     { ...validRegistration(), apiVersion: [] },
     { ...validRegistration(), apiVersion: "x".repeat(33) },
     { ...validRegistration(), appSecret: "short" },
@@ -131,5 +138,84 @@ describe("admin Meta protocol", () => {
     { ...validRegistration(), webhookVerifyToken: "x".repeat(65_537) },
   ])("rejects an invalid registration envelope", (registration) => {
     expect(parseAdminMetaRegistrationBody(registration)).toBeUndefined();
+  });
+
+  it("parses only an exact tenant query envelope", () => {
+    expect(parseAdminOrganizationQuery({ organizationId })).toEqual({ organizationId });
+    expect(parseAdminOrganizationQuery({ organizationId, extra: "blocked" })).toBeUndefined();
+    expect(parseAdminOrganizationQuery({ organizationId: "not-a-uuid" })).toBeUndefined();
+    expect(parseAdminOrganizationQuery(undefined)).toBeUndefined();
+  });
+
+  it("normalizes a WhatsApp channel registration and protects its token", () => {
+    const accessToken = "meta-system-user-access-token-contract-value";
+    const parsed = parseAdminMetaWhatsAppRegistrationBody({
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: " 111111111111111 ",
+      phoneNumberId: " 222222222222222 ",
+      accessToken,
+    });
+
+    expect(parsed).toMatchObject({
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "111111111111111",
+      phoneNumberId: "222222222222222",
+    });
+    expect(parsed?.accessToken.reveal()).toBe(accessToken);
+    expect(JSON.stringify(parsed)).not.toContain(accessToken);
+  });
+
+  it.each([
+    undefined,
+    null,
+    [],
+    {},
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "111111111111111",
+      phoneNumberId: "222222222222222",
+      accessToken: "meta-system-user-access-token-contract-value",
+      extra: "blocked",
+    },
+    {
+      organizationId: "not-a-uuid",
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "111111111111111",
+      phoneNumberId: "222222222222222",
+      accessToken: "meta-system-user-access-token-contract-value",
+    },
+    {
+      organizationId,
+      metaApplicationId: "not-a-uuid",
+      wabaId: "111111111111111",
+      phoneNumberId: "222222222222222",
+      accessToken: "meta-system-user-access-token-contract-value",
+    },
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "not-a-waba",
+      phoneNumberId: "222222222222222",
+      accessToken: "meta-system-user-access-token-contract-value",
+    },
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "111111111111111",
+      phoneNumberId: "phone/id",
+      accessToken: "meta-system-user-access-token-contract-value",
+    },
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      wabaId: "111111111111111",
+      phoneNumberId: "222222222222222",
+      accessToken: "short",
+    },
+  ])("rejects an invalid WhatsApp registration envelope", (registration) => {
+    expect(parseAdminMetaWhatsAppRegistrationBody(registration)).toBeUndefined();
   });
 });
