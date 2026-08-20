@@ -302,6 +302,9 @@ describe("admin Meta routes", () => {
     expect(stylesheet.headers["content-type"]).toContain("text/css");
     expect(stylesheet.body).toContain("@media (max-width: 680px)");
     expect(stylesheet.body).toContain("#3ecf8e");
+    expect(stylesheet.body).toContain(
+      ".brand {\n  display: inline-flex;\n  min-height: 44px;",
+    );
 
     expect(javascript.statusCode).toBe(200);
     expect(javascript.headers["content-type"]).toContain("text/javascript");

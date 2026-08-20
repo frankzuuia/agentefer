@@ -516,6 +516,7 @@ select:focus-visible {
 
 .brand {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   gap: 12px;
   color: inherit;
