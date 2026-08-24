@@ -133,6 +133,22 @@ describe("Meta Graph gateway over real TCP", () => {
     expect(error.name).toBe("MetaGraphGatewayError");
   });
 
+  it("preserves only bounded provider diagnostics without serializing its cause", () => {
+    const error = new MetaGraphGatewayError("dependency", new Error(accessTokenValue), {
+      stage: "phone_lookup",
+      providerStatus: 429,
+      providerErrorCode: 4,
+    });
+
+    expect(error).toMatchObject({
+      kind: "dependency",
+      stage: "phone_lookup",
+      providerStatus: 429,
+      providerErrorCode: 4,
+    });
+    expect(JSON.stringify(error)).not.toContain(accessTokenValue);
+  });
+
   it("validates the token, follows bounded phone pagination and subscribes the WABA", async () => {
     const requests: string[] = [];
     const baseUrl = await startServer((request, response) => {
@@ -564,7 +580,12 @@ describe("Meta Graph gateway over real TCP", () => {
       }
 
       expect(capturedError).toBeInstanceOf(MetaGraphGatewayError);
-      expect(capturedError).toMatchObject({ kind });
+      expect(capturedError).toMatchObject({
+        kind,
+        stage: "token_debug",
+        providerStatus: status,
+        providerErrorCode: code,
+      });
       expect(JSON.stringify(capturedError)).not.toContain(accessTokenValue);
     },
   );
@@ -576,7 +597,11 @@ describe("Meta Graph gateway over real TCP", () => {
 
     await expect(
       createGateway(baseUrl).validateAndSubscribeWhatsAppConnection(validationInput()),
-    ).rejects.toMatchObject({ kind: "invalid" });
+    ).rejects.toMatchObject({
+      kind: "invalid",
+      stage: "token_debug",
+      providerStatus: 400,
+    });
   });
 
   it.each([

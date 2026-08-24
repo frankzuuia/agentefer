@@ -171,8 +171,22 @@ const recordFailure = (
     errorCategory: failure.error.category,
     durationMilliseconds: performance.now() - startedAt,
   });
+  const metaGraphAttributes =
+    failure.error instanceof MetaGraphGatewayError
+      ? {
+          ...(failure.error.stage === undefined ? {} : { meta_graph_stage: failure.error.stage }),
+          ...(failure.error.providerStatus === undefined
+            ? {}
+            : { meta_graph_http_status: failure.error.providerStatus }),
+          ...(failure.error.providerErrorCode === undefined
+            ? {}
+            : { meta_graph_error_code: failure.error.providerErrorCode }),
+        }
+      : {};
+
   input.logger.error(`${operation}.failed`, failure.error, {
     http_status: failure.statusCode,
+    ...metaGraphAttributes,
   });
 };
 

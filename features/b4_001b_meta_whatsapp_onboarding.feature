@@ -36,6 +36,11 @@ Característica: Incorporación segura de canales WhatsApp por organización
       Cuando subscribed_apps no devuelve éxito
       Entonces AgenteFer no registra un canal activo ni conserva el token
 
+    Escenario: Meta rechaza una etapa con un error de proveedor
+      Dado un token que viaja una sola vez hacia Graph API
+      Cuando Meta rechaza la depuración el número o la suscripción
+      Entonces el log conserva solamente etapa HTTP y código numérico sin token URL cuerpo ni mensaje
+
   Regla: Cada conexión conserva el tenant y la identidad de routing
 
     Escenario: Frank conecta su número de pruebas

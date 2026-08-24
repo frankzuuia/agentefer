@@ -189,6 +189,57 @@ describe("admin Meta routes", () => {
     expect(JSON.stringify(classified)).not.toContain(channelAccessToken);
   });
 
+  it("records safe Meta Graph diagnostics without logging provider secrets", async () => {
+    const logDestination = new PassThrough();
+    const dependencyUrl = await startDependencyServer((request, response) => {
+      if (request.url === "/auth/v1/user") {
+        writeJson(response, 200, { id: userId });
+        return;
+      }
+      if (request.url?.startsWith("/rest/v1/meta_applications?")) {
+        writeJson(response, 200, [
+          {
+            id: metaApplicationId,
+            organization_id: organizationId,
+            external_app_id: "216409300082702",
+            display_name: "Pruebas Frank",
+            api_version: "v26.0",
+            status: "active",
+            webhook_endpoint_id: webhookEndpointId,
+            webhook_endpoint_key: endpointKey,
+            webhook_status: "active",
+            webhook_callback_url: `https://agentefer.frkqr.com/webhooks/meta/${endpointKey}`,
+          },
+        ]);
+        return;
+      }
+      writeJson(response, 404, {});
+    });
+    const graphUrl = await startDependencyServer((_request, response) => {
+      writeJson(response, 429, { error: { code: 4, message: channelAccessToken } });
+    });
+    const application = createApplication(dependencyUrl, logDestination, graphUrl);
+
+    const response = await application.inject({
+      method: "POST",
+      url: "/admin/meta/whatsapp-connections",
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: whatsappRegistrationBody(),
+    });
+    const logChunk: unknown = logDestination.read();
+    const logs = Buffer.isBuffer(logChunk) ? logChunk.toString("utf8") : "";
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({ status: "unavailable" });
+    expect(response.headers["retry-after"]).toBe("2");
+    expect(logs).toContain('"event":"admin.meta.whatsapp_register.failed"');
+    expect(logs).toContain('"meta_graph_stage":"token_debug"');
+    expect(logs).toContain('"meta_graph_http_status":429');
+    expect(logs).toContain('"meta_graph_error_code":4');
+    expect(logs).not.toContain(channelAccessToken);
+    expect(logs).not.toContain('"message"');
+  });
+
   it("classifies unknown failures without exposing their causes", () => {
     const unknown = classifyAdminMetaFailure(new Error(appSecret));
 
@@ -302,9 +353,7 @@ describe("admin Meta routes", () => {
     expect(stylesheet.headers["content-type"]).toContain("text/css");
     expect(stylesheet.body).toContain("@media (max-width: 680px)");
     expect(stylesheet.body).toContain("#3ecf8e");
-    expect(stylesheet.body).toContain(
-      ".brand {\n  display: inline-flex;\n  min-height: 44px;",
-    );
+    expect(stylesheet.body).toContain(".brand {\n  display: inline-flex;\n  min-height: 44px;");
 
     expect(javascript.statusCode).toBe(200);
     expect(javascript.headers["content-type"]).toContain("text/javascript");

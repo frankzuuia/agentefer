@@ -19,10 +19,31 @@ export const META_GRAPH_GATEWAY_FAILURE_KINDS = [
 
 export type MetaGraphGatewayFailureKind = (typeof META_GRAPH_GATEWAY_FAILURE_KINDS)[number];
 
+export const META_GRAPH_GATEWAY_STAGES = [
+  "token_debug",
+  "phone_lookup",
+  "waba_subscription",
+] as const;
+
+export type MetaGraphGatewayStage = (typeof META_GRAPH_GATEWAY_STAGES)[number];
+
+type MetaGraphGatewayDiagnostics = Readonly<{
+  stage?: MetaGraphGatewayStage;
+  providerStatus?: number;
+  providerErrorCode?: number;
+}>;
+
 export class MetaGraphGatewayError extends OperationalError {
   readonly kind: MetaGraphGatewayFailureKind;
+  readonly stage: MetaGraphGatewayStage | undefined;
+  readonly providerStatus: number | undefined;
+  readonly providerErrorCode: number | undefined;
 
-  constructor(kind: MetaGraphGatewayFailureKind, cause?: unknown) {
+  constructor(
+    kind: MetaGraphGatewayFailureKind,
+    cause?: unknown,
+    diagnostics: MetaGraphGatewayDiagnostics = {},
+  ) {
     const attributes =
       kind === "invalid"
         ? {
@@ -55,6 +76,9 @@ export class MetaGraphGatewayError extends OperationalError {
     super({ ...attributes, cause });
     this.name = "MetaGraphGatewayError";
     this.kind = kind;
+    this.stage = diagnostics.stage;
+    this.providerStatus = diagnostics.providerStatus;
+    this.providerErrorCode = diagnostics.providerErrorCode;
   }
 }
 
@@ -297,6 +321,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
   const execute = async (
     url: URL,
     accessToken: SensitiveValue,
+    stage: MetaGraphGatewayStage,
     request: RequestInit = {},
   ): Promise<unknown> => {
     let response: Response;
@@ -314,12 +339,21 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
     } catch (error) {
       const kind =
         error instanceof Error && error.name === "TimeoutError" ? "timeout" : "dependency";
-      throw new MetaGraphGatewayError(kind, error);
+      throw new MetaGraphGatewayError(kind, error, { stage });
     }
 
     const responseValue = await decodeJsonResponse(response);
     if (!response.ok) {
-      throw new MetaGraphGatewayError(failureKindForResponse(response.status, responseValue));
+      const providerErrorCode = readMetaErrorCode(responseValue);
+      throw new MetaGraphGatewayError(
+        failureKindForResponse(response.status, responseValue),
+        undefined,
+        {
+          stage,
+          providerStatus: response.status,
+          ...(providerErrorCode === undefined ? {} : { providerErrorCode }),
+        },
+      );
     }
 
     return responseValue;
@@ -343,122 +377,137 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
         throw new MetaGraphGatewayError("invalid");
       }
 
-      const debugUrl = createVersionedUrl(inputValue.apiVersion, "debug_token");
-      debugUrl.searchParams.set("input_token", inputValue.accessToken.reveal());
-      const debugValue = await execute(debugUrl, inputValue.accessToken);
-      if (!isRecord(debugValue) || !isRecord(debugValue.data)) {
-        throw new MetaGraphGatewayError("dependency");
-      }
+      let stage: MetaGraphGatewayStage = "token_debug";
 
-      const tokenData = debugValue.data;
-      if (tokenData.is_valid !== true) {
-        throw new MetaGraphGatewayError("unauthorized");
-      }
-      if (readText(tokenData.app_id, 255) !== inputValue.expectedAppId) {
-        throw new MetaGraphGatewayError("unauthorized");
-      }
-
-      const grantedScopes = readScopes(tokenData.scopes);
-      assertGranularWabaScope(tokenData.granular_scopes, inputValue.wabaId);
-      const tokenType = readText(tokenData.type, 64);
-      const tokenExpiresAt = unixTimestampToIso(tokenData.expires_at);
-      const dataAccessExpiresAt = unixTimestampToIso(tokenData.data_access_expires_at);
-      const now = Date.now();
-      if (
-        (tokenExpiresAt !== undefined && Date.parse(tokenExpiresAt) <= now) ||
-        (dataAccessExpiresAt !== undefined && Date.parse(dataAccessExpiresAt) <= now)
-      ) {
-        throw new MetaGraphGatewayError("unauthorized");
-      }
-
-      let phone:
-        | Readonly<{
-            displayPhoneNumber: string;
-            verifiedName: string;
-            qualityRating?: string;
-            nameStatus?: string;
-          }>
-        | undefined;
-      let after: string | undefined;
-      const seenCursors = new Set<string>();
-
-      for (let page = 0; page < MAXIMUM_PHONE_PAGES; page += 1) {
-        const phoneUrl = createVersionedUrl(
-          inputValue.apiVersion,
-          `${inputValue.wabaId}/phone_numbers`,
-        );
-        phoneUrl.searchParams.set(
-          "fields",
-          "id,display_phone_number,verified_name,quality_rating,name_status",
-        );
-        phoneUrl.searchParams.set("limit", String(PHONE_PAGE_SIZE));
-        if (after !== undefined) {
-          phoneUrl.searchParams.set("after", after);
-        }
-
-        const phonePage = await execute(phoneUrl, inputValue.accessToken);
-        if (!isRecord(phonePage) || !Array.isArray(phonePage.data)) {
-          throw new MetaGraphGatewayError("dependency");
-        }
-        if (phonePage.data.length > PHONE_PAGE_SIZE) {
+      try {
+        const debugUrl = createVersionedUrl(inputValue.apiVersion, "debug_token");
+        debugUrl.searchParams.set("input_token", inputValue.accessToken.reveal());
+        const debugValue = await execute(debugUrl, inputValue.accessToken, stage);
+        if (!isRecord(debugValue) || !isRecord(debugValue.data)) {
           throw new MetaGraphGatewayError("dependency");
         }
 
-        for (const candidate of phonePage.data) {
-          if (!isRecord(candidate)) {
+        const tokenData = debugValue.data;
+        if (tokenData.is_valid !== true) {
+          throw new MetaGraphGatewayError("unauthorized");
+        }
+        if (readText(tokenData.app_id, 255) !== inputValue.expectedAppId) {
+          throw new MetaGraphGatewayError("unauthorized");
+        }
+
+        const grantedScopes = readScopes(tokenData.scopes);
+        assertGranularWabaScope(tokenData.granular_scopes, inputValue.wabaId);
+        const tokenType = readText(tokenData.type, 64);
+        const tokenExpiresAt = unixTimestampToIso(tokenData.expires_at);
+        const dataAccessExpiresAt = unixTimestampToIso(tokenData.data_access_expires_at);
+        const now = Date.now();
+        if (
+          (tokenExpiresAt !== undefined && Date.parse(tokenExpiresAt) <= now) ||
+          (dataAccessExpiresAt !== undefined && Date.parse(dataAccessExpiresAt) <= now)
+        ) {
+          throw new MetaGraphGatewayError("unauthorized");
+        }
+
+        stage = "phone_lookup";
+        let phone:
+          | Readonly<{
+              displayPhoneNumber: string;
+              verifiedName: string;
+              qualityRating?: string;
+              nameStatus?: string;
+            }>
+          | undefined;
+        let after: string | undefined;
+        const seenCursors = new Set<string>();
+
+        for (let page = 0; page < MAXIMUM_PHONE_PAGES; page += 1) {
+          const phoneUrl = createVersionedUrl(
+            inputValue.apiVersion,
+            `${inputValue.wabaId}/phone_numbers`,
+          );
+          phoneUrl.searchParams.set(
+            "fields",
+            "id,display_phone_number,verified_name,quality_rating,name_status",
+          );
+          phoneUrl.searchParams.set("limit", String(PHONE_PAGE_SIZE));
+          if (after !== undefined) {
+            phoneUrl.searchParams.set("after", after);
+          }
+
+          const phonePage = await execute(phoneUrl, inputValue.accessToken, stage);
+          if (!isRecord(phonePage) || !Array.isArray(phonePage.data)) {
             throw new MetaGraphGatewayError("dependency");
           }
-          if (readText(candidate.id, 64) !== inputValue.phoneNumberId) {
-            continue;
+          if (phonePage.data.length > PHONE_PAGE_SIZE) {
+            throw new MetaGraphGatewayError("dependency");
           }
-          const qualityRating = readOptionalText(candidate.quality_rating, 64);
-          const nameStatus = readOptionalText(candidate.name_status, 64);
-          phone = Object.freeze({
-            displayPhoneNumber: readText(candidate.display_phone_number, 64),
-            verifiedName: readText(candidate.verified_name, 160),
-            ...(qualityRating === undefined ? {} : { qualityRating }),
-            ...(nameStatus === undefined ? {} : { nameStatus }),
-          });
-          break;
+
+          for (const candidate of phonePage.data) {
+            if (!isRecord(candidate)) {
+              throw new MetaGraphGatewayError("dependency");
+            }
+            if (readText(candidate.id, 64) !== inputValue.phoneNumberId) {
+              continue;
+            }
+            const qualityRating = readOptionalText(candidate.quality_rating, 64);
+            const nameStatus = readOptionalText(candidate.name_status, 64);
+            phone = Object.freeze({
+              displayPhoneNumber: readText(candidate.display_phone_number, 64),
+              verifiedName: readText(candidate.verified_name, 160),
+              ...(qualityRating === undefined ? {} : { qualityRating }),
+              ...(nameStatus === undefined ? {} : { nameStatus }),
+            });
+            break;
+          }
+
+          if (phone !== undefined) {
+            break;
+          }
+
+          const paging = phonePage.paging;
+          if (
+            !isRecord(paging) ||
+            !isRecord(paging.cursors) ||
+            paging.cursors.after === undefined
+          ) {
+            throw new MetaGraphGatewayError("invalid");
+          }
+          after = readText(paging.cursors.after, 4_096);
+          if (seenCursors.has(after)) {
+            throw new MetaGraphGatewayError("dependency");
+          }
+          seenCursors.add(after);
         }
 
-        if (phone !== undefined) {
-          break;
-        }
-
-        const paging = phonePage.paging;
-        if (!isRecord(paging) || !isRecord(paging.cursors) || paging.cursors.after === undefined) {
-          throw new MetaGraphGatewayError("invalid");
-        }
-        after = readText(paging.cursors.after, 4_096);
-        if (seenCursors.has(after)) {
+        if (phone === undefined) {
           throw new MetaGraphGatewayError("dependency");
         }
-        seenCursors.add(after);
-      }
 
-      if (phone === undefined) {
-        throw new MetaGraphGatewayError("dependency");
-      }
+        stage = "waba_subscription";
+        const subscriptionUrl = createVersionedUrl(
+          inputValue.apiVersion,
+          `${inputValue.wabaId}/subscribed_apps`,
+        );
+        const subscriptionValue = await execute(subscriptionUrl, inputValue.accessToken, stage, {
+          method: "POST",
+        });
+        if (!isRecord(subscriptionValue) || subscriptionValue.success !== true) {
+          throw new MetaGraphGatewayError("dependency");
+        }
 
-      const subscriptionUrl = createVersionedUrl(
-        inputValue.apiVersion,
-        `${inputValue.wabaId}/subscribed_apps`,
-      );
-      const subscriptionValue = await execute(subscriptionUrl, inputValue.accessToken, {
-        method: "POST",
-      });
-      if (!isRecord(subscriptionValue) || subscriptionValue.success !== true) {
-        throw new MetaGraphGatewayError("dependency");
+        return Object.freeze({
+          ...phone,
+          tokenType,
+          grantedScopes,
+          ...(tokenExpiresAt === undefined ? {} : { tokenExpiresAt }),
+          ...(dataAccessExpiresAt === undefined ? {} : { dataAccessExpiresAt }),
+        });
+      } catch (error) {
+        if (error instanceof MetaGraphGatewayError && error.stage === undefined) {
+          throw new MetaGraphGatewayError(error.kind, error.cause, { stage });
+        }
+        throw error;
       }
-
-      return Object.freeze({
-        ...phone,
-        tokenType,
-        grantedScopes,
-        ...(tokenExpiresAt === undefined ? {} : { tokenExpiresAt }),
-        ...(dataAccessExpiresAt === undefined ? {} : { dataAccessExpiresAt }),
-      });
     },
   });
 }
