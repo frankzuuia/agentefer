@@ -18,23 +18,24 @@ persistir verifica en vivo con Meta que el token:
 
 1. sea válido y pertenezca a la App seleccionada;
 2. incluya `whatsapp_business_management` y `whatsapp_business_messaging`;
-3. autorice el WABA solicitado cuando Meta entrega alcance granular;
-4. no esté vencido ni tenga acceso de datos vencido;
-5. permita enumerar el Phone Number ID dentro de ese WABA;
-6. permita suscribir la App al WABA mediante `subscribed_apps`.
+3. no esté vencido ni tenga acceso de datos vencido;
+4. permita enumerar el Phone Number ID dentro de ese WABA;
+5. permita suscribir la App al WABA mediante `subscribed_apps`.
 
-Sólo después de esas seis comprobaciones se invoca el registrador transaccional. Si Meta, Vault,
+`granular_scopes` no se usa como autoridad porque Meta puede variar u omitir ese metadato según el
+tipo de token. La autorización efectiva del activo se demuestra contra el recurso vivo del WABA y
+el número solicitado. Sólo después de esas cinco comprobaciones se invoca el registrador transaccional. Si Meta, Vault,
 una constraint o la auditoría fallan, no queda una conexión parcial ni un secreto huérfano.
 
 ## Flujo y fronteras
 
-| Paso | Autoridad | Dato sensible | Resultado permitido |
-| --- | --- | --- | --- |
-| sesión y organización | Supabase Auth + RLS con JWT del usuario | token de sesión | Apps y números visibles sólo para owner/admin del tenant |
-| validación externa | API AgenteFer → Graph API HTTPS | access token en memoria del request | identidad de App, scopes, vigencia y perfil del número |
-| suscripción | API AgenteFer → `/{WABA-ID}/subscribed_apps` | mismo token efímero | confirmación booleana de Meta |
-| persistencia | API → RPC con `service_role` | token una vez | canal, perfil no secreto, auditoría y secreto Vault atómicos |
-| lectura posterior | vista `api.meta_whatsapp_connections` + RLS | ninguno | estado, nombre, número, WABA, App y vigencia no secreta |
+| Paso                  | Autoridad                                    | Dato sensible                       | Resultado permitido                                          |
+| --------------------- | -------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| sesión y organización | Supabase Auth + RLS con JWT del usuario      | token de sesión                     | Apps y números visibles sólo para owner/admin del tenant     |
+| validación externa    | API AgenteFer → Graph API HTTPS              | access token en memoria del request | identidad de App, scopes, vigencia y perfil del número       |
+| suscripción           | API AgenteFer → `/{WABA-ID}/subscribed_apps` | mismo token efímero                 | confirmación booleana de Meta                                |
+| persistencia          | API → RPC con `service_role`                 | token una vez                       | canal, perfil no secreto, auditoría y secreto Vault atómicos |
+| lectura posterior     | vista `api.meta_whatsapp_connections` + RLS  | ninguno                             | estado, nombre, número, WABA, App y vigencia no secreta      |
 
 El selector interno de App se obtiene mediante el JWT de la sesión y RLS. Un UUID de App de otra
 organización produce cero candidatos y detiene el flujo antes de enviar una petición a Meta. El
@@ -84,13 +85,13 @@ en 375 px. La verificación visual real sigue siendo una puerta previa al despli
 
 ## Fallo cerrado
 
-| Condición | HTTP | Persistencia |
-| --- | ---: | --- |
-| body, versión o identificador inválido | 400 | ninguna |
-| token, scopes, App o WABA no autorizado | 403 | ninguna |
-| Phone Number ID ya conectado | 409 | rollback completo |
-| timeout/fallo Meta o Vault | 503 | ninguna o rollback completo |
-| App ajena o no verificada | 403 | ninguna petición Meta o rollback |
+| Condición                               | HTTP | Persistencia                     |
+| --------------------------------------- | ---: | -------------------------------- |
+| body, versión o identificador inválido  |  400 | ninguna                          |
+| token, scopes, App o WABA no autorizado |  403 | ninguna                          |
+| Phone Number ID ya conectado            |  409 | rollback completo                |
+| timeout/fallo Meta o Vault              |  503 | ninguna o rollback completo      |
+| App ajena o no verificada               |  403 | ninguna petición Meta o rollback |
 
 ## Fuentes oficiales
 

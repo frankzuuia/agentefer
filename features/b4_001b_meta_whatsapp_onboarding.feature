@@ -21,6 +21,11 @@ Característica: Incorporación segura de canales WhatsApp por organización
       Cuando AgenteFer inspecciona sus scopes
       Entonces rechaza el alta y no crea conexión ni secreto Vault
 
+    Escenario: El metadato granular cambia de forma
+      Dado un token válido con los permisos obligatorios
+      Cuando granular_scopes falta cambia o no enumera el WABA solicitado
+      Entonces AgenteFer usa el recurso vivo del WABA y el Phone Number ID como autoridad efectiva
+
     Escenario: El número no pertenece al WABA
       Dado un WABA accesible por el token
       Cuando todas sus páginas de números excluyen el Phone Number ID solicitado

@@ -400,16 +400,6 @@ describe("Meta Graph gateway over real TCP", () => {
       },
       kind: "unauthorized",
     },
-    {
-      name: "WABA outside granular grant",
-      mutate: (body: ReturnType<typeof validDebugToken>) => {
-        body.data.granular_scopes[0] = {
-          scope: "whatsapp_business_management",
-          target_ids: ["111111111111199"],
-        };
-      },
-      kind: "unauthorized",
-    },
   ] as const)("rejects $name before reading phone assets", async ({ mutate, kind }) => {
     let requestCount = 0;
     const baseUrl = await startServer((_request, response) => {
@@ -462,21 +452,6 @@ describe("Meta Graph gateway over real TCP", () => {
       kind: "dependency",
     },
     {
-      name: "non-record granular scope",
-      body: { data: { ...validDebugToken().data, granular_scopes: [null] } },
-      kind: "dependency",
-    },
-    {
-      name: "non-array granular targets",
-      body: {
-        data: {
-          ...validDebugToken().data,
-          granular_scopes: [{ scope: "whatsapp_business_management", target_ids: "not-an-array" }],
-        },
-      },
-      kind: "dependency",
-    },
-    {
       name: "invalid expiration metadata",
       body: { data: { ...validDebugToken().data, expires_at: -1 } },
       kind: "dependency",
@@ -495,34 +470,6 @@ describe("Meta Graph gateway over real TCP", () => {
             "whatsapp_business_management",
             "whatsapp_business_messaging",
             ...Array.from({ length: 99 }, (_, index) => `extra-${String(index)}`),
-          ],
-        },
-      },
-      kind: "dependency",
-    },
-    {
-      name: "too many granular scopes",
-      body: {
-        data: {
-          ...validDebugToken().data,
-          granular_scopes: Array.from({ length: 101 }, (_, index) => ({
-            scope: `unrelated-${String(index)}`,
-            target_ids: [],
-          })),
-        },
-      },
-      kind: "dependency",
-    },
-    {
-      name: "too many granular targets",
-      body: {
-        data: {
-          ...validDebugToken().data,
-          granular_scopes: [
-            {
-              scope: "whatsapp_business_management",
-              target_ids: [...Array.from({ length: 10_000 }, () => "1"), wabaId],
-            },
           ],
         },
       },
@@ -620,11 +567,6 @@ describe("Meta Graph gateway over real TCP", () => {
       checkpoint: "token_permissions",
     },
     {
-      name: "malformed asset grant collection",
-      body: { data: { ...validDebugToken().data, granular_scopes: [null] } },
-      checkpoint: "token_asset_grants",
-    },
-    {
       name: "missing token type",
       body: { data: { ...validDebugToken().data, type: undefined } },
       checkpoint: "token_metadata",
@@ -642,6 +584,57 @@ describe("Meta Graph gateway over real TCP", () => {
       checkpoint,
     });
   });
+
+  it.each([
+    { name: "missing", granularScopes: undefined },
+    { name: "null", granularScopes: null },
+    { name: "object", granularScopes: { provider: "variant" } },
+    { name: "malformed item", granularScopes: [null] },
+    {
+      name: "different target",
+      granularScopes: [
+        {
+          scope: "whatsapp_business_management",
+          target_ids: ["111111111111199"],
+        },
+      ],
+    },
+  ] as const)(
+    "uses the live WABA and phone resource as authority when granular scopes are $name",
+    async ({ granularScopes }) => {
+      let requestCount = 0;
+      const baseUrl = await startServer((_request, response) => {
+        requestCount += 1;
+        const bodies: unknown[] = [
+          {
+            data: {
+              ...validDebugToken().data,
+              granular_scopes: granularScopes,
+            },
+          },
+          {
+            data: [
+              {
+                id: phoneNumberId,
+                display_phone_number: "+52 664 555 0101",
+                verified_name: "AgenteFer Pruebas",
+              },
+            ],
+          },
+          { success: true },
+        ];
+        writeJson(response, 200, bodies[requestCount - 1]);
+      });
+
+      await expect(
+        createGateway(baseUrl).validateAndSubscribeWhatsAppConnection(validationInput()),
+      ).resolves.toMatchObject({
+        displayPhoneNumber: "+52 664 555 0101",
+        verifiedName: "AgenteFer Pruebas",
+      });
+      expect(requestCount).toBe(3);
+    },
+  );
 
   it.each([
     { name: "missing data", body: { paging: {} } },

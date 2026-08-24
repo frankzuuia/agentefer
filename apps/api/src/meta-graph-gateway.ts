@@ -33,7 +33,6 @@ export const META_GRAPH_GATEWAY_CHECKPOINTS = [
   "token_response",
   "token_identity",
   "token_permissions",
-  "token_asset_grants",
   "token_metadata",
   "phone_response",
   "phone_pagination",
@@ -306,32 +305,6 @@ const readScopes = (value: unknown): readonly string[] => {
   return Object.freeze(scopes);
 };
 
-const assertGranularWabaScope = (value: unknown, wabaId: string): void => {
-  if (value === undefined || value === null) {
-    return;
-  }
-  if (!Array.isArray(value) || value.length > MAXIMUM_SCOPES) {
-    throw new MetaGraphGatewayError("dependency");
-  }
-
-  for (const item of value) {
-    if (!isRecord(item)) {
-      throw new MetaGraphGatewayError("dependency");
-    }
-    const scope = readText(item.scope, 160);
-    if (scope !== "whatsapp_business_management") {
-      continue;
-    }
-    if (!Array.isArray(item.target_ids) || item.target_ids.length > 10_000) {
-      throw new MetaGraphGatewayError("dependency");
-    }
-    const targetIds = item.target_ids.map((targetId) => readText(targetId, 64));
-    if (!targetIds.includes(wabaId)) {
-      throw new MetaGraphGatewayError("unauthorized");
-    }
-  }
-};
-
 export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): MetaGraphGateway {
   const baseUrl = new URL(input.baseUrl);
   baseUrl.search = "";
@@ -434,8 +407,6 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
 
         checkpoint = "token_permissions";
         const grantedScopes = readScopes(tokenData.scopes);
-        checkpoint = "token_asset_grants";
-        assertGranularWabaScope(tokenData.granular_scopes, inputValue.wabaId);
         checkpoint = "token_metadata";
         const tokenType = readText(tokenData.type, 64);
         const tokenExpiresAt = unixTimestampToIso(tokenData.expires_at);
