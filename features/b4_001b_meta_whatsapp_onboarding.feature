@@ -41,6 +41,11 @@ Característica: Incorporación segura de canales WhatsApp por organización
       Cuando Meta rechaza la depuración el número o la suscripción
       Entonces el log conserva solamente etapa HTTP y código numérico sin token URL cuerpo ni mensaje
 
+    Escenario: Meta responde pero cambia la forma de un campo documentado
+      Dado un token que viaja una sola vez hacia Graph API
+      Cuando la respuesta exitosa no satisface el contrato local
+      Entonces el log conserva solamente etapa y checkpoint de allowlist sin cuerpo valores ni credenciales
+
   Regla: Cada conexión conserva el tenant y la identidad de routing
 
     Escenario: Frank conecta su número de pruebas

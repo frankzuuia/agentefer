@@ -175,6 +175,9 @@ const recordFailure = (
     failure.error instanceof MetaGraphGatewayError
       ? {
           ...(failure.error.stage === undefined ? {} : { meta_graph_stage: failure.error.stage }),
+          ...(failure.error.checkpoint === undefined
+            ? {}
+            : { meta_graph_checkpoint: failure.error.checkpoint }),
           ...(failure.error.providerStatus === undefined
             ? {}
             : { meta_graph_http_status: failure.error.providerStatus }),

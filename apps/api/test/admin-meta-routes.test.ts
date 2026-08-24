@@ -234,10 +234,66 @@ describe("admin Meta routes", () => {
     expect(response.headers["retry-after"]).toBe("2");
     expect(logs).toContain('"event":"admin.meta.whatsapp_register.failed"');
     expect(logs).toContain('"meta_graph_stage":"token_debug"');
+    expect(logs).toContain('"meta_graph_checkpoint":"provider_response"');
     expect(logs).toContain('"meta_graph_http_status":429');
     expect(logs).toContain('"meta_graph_error_code":4');
     expect(logs).not.toContain(channelAccessToken);
     expect(logs).not.toContain('"message"');
+  });
+
+  it("records a safe local contract checkpoint without logging the Graph response", async () => {
+    const logDestination = new PassThrough();
+    const dependencyUrl = await startDependencyServer((request, response) => {
+      if (request.url === "/auth/v1/user") {
+        writeJson(response, 200, { id: userId });
+        return;
+      }
+      if (request.url?.startsWith("/rest/v1/meta_applications?")) {
+        writeJson(response, 200, [
+          {
+            id: metaApplicationId,
+            organization_id: organizationId,
+            external_app_id: "216409300082702",
+            display_name: "Pruebas Frank",
+            api_version: "v26.0",
+            status: "active",
+            webhook_endpoint_id: webhookEndpointId,
+            webhook_endpoint_key: endpointKey,
+            webhook_status: "active",
+            webhook_callback_url: `https://agentefer.frkqr.com/webhooks/meta/${endpointKey}`,
+          },
+        ]);
+        return;
+      }
+      writeJson(response, 404, {});
+    });
+    const graphUrl = await startDependencyServer((_request, response) => {
+      writeJson(response, 200, {
+        data: {
+          app_id: "216409300082702",
+          is_valid: true,
+          scopes: ["whatsapp_business_management", "whatsapp_business_messaging"],
+          provider_secret: channelAccessToken,
+        },
+      });
+    });
+    const application = createApplication(dependencyUrl, logDestination, graphUrl);
+
+    const response = await application.inject({
+      method: "POST",
+      url: "/admin/meta/whatsapp-connections",
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: whatsappRegistrationBody(),
+    });
+    const logChunk: unknown = logDestination.read();
+    const logs = Buffer.isBuffer(logChunk) ? logChunk.toString("utf8") : "";
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({ status: "unavailable" });
+    expect(logs).toContain('"meta_graph_stage":"token_debug"');
+    expect(logs).toContain('"meta_graph_checkpoint":"token_metadata"');
+    expect(logs).not.toContain(channelAccessToken);
+    expect(logs).not.toContain("provider_secret");
   });
 
   it("classifies unknown failures without exposing their causes", () => {

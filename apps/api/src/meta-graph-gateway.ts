@@ -27,8 +27,25 @@ export const META_GRAPH_GATEWAY_STAGES = [
 
 export type MetaGraphGatewayStage = (typeof META_GRAPH_GATEWAY_STAGES)[number];
 
+export const META_GRAPH_GATEWAY_CHECKPOINTS = [
+  "provider_request",
+  "provider_response",
+  "token_response",
+  "token_identity",
+  "token_permissions",
+  "token_asset_grants",
+  "token_metadata",
+  "phone_response",
+  "phone_pagination",
+  "phone_identity",
+  "subscription_response",
+] as const;
+
+export type MetaGraphGatewayCheckpoint = (typeof META_GRAPH_GATEWAY_CHECKPOINTS)[number];
+
 type MetaGraphGatewayDiagnostics = Readonly<{
   stage?: MetaGraphGatewayStage;
+  checkpoint?: MetaGraphGatewayCheckpoint;
   providerStatus?: number;
   providerErrorCode?: number;
 }>;
@@ -36,6 +53,7 @@ type MetaGraphGatewayDiagnostics = Readonly<{
 export class MetaGraphGatewayError extends OperationalError {
   readonly kind: MetaGraphGatewayFailureKind;
   readonly stage: MetaGraphGatewayStage | undefined;
+  readonly checkpoint: MetaGraphGatewayCheckpoint | undefined;
   readonly providerStatus: number | undefined;
   readonly providerErrorCode: number | undefined;
 
@@ -77,6 +95,7 @@ export class MetaGraphGatewayError extends OperationalError {
     this.name = "MetaGraphGatewayError";
     this.kind = kind;
     this.stage = diagnostics.stage;
+    this.checkpoint = diagnostics.checkpoint;
     this.providerStatus = diagnostics.providerStatus;
     this.providerErrorCode = diagnostics.providerErrorCode;
   }
@@ -339,10 +358,25 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
     } catch (error) {
       const kind =
         error instanceof Error && error.name === "TimeoutError" ? "timeout" : "dependency";
-      throw new MetaGraphGatewayError(kind, error, { stage });
+      throw new MetaGraphGatewayError(kind, error, {
+        stage,
+        checkpoint: "provider_request",
+      });
     }
 
-    const responseValue = await decodeJsonResponse(response);
+    let responseValue: unknown;
+    try {
+      responseValue = await decodeJsonResponse(response);
+    } catch (error) {
+      const kind = error instanceof MetaGraphGatewayError ? error.kind : "dependency";
+      const cause = error instanceof MetaGraphGatewayError ? error.cause : error;
+      throw new MetaGraphGatewayError(kind, cause, {
+        stage,
+        checkpoint: "provider_response",
+        providerStatus: response.status,
+      });
+    }
+
     if (!response.ok) {
       const providerErrorCode = readMetaErrorCode(responseValue);
       throw new MetaGraphGatewayError(
@@ -350,6 +384,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
         undefined,
         {
           stage,
+          checkpoint: "provider_response",
           providerStatus: response.status,
           ...(providerErrorCode === undefined ? {} : { providerErrorCode }),
         },
@@ -378,6 +413,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
       }
 
       let stage: MetaGraphGatewayStage = "token_debug";
+      let checkpoint: MetaGraphGatewayCheckpoint = "token_response";
 
       try {
         const debugUrl = createVersionedUrl(inputValue.apiVersion, "debug_token");
@@ -388,6 +424,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
         }
 
         const tokenData = debugValue.data;
+        checkpoint = "token_identity";
         if (tokenData.is_valid !== true) {
           throw new MetaGraphGatewayError("unauthorized");
         }
@@ -395,8 +432,11 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
           throw new MetaGraphGatewayError("unauthorized");
         }
 
+        checkpoint = "token_permissions";
         const grantedScopes = readScopes(tokenData.scopes);
+        checkpoint = "token_asset_grants";
         assertGranularWabaScope(tokenData.granular_scopes, inputValue.wabaId);
+        checkpoint = "token_metadata";
         const tokenType = readText(tokenData.type, 64);
         const tokenExpiresAt = unixTimestampToIso(tokenData.expires_at);
         const dataAccessExpiresAt = unixTimestampToIso(tokenData.data_access_expires_at);
@@ -409,6 +449,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
         }
 
         stage = "phone_lookup";
+        checkpoint = "phone_response";
         let phone:
           | Readonly<{
               displayPhoneNumber: string;
@@ -465,6 +506,7 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
           }
 
           const paging = phonePage.paging;
+          checkpoint = "phone_pagination";
           if (
             !isRecord(paging) ||
             !isRecord(paging.cursors) ||
@@ -477,13 +519,16 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
             throw new MetaGraphGatewayError("dependency");
           }
           seenCursors.add(after);
+          checkpoint = "phone_response";
         }
 
         if (phone === undefined) {
+          checkpoint = "phone_identity";
           throw new MetaGraphGatewayError("dependency");
         }
 
         stage = "waba_subscription";
+        checkpoint = "subscription_response";
         const subscriptionUrl = createVersionedUrl(
           inputValue.apiVersion,
           `${inputValue.wabaId}/subscribed_apps`,
@@ -504,7 +549,10 @@ export function createMetaGraphGateway(input: CreateMetaGraphGatewayInput): Meta
         });
       } catch (error) {
         if (error instanceof MetaGraphGatewayError && error.stage === undefined) {
-          throw new MetaGraphGatewayError(error.kind, error.cause, { stage });
+          throw new MetaGraphGatewayError(error.kind, error.cause, {
+            stage,
+            checkpoint,
+          });
         }
         throw error;
       }

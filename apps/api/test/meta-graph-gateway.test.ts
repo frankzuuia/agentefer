@@ -136,6 +136,7 @@ describe("Meta Graph gateway over real TCP", () => {
   it("preserves only bounded provider diagnostics without serializing its cause", () => {
     const error = new MetaGraphGatewayError("dependency", new Error(accessTokenValue), {
       stage: "phone_lookup",
+      checkpoint: "phone_identity",
       providerStatus: 429,
       providerErrorCode: 4,
     });
@@ -143,6 +144,7 @@ describe("Meta Graph gateway over real TCP", () => {
     expect(error).toMatchObject({
       kind: "dependency",
       stage: "phone_lookup",
+      checkpoint: "phone_identity",
       providerStatus: 429,
       providerErrorCode: 4,
     });
@@ -583,6 +585,7 @@ describe("Meta Graph gateway over real TCP", () => {
       expect(capturedError).toMatchObject({
         kind,
         stage: "token_debug",
+        checkpoint: "provider_response",
         providerStatus: status,
         providerErrorCode: code,
       });
@@ -600,7 +603,43 @@ describe("Meta Graph gateway over real TCP", () => {
     ).rejects.toMatchObject({
       kind: "invalid",
       stage: "token_debug",
+      checkpoint: "provider_response",
       providerStatus: 400,
+    });
+  });
+
+  it.each([
+    {
+      name: "missing token data",
+      body: {},
+      checkpoint: "token_response",
+    },
+    {
+      name: "malformed permission collection",
+      body: { data: { ...validDebugToken().data, scopes: "not-an-array" } },
+      checkpoint: "token_permissions",
+    },
+    {
+      name: "malformed asset grant collection",
+      body: { data: { ...validDebugToken().data, granular_scopes: [null] } },
+      checkpoint: "token_asset_grants",
+    },
+    {
+      name: "missing token type",
+      body: { data: { ...validDebugToken().data, type: undefined } },
+      checkpoint: "token_metadata",
+    },
+  ] as const)("identifies the safe checkpoint for $name", async ({ body, checkpoint }) => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 200, body);
+    });
+
+    await expect(
+      createGateway(baseUrl).validateAndSubscribeWhatsAppConnection(validationInput()),
+    ).rejects.toMatchObject({
+      kind: "dependency",
+      stage: "token_debug",
+      checkpoint,
     });
   });
 
