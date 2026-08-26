@@ -34,7 +34,7 @@ Rama: `develop`.
 - Migración pendiente:
   `20260825094500_b4_003a_meta_whatsapp_inbound.sql`.
 - SHA-256 migración:
-  `8AD2B4842C2B70646AB9311C4DC07497F361B7FAA0A02F74415EDC11A85FC225`.
+  `F11CED4430E25488E2E32EFD10B8E2F015198B1356237A813E0B3C254FA4598C`.
 - SHA-256 pgTAP:
   `CFE2D9DF12D76AF51A3A739E3A6CCEA2604D37D702ED099BFA772C2157C64DB0`.
 - Ensayo enlazado migración + pgTAP dentro de una sola transacción: **78/78** y `ROLLBACK`.
@@ -72,6 +72,9 @@ Rama: `develop`.
 5. El primer CI desde cero expuso que `available_at` heredaba el tiempo inicial de la transacción,
    anterior a `received_at`. El router ahora fija disponibilidad igual a la recepción autenticada;
    pgTAP, el contrato estático y un mutante SQL impiden reintroducir el defecto.
+6. El lint de PL/pgSQL detectó que `external_message_id` podía resolver tanto a una variable local
+   como a la columna de salida homónima. La variable interna ahora es `v_external_message_id` y el
+   contrato estático impide restaurar la consulta ambigua.
 
 ## Pendientes que impiden declarar B4-003 completo
 

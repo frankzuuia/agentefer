@@ -662,6 +662,16 @@ assert.equal(
   2,
   "B4-003A must set explicit event availability for message and status routing",
 );
+assert.match(
+  metaWhatsAppInboundMigration,
+  /existing_message\.external_message_id = v_external_message_id;/,
+  "B4-003A replay lookup must disambiguate the provider message identifier from the returned column",
+);
+assert.doesNotMatch(
+  metaWhatsAppInboundMigration,
+  /existing_message\.external_message_id = external_message_id;/,
+  "B4-003A must not reintroduce an ambiguous PL/pgSQL output-column reference",
+);
 assert.equal(
   metaWhatsAppInboundMigration.split(
     "            delivery_record.signature_verified_at,\n            delivery_record.first_received_at,",

@@ -878,7 +878,7 @@ declare
   provider_contact jsonb;
   provider_metadata jsonb;
   sender_id text;
-  external_message_id text;
+  v_external_message_id text;
   provider_message_type text;
   observed_display_name text;
   target_content_kind text;
@@ -943,17 +943,17 @@ begin
   end if;
 
   sender_id := provider_message ->> 'from';
-  external_message_id := provider_message ->> 'id';
+  v_external_message_id := provider_message ->> 'id';
   provider_message_type := provider_message ->> 'type';
 
   if sender_id <> btrim(sender_id)
     or char_length(sender_id) not between 1 and 64
     or char_length(translate(sender_id, '0123456789', '')) <> 0
-    or external_message_id <> btrim(external_message_id)
-    or char_length(external_message_id) not between 1 and 512
+    or v_external_message_id <> btrim(v_external_message_id)
+    or char_length(v_external_message_id) not between 1 and 512
     or provider_message_type <> btrim(provider_message_type)
     or char_length(provider_message_type) not between 1 and 120
-    or event_record.provider_event_id is distinct from external_message_id then
+    or event_record.provider_event_id is distinct from v_external_message_id then
     raise exception using errcode = '23514', message = 'WhatsApp event evidence is inconsistent';
   end if;
 
@@ -1266,8 +1266,8 @@ begin
     'inbound',
     target_content_kind,
     provider_message_type,
-    external_message_id,
-    extensions.digest(convert_to('whatsapp.message:' || external_message_id, 'UTF8'), 'sha256'),
+    v_external_message_id,
+    extensions.digest(convert_to('whatsapp.message:' || v_external_message_id, 'UTF8'), 'sha256'),
     target_content,
     target_provider_context,
     'received',
@@ -1285,7 +1285,7 @@ begin
     from app_private.messages as existing_message
     where existing_message.organization_id = event_record.organization_id
       and existing_message.channel_connection_id = event_record.channel_connection_id
-      and existing_message.external_message_id = external_message_id;
+      and existing_message.external_message_id = v_external_message_id;
 
     if not found then
       raise exception using errcode = '40001', message = 'WhatsApp message replay could not be resolved';
