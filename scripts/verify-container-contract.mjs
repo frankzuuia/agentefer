@@ -118,6 +118,12 @@ for (const requiredApiRuntimeVariable of [
     `container CI must pass the required API runtime variable: ${requiredApiRuntimeVariable}`,
   );
 }
+for (const requiredWorkerRuntimeVariable of ["--env WORKER_META_INBOUND_ENABLED=false"]) {
+  assert.ok(
+    qualityWorkflow.includes(requiredWorkerRuntimeVariable),
+    `container CI must pass the required worker runtime variable: ${requiredWorkerRuntimeVariable}`,
+  );
+}
 
 console.log(
   `Container contract verified: ${dockerfilePaths.length} Dockerfiles, ${workspaceManifestPaths.length} workspace manifests.`,

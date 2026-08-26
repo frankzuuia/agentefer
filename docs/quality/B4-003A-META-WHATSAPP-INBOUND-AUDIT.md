@@ -63,9 +63,10 @@ Rama: `develop`.
    ahora devuelve un resultado explícito, limpia timer/listener y el bucle no ejecuta otro ciclo.
 2. Los nombres `message_id`, `content_kind` y `message_count` eran redacted por la política central.
    Se sustituyeron por atributos operativos seguros sin relajar la protección de PII/contenido.
-3. El gate de procesos intentaba usar una dependencia Supabase inexistente porque el nuevo loop se
-   habilita por defecto. El proceso efímero de QA ahora declara
-   `WORKER_META_INBOUND_ENABLED=false`; EasyPanel conserva el default productivo habilitado.
+3. Los gates de procesos y del contenedor OCI intentaban usar una dependencia Supabase inexistente
+   porque el nuevo loop se habilita por defecto. Todo proceso efímero de QA ahora declara
+   `WORKER_META_INBOUND_ENABLED=false`, y el contrato de contenedor impide retirar esa protección;
+   EasyPanel conserva el default productivo habilitado.
 4. Las primeras pruebas de mutación no observaban exactamente RPCs, métricas, logs, cancelación ni
    clasificación de fallos. Se ampliaron sobre TCP, Pino y OpenTelemetry reales hasta superar 90%.
 
