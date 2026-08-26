@@ -406,3 +406,16 @@ No hay desconexión conceptual entre canal, API, cola, worker, LLM, tools, DB y 
 1. Falta implementar y probar el scaffold técnico ratificado en B1.
 2. Falta confirmar cuenta/permisos Meta y políticas comerciales pendientes.
 3. Falta definir esquema SQL/RLS detallado y probarlo contra Supabase real.
+
+## Addendum de implementación B4-003A — 2026-08-26
+
+El estado histórico anterior corresponde a la especificación v0.1. El adaptador entrante WhatsApp
+B4-003A ya está implementado y ensayado localmente bajo
+`docs/architecture/META-WHATSAPP-INBOUND-B4-003A.md`: recibe exclusivamente deliveries autenticados
+por B4-002, resuelve tenant por endpoint/App/WABA/Phone Number ID, normaliza identidad,
+conversación y mensaje mediante worker durable y no interpreta intención comercial. PostgreSQL no
+interpreta lenguaje; el LLM y sus tools continúan diferidos a B5.
+
+La migración sigue pendiente de aplicación, el worker final no se ha desplegado, no existe E2E real
+post-normalización y Messenger permanece en B4-003B. Por ello B4-003 no se declara completo. La
+evidencia reproducible está en `docs/quality/B4-003A-META-WHATSAPP-INBOUND-AUDIT.md`.

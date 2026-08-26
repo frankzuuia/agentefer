@@ -192,6 +192,15 @@ describe("worker environment", () => {
     const configuration = parseWorkerEnvironment(validWorkerEnvironment());
 
     expect(configuration.health).toEqual({ host: "0.0.0.0", port: 3002 });
+    expect(configuration.metaInbound).toEqual({
+      enabled: true,
+      rpcTimeoutMilliseconds: 5_000,
+      pollIntervalMilliseconds: 1_000,
+      leaseSeconds: 120,
+      maxAttempts: 8,
+      retryDelaySeconds: 5,
+      batchSize: 25,
+    });
     expect(configuration.ai.model.canonical).toBe("openai:gpt-5.6-luna");
     expect(configuration.ai.visionModel.canonical).toBe("minimax:MiniMax-M3");
     expect(configuration.ai.fallbackModels[0]?.canonical).toBe("minimax:MiniMax-M2.7-highspeed");
@@ -309,6 +318,45 @@ describe("worker environment", () => {
     expect(() => parseWorkerEnvironment(environment)).toThrow(
       "exceeds the absolute safety ceiling",
     );
+  });
+
+  it("supports disabling only the inbound loop while preserving typed operational controls", () => {
+    const configuration = parseWorkerEnvironment({
+      ...validWorkerEnvironment(),
+      WORKER_META_INBOUND_ENABLED: "false",
+      WORKER_META_RPC_TIMEOUT_MS: "250",
+      WORKER_META_POLL_INTERVAL_MS: "100",
+      WORKER_META_LEASE_SECONDS: "15",
+      WORKER_META_MAX_ATTEMPTS: "100",
+      WORKER_META_RETRY_DELAY_SECONDS: "0",
+      WORKER_META_BATCH_SIZE: "100",
+    });
+
+    expect(configuration.metaInbound).toEqual({
+      enabled: false,
+      rpcTimeoutMilliseconds: 250,
+      pollIntervalMilliseconds: 100,
+      leaseSeconds: 15,
+      maxAttempts: 100,
+      retryDelaySeconds: 0,
+      batchSize: 100,
+    });
+  });
+
+  it.each([
+    ["WORKER_META_RPC_TIMEOUT_MS", "249"],
+    ["WORKER_META_POLL_INTERVAL_MS", "99"],
+    ["WORKER_META_LEASE_SECONDS", "14"],
+    ["WORKER_META_MAX_ATTEMPTS", "101"],
+    ["WORKER_META_RETRY_DELAY_SECONDS", "3601"],
+    ["WORKER_META_BATCH_SIZE", "101"],
+  ] as const)("rejects an unsafe worker operational boundary for %s", (variable, value) => {
+    expect(() =>
+      parseWorkerEnvironment({
+        ...validWorkerEnvironment(),
+        [variable]: value,
+      }),
+    ).toThrow(variable);
   });
 
   it("never serializes provider or Supabase secrets", () => {

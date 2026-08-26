@@ -33,6 +33,9 @@ const files = {
   publicationAudit: "docs/quality/B2-007-DESIGN-AUDIT.md",
   metaVaultPhysical: "docs/architecture/META-VAULT-CREDENTIALS-B4-001.md",
   metaVaultAudit: "docs/quality/B4-001-META-VAULT-DESIGN-AUDIT.md",
+  metaWhatsAppResearch: "docs/references/META-WHATSAPP-INBOUND-B4-003A-RESEARCH.md",
+  metaWhatsAppPhysical: "docs/architecture/META-WHATSAPP-INBOUND-B4-003A.md",
+  metaWhatsAppAudit: "docs/quality/B4-003A-META-WHATSAPP-INBOUND-AUDIT.md",
 };
 
 const documents = Object.fromEntries(
@@ -287,6 +290,37 @@ const requiredStatements = new Map([
       "cero secretos QA residuales",
       "intentos fallidos se persistió",
       "permanece abierta",
+    ],
+  ],
+  [
+    "metaWhatsAppResearch",
+    [
+      "Fuera de alcance: Messenger (B4-003B)",
+      "El objeto raíz de WhatsApp Cloud API es `whatsapp_business_account`",
+      "ningún campo del cliente elige organización",
+      "tool calling nativo",
+    ],
+  ],
+  [
+    "metaWhatsAppPhysical",
+    [
+      "MIGRACIÓN/DEPLOY PENDIENTES",
+      "El payload bruto no cruza",
+      "B4-003B implementará Messenger",
+      "no decide intención",
+    ],
+  ],
+  [
+    "metaWhatsAppAudit",
+    [
+      "CALIDAD LOCAL CERTIFICADA — MIGRACIÓN, DEPLOY Y E2E REAL PENDIENTES",
+      "77/77",
+      "11/11 mutantes críticos eliminados",
+      "565/565",
+      "94.41%",
+      "97.31%",
+      "WORKER_META_INBOUND_ENABLED=false",
+      "B4-003 permanece `[ ]`",
     ],
   ],
 ]);

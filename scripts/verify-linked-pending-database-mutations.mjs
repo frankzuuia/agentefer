@@ -5,15 +5,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildLinkedMigrationPgtapCollector } from "../packages/database/dist/linked-pgtap.js";
-import { b4001cDatabaseMutants } from "./database-b4-001c-mutants.mjs";
+import { b4003aDatabaseMutants } from "./database-b4-003a-mutants.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const expectedProjectRef = "hprdctmblmfcoagugvyp";
 const expectedProjectName = "AgenteFer";
 const migrationRelativePath =
-  "supabase/migrations/20260820223000_b4_001c_meta_whatsapp_profile_least_privilege.sql";
-const testRelativePath = "supabase/tests/b4_001c_meta_whatsapp_profile_least_privilege_test.sql";
+  "supabase/migrations/20260825094500_b4_003a_meta_whatsapp_inbound.sql";
+const testRelativePath = "supabase/tests/b4_003a_meta_whatsapp_inbound_test.sql";
 const npmExecutable = process.env.npm_execpath;
 const maxBuffer = 50 * 1024 * 1024;
 
@@ -53,16 +53,42 @@ const [migrationSource, testSource] = await Promise.all([
 ]);
 const temporaryDirectory = path.join(repositoryRoot, "tmp");
 const reportDirectory = path.join(repositoryRoot, "reports", "database-quality");
-const reportFile = path.join(reportDirectory, "linked-b4-001c-mutation-summary.json");
+const reportFile = path.join(reportDirectory, "linked-b4-003a-mutation-summary.json");
 const outcomes = [];
 
 await mkdir(temporaryDirectory, { recursive: true });
 
-for (const [index, mutant] of b4001cDatabaseMutants.entries()) {
-  const collectedSql = buildLinkedMigrationPgtapCollector(migrationSource, testSource, mutant.sql);
+const mutateMigration = (mutant) => {
+  if (mutant.sql !== undefined) {
+    assert.equal(mutant.find, undefined, `${mutant.name} cannot mix SQL and source mutation`);
+    return Object.freeze({ source: migrationSource, additionalSql: mutant.sql });
+  }
+
+  assert.equal(typeof mutant.find, "string", `${mutant.name} must define a source target`);
+  assert.equal(
+    typeof mutant.replacement,
+    "string",
+    `${mutant.name} must define a source replacement`,
+  );
+  const occurrences = migrationSource.split(mutant.find).length - 1;
+  assert.equal(occurrences, 1, `${mutant.name} must target exactly one migration fragment`);
+
+  return Object.freeze({
+    source: migrationSource.replace(mutant.find, mutant.replacement),
+    additionalSql: undefined,
+  });
+};
+
+for (const [index, mutant] of b4003aDatabaseMutants.entries()) {
+  const mutation = mutateMigration(mutant);
+  const collectedSql = buildLinkedMigrationPgtapCollector(
+    mutation.source,
+    testSource,
+    mutation.additionalSql,
+  );
   const temporaryFile = path.join(
     temporaryDirectory,
-    `linked-b4-001c-mutation-${process.pid}-${index}.sql`,
+    `linked-b4-003a-mutation-${process.pid}-${index}.sql`,
   );
   await writeFile(temporaryFile, collectedSql, "utf8");
 
@@ -137,14 +163,14 @@ await writeFile(
 
 assert.equal(
   outcomes.length,
-  b4001cDatabaseMutants.length,
-  "every pending WhatsApp database mutant must execute",
+  b4003aDatabaseMutants.length,
+  "every pending WhatsApp inbound database mutant must execute",
 );
 assert.ok(
   outcomes.every((outcome) => outcome.killed),
-  "WhatsApp profile least-privilege pgTAP must kill every pending database mutant",
+  "WhatsApp inbound pgTAP must kill every pending database mutant",
 );
 
 console.log(
-  `Linked pending WhatsApp least-privilege mutation gate verified: ${outcomes.length}/${outcomes.length} killed (100%) and rolled back on ${expectedProjectName}.`,
+  `Linked pending WhatsApp inbound mutation gate verified: ${outcomes.length}/${outcomes.length} killed (100%) and rolled back on ${expectedProjectName}.`,
 );

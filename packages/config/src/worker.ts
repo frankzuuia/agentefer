@@ -31,6 +31,38 @@ export const aiSafetyCeilings = Object.freeze({
   maxFallbackModels: 8,
 });
 
+export const workerOperationalCeilings = Object.freeze({
+  rpcTimeoutMilliseconds: 60_000,
+  pollIntervalMilliseconds: 60_000,
+  leaseSeconds: 900,
+  maxAttempts: 100,
+  retryDelaySeconds: 3_600,
+  batchSize: 100,
+});
+
+const defaultedText = (fallback: string) =>
+  z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim().length === 0 ? fallback : (value ?? fallback),
+    requiredTextSchema,
+  );
+
+const defaultedPositiveInteger = (fallback: number) =>
+  defaultedText(String(fallback)).pipe(positiveIntegerSchema);
+
+const defaultedNonNegativeInteger = (fallback: number) =>
+  defaultedText(String(fallback))
+    .refine((value) => {
+      const numericValue = Number(value);
+      return Number.isSafeInteger(numericValue) && numericValue >= 0;
+    }, "must be a non-negative safe integer")
+    .transform((value) => Number(value));
+
+const defaultedBoolean = (fallback: boolean) =>
+  defaultedText(String(fallback))
+    .pipe(z.enum(["true", "false"]))
+    .transform((value) => value === "true");
+
 const isProviderCharacter = (character: string): boolean =>
   (character >= "a" && character <= "z") ||
   (character >= "0" && character <= "9") ||
@@ -106,6 +138,13 @@ export const workerEnvironmentVariables = [
   "DEPLOYMENT_COMMIT_SHA",
   "WORKER_HEALTH_HOST",
   "WORKER_HEALTH_PORT",
+  "WORKER_META_INBOUND_ENABLED",
+  "WORKER_META_RPC_TIMEOUT_MS",
+  "WORKER_META_POLL_INTERVAL_MS",
+  "WORKER_META_LEASE_SECONDS",
+  "WORKER_META_MAX_ATTEMPTS",
+  "WORKER_META_RETRY_DELAY_SECONDS",
+  "WORKER_META_BATCH_SIZE",
   "SUPABASE_URL",
   "SUPABASE_PROJECT_REF",
   "SUPABASE_SECRET_KEY",
@@ -131,6 +170,31 @@ const workerEnvironmentSchema = z
     WORKER_HEALTH_PORT: positiveIntegerSchema.refine(
       (value) => value <= 65_535,
       "must be a valid TCP port",
+    ),
+    WORKER_META_INBOUND_ENABLED: defaultedBoolean(true),
+    WORKER_META_RPC_TIMEOUT_MS: defaultedPositiveInteger(5_000).refine(
+      (value) => value >= 250 && value <= workerOperationalCeilings.rpcTimeoutMilliseconds,
+      "must be between 250 and 60000 milliseconds",
+    ),
+    WORKER_META_POLL_INTERVAL_MS: defaultedPositiveInteger(1_000).refine(
+      (value) => value >= 100 && value <= workerOperationalCeilings.pollIntervalMilliseconds,
+      "must be between 100 and 60000 milliseconds",
+    ),
+    WORKER_META_LEASE_SECONDS: defaultedPositiveInteger(120).refine(
+      (value) => value >= 15 && value <= workerOperationalCeilings.leaseSeconds,
+      "must be between 15 and 900 seconds",
+    ),
+    WORKER_META_MAX_ATTEMPTS: defaultedPositiveInteger(8).refine(
+      (value) => value <= workerOperationalCeilings.maxAttempts,
+      "must not exceed 100 attempts",
+    ),
+    WORKER_META_RETRY_DELAY_SECONDS: defaultedNonNegativeInteger(5).refine(
+      (value) => value <= workerOperationalCeilings.retryDelaySeconds,
+      "must not exceed 3600 seconds",
+    ),
+    WORKER_META_BATCH_SIZE: defaultedPositiveInteger(25).refine(
+      (value) => value <= workerOperationalCeilings.batchSize,
+      "must not exceed 100 items",
     ),
     SUPABASE_URL: httpUrlSchema,
     SUPABASE_PROJECT_REF: supabaseProjectRefSchema,
@@ -207,6 +271,15 @@ const workerEnvironmentSchema = z
       health: {
         host: environment.WORKER_HEALTH_HOST,
         port: environment.WORKER_HEALTH_PORT,
+      },
+      metaInbound: {
+        enabled: environment.WORKER_META_INBOUND_ENABLED,
+        rpcTimeoutMilliseconds: environment.WORKER_META_RPC_TIMEOUT_MS,
+        pollIntervalMilliseconds: environment.WORKER_META_POLL_INTERVAL_MS,
+        leaseSeconds: environment.WORKER_META_LEASE_SECONDS,
+        maxAttempts: environment.WORKER_META_MAX_ATTEMPTS,
+        retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
+        batchSize: environment.WORKER_META_BATCH_SIZE,
       },
       supabase: {
         url: environment.SUPABASE_URL,

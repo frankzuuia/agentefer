@@ -165,6 +165,7 @@ await verifyRuntime({
     LOG_LEVEL: "error",
     WORKER_HEALTH_HOST: "127.0.0.1",
     WORKER_HEALTH_PORT: String(workerPort),
+    WORKER_META_INBOUND_ENABLED: "false",
     SUPABASE_URL: "http://127.0.0.1:54321",
     SUPABASE_PROJECT_REF: "agenteferprocesstest",
     SUPABASE_SECRET_KEY: ["sb", "secret", "worker", "process", "test", "only"].join("_"),

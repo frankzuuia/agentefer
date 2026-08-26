@@ -8,6 +8,8 @@ export default {
     "apps/api/src/meta-webhook-protocol.ts",
     "apps/api/src/meta-webhook-routes.ts",
     "apps/api/src/meta-webhook-rpc.ts",
+    "apps/worker/src/meta-inbound-processor.ts",
+    "apps/worker/src/meta-inbound-rpc.ts",
     "packages/ai/src/**/*.ts",
     "!packages/ai/src/index.ts",
     "packages/database/src/type-normalizer.ts",
@@ -20,7 +22,7 @@ export default {
     "docs/**",
     "supabase/**",
   ],
-  disableTypeChecks: "{apps/api/src,packages/ai/src,packages/database/src}/**/*.ts",
+  disableTypeChecks: "{apps/api/src,apps/worker/src,packages/ai/src,packages/database/src}/**/*.ts",
   testRunner: "vitest",
   vitest: {
     configFile: "vitest.config.ts",

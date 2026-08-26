@@ -332,3 +332,19 @@ App/Página/WABA/número/permisos.
 - Evidencia DB CI: once migraciones desde cero, 649/649 pgTAP, concurrencia B2-008 y previa, 38/38 mutantes SQL eliminados, lint/advisors verdes y tipos sin drift.
 - QA general CI: 95/95 pruebas, 94.02% líneas, 89.57% ramas, 112/112 mutantes de código, contenedores no-root y supply chain verdes.
 - OpenAI/MiniMax, Meta y `pgmq` siguen sin conexión real; esta etapa construyó el ledger/provider-neutral, no simula adapters.
+
+## Avance local de B4-003A — entrada WhatsApp
+
+- Investigación oficial: `docs/references/META-WHATSAPP-INBOUND-B4-003A-RESEARCH.md`.
+- Contrato físico: `docs/architecture/META-WHATSAPP-INBOUND-B4-003A.md`; aceptación:
+  `features/b4_003a_meta_whatsapp_inbound.feature`.
+- Migración pendiente `20260825094500_b4_003a_meta_whatsapp_inbound.sql`; no aplicada al proyecto
+  remoto `hprdctmblmfcoagugvyp` durante este bloque.
+- Ensayo enlazado con rollback: 77/77 pgTAP; mutation SQL: 11/11.
+- Worker durable: claim/lease, route, normalización, retry/dead-letter, polling cancelable, logs y
+  métricas; el backend no interpreta intención ni elige tools.
+- QA local: 565/565 pruebas; cobertura 97.27% statements, 94.38% ramas, 96.59% funciones y 97.35%
+  líneas; mutación global 94.41%, RPC 94.17% y procesador 97.31%; 0 vulnerabilidades.
+- Auditoría: `docs/quality/B4-003A-META-WHATSAPP-INBOUND-AUDIT.md`.
+- Estado: **calidad local certificada; migración, deploy, E2E real, CI y Messenger B4-003B
+  pendientes**. B4-003 continúa `[ ]`.
