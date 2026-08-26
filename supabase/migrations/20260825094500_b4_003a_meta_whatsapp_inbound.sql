@@ -441,6 +441,7 @@ begin
             provider_occurred_at,
             received_at,
             signature_verified_at,
+            available_at,
             request_id,
             trace_id
           ) values (
@@ -454,6 +455,7 @@ begin
             provider_occurred_at,
             delivery_record.first_received_at,
             delivery_record.signature_verified_at,
+            delivery_record.first_received_at,
             delivery_record.latest_request_id,
             delivery_record.latest_trace_id
           )
@@ -536,6 +538,7 @@ begin
             provider_occurred_at,
             received_at,
             signature_verified_at,
+            available_at,
             request_id,
             trace_id
           ) values (
@@ -549,6 +552,7 @@ begin
             provider_occurred_at,
             delivery_record.first_received_at,
             delivery_record.signature_verified_at,
+            delivery_record.first_received_at,
             delivery_record.latest_request_id,
             delivery_record.latest_trace_id
           )

@@ -92,7 +92,7 @@ for (const featureEntry of featureEntries) {
 
   if (featureEntry === "b4_003a_meta_whatsapp_inbound.feature") {
     assert.ok(
-      pickles.length >= 16,
+      pickles.length >= 17,
       "B4-003A must preserve all critical WhatsApp inbound, isolation and recovery scenarios",
     );
   }

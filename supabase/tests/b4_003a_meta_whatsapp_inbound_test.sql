@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(77);
+select extensions.plan(78);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -673,6 +673,16 @@ select extensions.is(
   ),
   1,
   'provider message ID creates one private normalized event'
+);
+select extensions.ok(
+  (
+    select available_at = received_at
+      and signature_verified_at <= received_at
+    from app_private.inbound_events
+    where event_type = 'whatsapp.message'
+      and provider_event_id = 'wamid.B403.text.1'
+  ),
+  'routed events preserve valid receipt, verification and availability ordering'
 );
 
 set local role service_role;

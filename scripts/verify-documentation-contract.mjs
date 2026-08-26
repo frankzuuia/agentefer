@@ -314,8 +314,8 @@ const requiredStatements = new Map([
     "metaWhatsAppAudit",
     [
       "CALIDAD LOCAL CERTIFICADA — MIGRACIÓN, DEPLOY Y E2E REAL PENDIENTES",
-      "77/77",
-      "11/11 mutantes críticos eliminados",
+      "78/78",
+      "12/12 mutantes críticos eliminados",
       "565/565",
       "94.41%",
       "97.31%",

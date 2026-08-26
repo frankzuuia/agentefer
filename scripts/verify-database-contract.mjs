@@ -657,6 +657,18 @@ for (const forbiddenStatement of [
     `B4-003A cannot widen its private worker boundary: ${forbiddenStatement}`,
   );
 }
+assert.equal(
+  metaWhatsAppInboundMigration.split("            available_at,").length - 1,
+  2,
+  "B4-003A must set explicit event availability for message and status routing",
+);
+assert.equal(
+  metaWhatsAppInboundMigration.split(
+    "            delivery_record.signature_verified_at,\n            delivery_record.first_received_at,",
+  ).length - 1,
+  2,
+  "B4-003A event availability must equal the authenticated delivery receipt time",
+);
 
 const requiredMetaWhatsAppOnboardingMigrationStatements = [
   "create table app_private.meta_whatsapp_connection_profiles (",
@@ -1424,7 +1436,7 @@ for (const statement of [
 }
 
 for (const statement of [
-  "select extensions.plan(77);",
+  "select extensions.plan(78);",
   "raw customer payload never crosses the database claim boundary",
   "a concurrent worker cannot claim the active lease",
   "an expired event lease is safely reclaimed with a new attempt",
@@ -1758,8 +1770,8 @@ for (const runnerGuard of [
 }
 assert.equal(
   b4003aMutationCatalog.split('name: "').length - 1,
-  11,
-  "B4-003A must preserve eleven WhatsApp inbound database mutants",
+  12,
+  "B4-003A must preserve twelve WhatsApp inbound database mutants",
 );
 for (const mutationGuard of [
   "remove raw delivery lease lifecycle constraint",
@@ -1773,6 +1785,7 @@ for (const mutationGuard of [
   "copy provider sender identity into LLM-visible message content",
   "downgrade verified owner identity to customer participant",
   "use transaction time for WhatsApp message lease expiry",
+  "make routed message available before authenticated receipt",
 ]) {
   assert.ok(
     b4003aMutationCatalog.includes(mutationGuard),
@@ -1785,5 +1798,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 946 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 947 pgTAP assertions, generated TypeScript schemas locked.`,
 );

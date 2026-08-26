@@ -88,6 +88,12 @@ Característica: Normalización durable y multitenant de mensajes WhatsApp
     Entonces el wrapper termina ignored
     Y no se crea una conversación vacía
 
+  Escenario: Una transacción comenzó antes de recibir el webhook
+    Dado un delivery autenticado recibido dentro de una transacción ya abierta
+    Cuando B4-003A crea el evento normalizado
+    Entonces su disponibilidad coincide con la recepción autenticada
+    Y el orden temporal del evento permanece válido
+
   Escenario: Un payload autenticado no cumple el contrato interno
     Dado un delivery que no puede normalizarse de forma segura
     Cuando alcanza el máximo de intentos configurado

@@ -34,12 +34,12 @@ Rama: `develop`.
 - Migración pendiente:
   `20260825094500_b4_003a_meta_whatsapp_inbound.sql`.
 - SHA-256 migración:
-  `EA097AFF461619A5237422803F074422F20695B816BDE674B4FAFE29D0244443`.
+  `8AD2B4842C2B70646AB9311C4DC07497F361B7FAA0A02F74415EDC11A85FC225`.
 - SHA-256 pgTAP:
-  `37F581A13F4773F18DB7096618A1AA59E26FC4064AA2BD8957A3A532A56A8921`.
-- Ensayo enlazado migración + pgTAP dentro de una sola transacción: **77/77** y `ROLLBACK`.
-- Mutation testing SQL: **11/11 mutantes críticos eliminados**, cada uno dentro de rollback.
-- Contrato estático: 19 migraciones ordenadas, 94 tablas con RLS forzada y 946 aserciones pgTAP.
+  `CFE2D9DF12D76AF51A3A739E3A6CCEA2604D37D702ED099BFA772C2157C64DB0`.
+- Ensayo enlazado migración + pgTAP dentro de una sola transacción: **78/78** y `ROLLBACK`.
+- Mutation testing SQL: **12/12 mutantes críticos eliminados**, cada uno dentro de rollback.
+- Contrato estático: 19 migraciones ordenadas, 94 tablas con RLS forzada y 947 aserciones pgTAP.
 - La versión `20260825094500` no se aplicó al historial remoto durante este bloque.
 
 ## Evidencia TypeScript y aceptación
@@ -53,7 +53,7 @@ Rama: `develop`.
   cobertura; supera el umbral obligatorio de 90%.
 - Mutation global: **94.41%** sobre 2,701 mutantes; 2,547 eliminados, 3 timeouts, 144
   supervivientes, 7 sin cobertura y 0 errores. El worker acumuló 95.15%.
-- Aceptación: 16 escenarios B4-003A y 265 escenarios acumulados, sin errores de parseo.
+- Aceptación: 17 escenarios B4-003A y 266 escenarios acumulados, sin errores de parseo.
 - Format, ESLint type-aware, TypeScript strict, build completo, procesos API/worker en TCP real,
   contratos de workspace/contenedor/dependencias y `npm audit`: verdes; 0 vulnerabilidades.
 
@@ -69,6 +69,9 @@ Rama: `develop`.
    EasyPanel conserva el default productivo habilitado.
 4. Las primeras pruebas de mutación no observaban exactamente RPCs, métricas, logs, cancelación ni
    clasificación de fallos. Se ampliaron sobre TCP, Pino y OpenTelemetry reales hasta superar 90%.
+5. El primer CI desde cero expuso que `available_at` heredaba el tiempo inicial de la transacción,
+   anterior a `received_at`. El router ahora fija disponibilidad igual a la recepción autenticada;
+   pgTAP, el contrato estático y un mutante SQL impiden reintroducir el defecto.
 
 ## Pendientes que impiden declarar B4-003 completo
 

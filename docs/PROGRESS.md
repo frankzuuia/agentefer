@@ -340,7 +340,7 @@ App/Página/WABA/número/permisos.
   `features/b4_003a_meta_whatsapp_inbound.feature`.
 - Migración pendiente `20260825094500_b4_003a_meta_whatsapp_inbound.sql`; no aplicada al proyecto
   remoto `hprdctmblmfcoagugvyp` durante este bloque.
-- Ensayo enlazado con rollback: 77/77 pgTAP; mutation SQL: 11/11.
+- Ensayo enlazado con rollback: 78/78 pgTAP; mutation SQL: 12/12.
 - Worker durable: claim/lease, route, normalización, retry/dead-letter, polling cancelable, logs y
   métricas; el backend no interpreta intención ni elige tools.
 - QA local: 565/565 pruebas; cobertura 97.27% statements, 94.38% ramas, 96.59% funciones y 97.35%
