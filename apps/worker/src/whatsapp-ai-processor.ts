@@ -29,6 +29,8 @@ export type WhatsAppAiProcessorConfiguration = Readonly<{
 }>;
 
 export type WhatsAppAiCycleResult = Readonly<{
+  recoveredTurnCount: number;
+  uncertainRecoveryCount: number;
   turnCount: number;
   outboxCount: number;
 }>;
@@ -68,6 +70,19 @@ const recordFailure = (
     outcome: "failed",
     errorCategory: category,
     durationMilliseconds: elapsedMilliseconds(startedAt),
+  });
+};
+
+const rpcFailureAttributes = (error: unknown): Readonly<Record<string, string | number>> => {
+  if (!(error instanceof WhatsAppAiRpcError)) {
+    return Object.freeze({});
+  }
+  return Object.freeze({
+    rpc_failure_kind: error.kind,
+    ...(error.operation === undefined ? {} : { rpc_operation: error.operation }),
+    ...(error.phase === undefined ? {} : { rpc_failure_phase: error.phase }),
+    ...(error.field === undefined ? {} : { rpc_response_field: error.field }),
+    ...(error.status === undefined ? {} : { rpc_http_status: error.status }),
   });
 };
 
@@ -298,6 +313,22 @@ export async function drainWhatsAppAiOnce(
 ): Promise<WhatsAppAiCycleResult> {
   let turnCount = 0;
   let outboxCount = 0;
+  const recovery = await input.rpcClient.recoverExpiredAgentTurns({
+    workerId: input.configuration.workerId,
+    retryDelaySeconds: input.configuration.retryDelaySeconds,
+    limit: input.configuration.batchSize,
+    signal,
+  });
+
+  if (recovery.recoveredCount > 0) {
+    input.logger.warn("worker.whatsapp.ai.expired_turns_recovered", "succeeded", {
+      scanned_count: recovery.scannedCount,
+      recovered_count: recovery.recoveredCount,
+      retryable_count: recovery.retryableCount,
+      failed_count: recovery.failedCount,
+      uncertain_count: recovery.uncertainCount,
+    });
+  }
 
   while (turnCount < input.configuration.batchSize && !signal.aborted) {
     const claim = await input.rpcClient.claimAgentTurn({
@@ -331,7 +362,12 @@ export async function drainWhatsAppAiOnce(
     outboxCount += 1;
   }
 
-  return Object.freeze({ turnCount, outboxCount });
+  return Object.freeze({
+    recoveredTurnCount: recovery.recoveredCount,
+    uncertainRecoveryCount: recovery.uncertainCount,
+    turnCount,
+    outboxCount,
+  });
 }
 
 export function createWhatsAppAiProcessor(
@@ -355,6 +391,8 @@ export function createWhatsAppAiProcessor(
       });
       if (!controller.signal.aborted) {
         input.logger.debug("worker.whatsapp.ai.cycle_completed", "succeeded", {
+          recovered_turn_count: result.recoveredTurnCount,
+          uncertain_recovery_count: result.uncertainRecoveryCount,
           turn_count: result.turnCount,
           outbox_count: result.outboxCount,
         });
@@ -370,7 +408,7 @@ export function createWhatsAppAiProcessor(
         return false;
       }
       recordFailure(input, operation, startedAt, error);
-      input.logger.error("worker.whatsapp.ai.cycle_failed", error);
+      input.logger.error("worker.whatsapp.ai.cycle_failed", error, rpcFailureAttributes(error));
       return false;
     }
   };

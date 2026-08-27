@@ -40,6 +40,8 @@ export const workerOperationalCeilings = Object.freeze({
   batchSize: 100,
 });
 
+export const whatsappAiLeaseSafetyMarginMilliseconds = 30_000;
+
 const defaultedText = (fallback: string) =>
   z.preprocess(
     (value) =>
@@ -263,6 +265,16 @@ const workerEnvironmentSchema = z
   })
   .transform((environment) => {
     const visionModel = environment.AI_VISION_MODEL ?? environment.AI_MODEL;
+    const minimumWhatsAppAiLeaseSeconds = Math.ceil(
+      (environment.AI_TURN_TIMEOUT_MS +
+        environment.WORKER_META_RPC_TIMEOUT_MS +
+        whatsappAiLeaseSafetyMarginMilliseconds) /
+        1_000,
+    );
+    const whatsappAiLeaseSeconds = Math.max(
+      environment.WORKER_META_LEASE_SECONDS,
+      minimumWhatsAppAiLeaseSeconds,
+    );
 
     return {
       runtime: {
@@ -287,7 +299,7 @@ const workerEnvironmentSchema = z
         enabled: environment.WORKER_WHATSAPP_AI_ENABLED,
         rpcTimeoutMilliseconds: environment.WORKER_META_RPC_TIMEOUT_MS,
         pollIntervalMilliseconds: environment.WORKER_META_POLL_INTERVAL_MS,
-        leaseSeconds: environment.WORKER_META_LEASE_SECONDS,
+        leaseSeconds: whatsappAiLeaseSeconds,
         maxAttempts: environment.WORKER_META_MAX_ATTEMPTS,
         retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
         batchSize: environment.WORKER_META_BATCH_SIZE,

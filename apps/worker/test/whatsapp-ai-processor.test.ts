@@ -69,6 +69,7 @@ const outboxClaim = (): ClaimedOutboxEvent => ({
 });
 
 interface RpcEvidence {
+  recoveryCalls: number;
   completed: string[];
   checkpoints: string[];
   agentFailures: Readonly<Record<string, unknown>>[];
@@ -84,12 +85,23 @@ const createRpcContract = (
   const turns = [...(input.turns ?? [])];
   const outbox = [...(input.outbox ?? [])];
   const evidence: RpcEvidence = {
+    recoveryCalls: 0,
     completed: [],
     checkpoints: [],
     agentFailures: [],
     outboxOutcomes: [],
   };
   const client: WhatsAppAiRpcClient = {
+    recoverExpiredAgentTurns: () => {
+      evidence.recoveryCalls += 1;
+      return Promise.resolve({
+        scannedCount: 0,
+        recoveredCount: 0,
+        retryableCount: 0,
+        failedCount: 0,
+        uncertainCount: 0,
+      });
+    },
     claimAgentTurn: () => Promise.resolve(turns.shift()),
     completeAgentTurn: (value) => {
       evidence.completed.push(value.visibleText);
@@ -183,7 +195,13 @@ describe("WhatsApp cognitive and outbox processor", () => {
       new AbortController().signal,
     );
 
-    expect(cycle).toEqual({ turnCount: 1, outboxCount: 1 });
+    expect(cycle).toEqual({
+      recoveredTurnCount: 0,
+      uncertainRecoveryCount: 0,
+      turnCount: 1,
+      outboxCount: 1,
+    });
+    expect(rpc.evidence.recoveryCalls).toBe(1);
     expect(rpc.evidence.completed).toEqual(["Hola"]);
     expect(rpc.evidence.outboxOutcomes).toMatchObject([
       { outcome: "succeeded", providerMessageId: "wamid.1" },
@@ -260,9 +278,7 @@ describe("WhatsApp cognitive and outbox processor", () => {
     const rpc = createRpcContract({ turns: [agentClaim()] });
     const provider: CognitiveProvider = {
       executeTurn: () =>
-        Promise.reject(
-          new CognitiveProviderError({ code: "provider_http_429", retryable: true }),
-        ),
+        Promise.reject(new CognitiveProviderError({ code: "provider_http_429", retryable: true })),
     };
     await drainWhatsAppAiOnce(
       createInput({ rpc: rpc.client, provider }),

@@ -7254,6 +7254,21 @@ export type Database = {
           status: string;
         }[];
       };
+      recover_expired_whatsapp_agent_turns: {
+        Args: {
+          target_limit?: number;
+          target_organization_id?: string;
+          target_retry_delay_seconds?: number;
+          target_worker_id: string;
+        };
+        Returns: {
+          failed_count: number;
+          recovered_count: number;
+          retryable_count: number;
+          scanned_count: number;
+          uncertain_count: number;
+        }[];
+      };
       register_contact_method: {
         Args: {
           target_consent_purpose: string;

@@ -41,8 +41,9 @@ assert.deepEqual(
     "20260827033000_b4_004c_agent_turn_trace_hardening.sql",
     "20260827040000_b4_004d_outbox_claim_ambiguity_hardening.sql",
     "20260827043000_b4_004e_tenant_scoped_worker_claims.sql",
+    "20260827152500_b4_004f_whatsapp_agent_lease_recovery.sql",
   ],
-  "B2-001 through B4-004E must remain ordered, reviewable production migrations",
+  "B2-001 through B4-004F must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -133,6 +134,10 @@ const outboxClaimAmbiguityHardeningMigration = await readFile(
 );
 const tenantScopedWorkerClaimsMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[23]),
+  "utf8",
+);
+const whatsappAgentLeaseRecoveryMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[24]),
   "utf8",
 );
 const foundationDatabaseTest = await readFile(
@@ -271,6 +276,7 @@ for (const [name, migration] of [
   ["B4-004C agent turn trace hardening", agentTurnTraceHardeningMigration],
   ["B4-004D outbox claim ambiguity hardening", outboxClaimAmbiguityHardeningMigration],
   ["B4-004E tenant-scoped worker claims", tenantScopedWorkerClaimsMigration],
+  ["B4-004F WhatsApp agent lease recovery", whatsappAgentLeaseRecoveryMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -687,7 +693,9 @@ for (const statement of [
   );
 }
 assert.equal(
-  outboxClaimAmbiguityHardeningMigration.includes("\n  where organization_id = event_record.organization_id"),
+  outboxClaimAmbiguityHardeningMigration.includes(
+    "\n  where organization_id = event_record.organization_id",
+  ),
   false,
   "B4-004D cannot reintroduce an ambiguous outbox organization_id predicate",
 );
@@ -714,6 +722,35 @@ assert.equal(
   3,
   "B4-004E must tenant-scope outbox expiry, exhaustion and claim selection",
 );
+
+for (const statement of [
+  "create function api.recover_expired_whatsapp_agent_turns(",
+  "target_organization_id is null or job_value.organization_id = target_organization_id",
+  "job_value.status = 'processing'",
+  "job_value.lease_expires_at <= statement_timestamp()",
+  "run_value.run_kind = 'conversation_turn'",
+  "connection_value.provider = 'meta'",
+  "connection_value.channel = 'whatsapp'",
+  "connection_value.status = 'active'",
+  "for update of job_value skip locked",
+  "from api.recover_expired_agent_job(",
+  "revoke all on function api.recover_expired_whatsapp_agent_turns",
+  "grant execute on function api.recover_expired_whatsapp_agent_turns",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    whatsappAgentLeaseRecoveryMigration.includes(statement),
+    `B4-004F WhatsApp lease recovery migration must include: ${statement}`,
+  );
+}
+for (const forbiddenSecretReference of ["vault.", "access_token", "credential_version_id"]) {
+  assert.equal(
+    whatsappAgentLeaseRecoveryMigration.includes(forbiddenSecretReference),
+    false,
+    `B4-004F recovery cannot access secret material: ${forbiddenSecretReference}`,
+  );
+}
 
 for (const statement of [
   "revoke select on app_private.meta_whatsapp_connection_profiles",
@@ -1618,7 +1655,7 @@ for (const statement of [
 }
 
 for (const statement of [
-  "select extensions.plan(40);",
+  "select extensions.plan(47);",
   "tenant policy bootstrap exists outside the Data API",
   "policy bootstrap is idempotent",
   "claim preserves the configured provider",
@@ -1627,6 +1664,9 @@ for (const statement of [
   "decrypted Vault token is never persisted in the outbox payload",
   "expired service window blocks a free-form WhatsApp send",
   "cognitive turn claim cannot read or return Meta access tokens",
+  "expired pre-effect WhatsApp lease is recovered as retryable exactly once",
+  "automatic recovery clears ownership and restores durable retry states",
+  "lease recovery never creates a duplicate run for the same inbound message",
   "select * from extensions.finish();",
 ]) {
   assert.ok(
@@ -1639,7 +1679,9 @@ assert.ok(
   "B4-004A must compare Vault credentials without printing plaintext diagnostics",
 );
 assert.equal(
-  metaWhatsAppAiResponseDatabaseTest.includes("(select access_token from pg_temp.b404_outbox_claims),\n  'b404-whatsapp"),
+  metaWhatsAppAiResponseDatabaseTest.includes(
+    "(select access_token from pg_temp.b404_outbox_claims),\n  'b404-whatsapp",
+  ),
   false,
   "B4-004A cannot compare a decrypted Vault credential as pgTAP plaintext",
 );

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(40);
+select extensions.plan(47);
 
 select extensions.has_column(
   'app_private', 'outbox_events', 'lease_owner',
@@ -20,6 +20,11 @@ select extensions.has_function(
   'api', 'claim_whatsapp_agent_turn',
   array['text', 'text', 'text', 'text', 'text', 'text', 'integer', 'uuid'],
   'durable WhatsApp agent turn claim exists'
+);
+select extensions.has_function(
+  'api', 'recover_expired_whatsapp_agent_turns',
+  array['text', 'integer', 'integer', 'uuid'],
+  'bounded WhatsApp cognitive lease recovery exists'
 );
 select extensions.has_function(
   'api', 'complete_whatsapp_agent_turn',
@@ -56,6 +61,22 @@ select extensions.ok(
     'EXECUTE'
   ),
   'authenticated users cannot claim cognitive turns'
+);
+select extensions.ok(
+  has_function_privilege(
+    'service_role',
+    'api.recover_expired_whatsapp_agent_turns(text,integer,integer,uuid)',
+    'EXECUTE'
+  ),
+  'service role can recover expired cognitive leases'
+);
+select extensions.ok(
+  not has_function_privilege(
+    'authenticated',
+    'api.recover_expired_whatsapp_agent_turns(text,integer,integer,uuid)',
+    'EXECUTE'
+  ),
+  'authenticated users cannot operate lease recovery'
 );
 select extensions.ok(
   has_function_privilege(
@@ -641,6 +662,113 @@ select extensions.ok(
     'api.claim_whatsapp_agent_turn(text,text,text,text,text,text,integer,uuid)'::regprocedure
   ) not ilike '%access_token%',
   'cognitive turn claim cannot read or return Meta access tokens'
+);
+
+set local role postgres;
+insert into app_private.messages (
+  id, organization_id, channel_connection_id, conversation_id,
+  sender_participant_id, direction, content_kind, provider_message_type,
+  external_message_id, deduplication_key, content, provider_context,
+  status, provider_occurred_at, received_at, created_at, updated_at
+)
+select
+  'b4046000-0000-4000-8000-000000000003',
+  participant_value.organization_id,
+  participant_value.channel_connection_id,
+  participant_value.conversation_id,
+  participant_value.id,
+  'inbound',
+  'text',
+  'text',
+  'wamid.B404.recovery.3',
+  extensions.digest(convert_to('b404-message-3', 'UTF8'), 'sha256'),
+  jsonb_build_object('text', jsonb_build_object('body', 'recuperar turno')),
+  '{}'::jsonb,
+  'received',
+  statement_timestamp(),
+  statement_timestamp(),
+  statement_timestamp(),
+  statement_timestamp()
+from app_private.conversation_participants as participant_value
+where participant_value.id = 'b4045000-0000-4000-8000-000000000001';
+
+truncate pg_temp.b404_turn_claims;
+set local role service_role;
+insert into pg_temp.b404_turn_claims
+select *
+from api.claim_whatsapp_agent_turn(
+  'b404-worker-crashed',
+  'minimax',
+  'MiniMax-M3',
+  'minimax',
+  'MiniMax-M3',
+  null,
+  690,
+  'b4041000-0000-4000-8000-000000000001'::uuid
+);
+select extensions.is(
+  (select count(*)::integer from pg_temp.b404_turn_claims),
+  1,
+  'a third inbound turn receives the lease that will be recovered'
+);
+
+set local role postgres;
+update app_private.agent_jobs
+set lease_expires_at = statement_timestamp() - interval '1 second'
+where id = (select agent_job_id from pg_temp.b404_turn_claims);
+
+create temporary table pg_temp.b404_recoveries (
+  scanned_count integer,
+  recovered_count integer,
+  retryable_count integer,
+  failed_count integer,
+  uncertain_count integer
+) on commit drop;
+grant select, insert on pg_temp.b404_recoveries to service_role;
+
+set local role service_role;
+insert into pg_temp.b404_recoveries
+select *
+from api.recover_expired_whatsapp_agent_turns(
+  'b404-recovery-controller',
+  5,
+  25,
+  'b4041000-0000-4000-8000-000000000001'::uuid
+);
+select extensions.is(
+  (
+    select scanned_count || '|' || recovered_count || '|' || retryable_count || '|' ||
+      failed_count || '|' || uncertain_count
+    from pg_temp.b404_recoveries
+  ),
+  '1|1|1|0|0',
+  'expired pre-effect WhatsApp lease is recovered as retryable exactly once'
+);
+
+set local role postgres;
+select extensions.is(
+  (
+    select job_value.status || '|' || run_value.status || '|' ||
+      (job_value.worker_id is null)::text || '|' ||
+      (job_value.lease_token is null)::text || '|' ||
+      (job_value.lease_expires_at is null)::text
+    from app_private.agent_jobs as job_value
+    join app_private.agent_runs as run_value
+      on run_value.organization_id = job_value.organization_id
+     and run_value.id = job_value.run_id
+    where job_value.id = (select agent_job_id from pg_temp.b404_turn_claims)
+  ),
+  'retryable|waiting_provider|true|true|true',
+  'automatic recovery clears ownership and restores durable retry states'
+);
+select extensions.is(
+  (
+    select count(*)::integer
+    from app_private.agent_runs
+    where trigger_message_id = 'b4046000-0000-4000-8000-000000000003'
+  ),
+  1,
+  'lease recovery never creates a duplicate run for the same inbound message'
 );
 
 select * from extensions.finish();

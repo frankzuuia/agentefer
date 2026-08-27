@@ -94,3 +94,21 @@ Característica: Respuesta cognitiva durable por WhatsApp
     Cuando el worker recibe SIGTERM
     Entonces aborta red y deja el lease recuperable
     Y no inicia nuevos efectos después del shutdown
+
+  Escenario: El worker cae después de reclamar un turno y antes de leer la respuesta del RPC
+    Dado un job cognitivo processing cuyo lease ya venció y cuyo efecto externo no comenzó
+    Cuando el siguiente ciclo ejecuta la recuperación automática
+    Entonces el job vuelve a retryable y el run a waiting_provider
+    Y el mismo mensaje puede continuar sin crear otro run
+
+  Escenario: El turno cognitivo dura más que el lease operativo configurado
+    Dado un timeout de modelo mayor que el lease base de ingestión
+    Cuando se construye la configuración del worker
+    Entonces el lease cognitivo cubre el timeout del modelo, la persistencia RPC y el margen de cierre
+    Y el lease de ingestión Meta conserva su valor independiente
+
+  Escenario: La respuesta del RPC viola el contrato esperado
+    Dado que Supabase devuelve una forma o campo inválido después de reclamar trabajo
+    Cuando el worker rechaza la respuesta
+    Entonces registra únicamente la operación, fase y nombre del campo defectuoso
+    Y no registra el cuerpo, la conversación, el prompt ni ningún secreto

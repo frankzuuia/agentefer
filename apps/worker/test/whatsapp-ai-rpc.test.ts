@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createWhatsAppAiRpcClient,
+  WhatsAppAiRpcError,
   type ClaimedAgentTurn,
   type ClaimedOutboxEvent,
 } from "../src/whatsapp-ai-rpc.js";
@@ -135,6 +136,78 @@ afterEach(async () => {
 });
 
 describe("WhatsApp AI Supabase RPC contract", () => {
+  it("reports only safe operation, phase and field evidence for an invalid response", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, model: null }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const operation = client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      operation: "claim_whatsapp_agent_turn",
+      phase: "response_contract",
+      field: "model",
+      status: undefined,
+    } satisfies Partial<WhatsAppAiRpcError>);
+    await expect(operation).rejects.toBeInstanceOf(WhatsAppAiRpcError);
+  });
+
+  it("recovers expired cognitive leases through the tenant-safe RPC", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const server = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/recover_expired_whatsapp_agent_turns");
+      requestBody = await readJson(request);
+      respond(response, [
+        {
+          scanned_count: 2,
+          recovered_count: 2,
+          retryable_count: 2,
+          failed_count: 0,
+          uncertain_count: 0,
+        },
+      ]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(
+      client.recoverExpiredAgentTurns({
+        workerId: "worker-1",
+        retryDelaySeconds: 5,
+        limit: 25,
+      }),
+    ).resolves.toEqual({
+      scannedCount: 2,
+      recoveredCount: 2,
+      retryableCount: 2,
+      failedCount: 0,
+      uncertainCount: 0,
+    });
+    expect(requestBody).toMatchObject({
+      target_worker_id: "worker-1",
+      target_retry_delay_seconds: 5,
+      target_limit: 25,
+      target_organization_id: null,
+    });
+  });
+
   it("claims and validates a cognitive turn without exposing the backend key", async () => {
     let requestBody: Record<string, unknown> | undefined;
     let apiKeyHeader: string | undefined;

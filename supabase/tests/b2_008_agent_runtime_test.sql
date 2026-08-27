@@ -698,7 +698,12 @@ select extensions.lives_ok(
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.conversation_agent_snapshots),
+  (
+    select count(*)::integer
+    from app_private.conversation_agent_snapshots
+    where organization_id = '81000000-0000-4000-8000-000000000010'
+      and conversation_id = '81000000-0000-4000-8000-000000000023'
+  ),
   1,
   'first conversation turn creates exactly one sticky snapshot'
 );

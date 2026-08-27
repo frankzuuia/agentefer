@@ -205,7 +205,7 @@ describe("worker environment", () => {
       enabled: true,
       rpcTimeoutMilliseconds: 5_000,
       pollIntervalMilliseconds: 1_000,
-      leaseSeconds: 120,
+      leaseSeconds: 155,
       maxAttempts: 8,
       retryDelaySeconds: 5,
       batchSize: 25,
@@ -215,6 +215,27 @@ describe("worker environment", () => {
     expect(configuration.ai.fallbackModels[0]?.canonical).toBe("minimax:MiniMax-M2.7-highspeed");
     expect(configuration.ai.cacheMode).toBe("auto");
     expect(configuration.ai.visionModelInherited).toBe(false);
+  });
+
+  it("derives the cognitive lease from the full turn, persistence RPC and safety margin", () => {
+    const configuration = parseWorkerEnvironment({
+      ...validWorkerEnvironment(),
+      AI_TURN_TIMEOUT_MS: "600000",
+      WORKER_META_RPC_TIMEOUT_MS: "60000",
+      WORKER_META_LEASE_SECONDS: "15",
+    });
+
+    expect(configuration.metaInbound.leaseSeconds).toBe(15);
+    expect(configuration.whatsappAi.leaseSeconds).toBe(690);
+  });
+
+  it("preserves a longer operator lease when it exceeds the cognitive minimum", () => {
+    const configuration = parseWorkerEnvironment({
+      ...validWorkerEnvironment(),
+      WORKER_META_LEASE_SECONDS: "300",
+    });
+
+    expect(configuration.whatsappAi.leaseSeconds).toBe(300);
   });
 
   it("switches to an arbitrary MiniMax model and inherits it for vision", () => {
