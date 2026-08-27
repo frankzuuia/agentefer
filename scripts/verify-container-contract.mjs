@@ -22,14 +22,8 @@ for (const workspaceRoot of ["apps", "packages"]) {
 
   for (const entry of entries.filter((candidate) => candidate.isDirectory())) {
     const manifestPath = `${workspaceRoot}/${entry.name}/package.json`;
-    const manifest = JSON.parse(
-      await readFile(path.join(repositoryRoot, manifestPath), "utf8"),
-    );
-    assert.equal(
-      typeof manifest.name,
-      "string",
-      `${manifestPath} must declare a workspace name`,
-    );
+    const manifest = JSON.parse(await readFile(path.join(repositoryRoot, manifestPath), "utf8"));
+    assert.equal(typeof manifest.name, "string", `${manifestPath} must declare a workspace name`);
     workspaceManifestPaths.push(manifestPath);
     workspaceManifestsByName.set(manifest.name, {
       directoryPath: `${workspaceRoot}/${entry.name}`,

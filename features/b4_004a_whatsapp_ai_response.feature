@@ -52,6 +52,12 @@ Característica: Respuesta cognitiva durable por WhatsApp
     Entonces no se crea un envío al cliente
     Y el trabajo conserva un estado recuperable o fallback autorizado
 
+  Escenario: MiniMax razona antes de responder un saludo
+    Dado un cliente que escribe "hola quien eres?" mediante WhatsApp
+    Cuando MiniMax devuelve razonamiento separado y una respuesta visible
+    Entonces el razonamiento permanece fuera del mensaje enviado al cliente
+    Y el cliente recibe únicamente texto conversacional sin el sobre interno content_kind
+
   Escenario: El proveedor LLM está temporalmente indisponible
     Dado un run reclamado con lease vigente
     Cuando ocurre timeout, rate limit o error recuperable

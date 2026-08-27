@@ -68,7 +68,9 @@ en el claim tenant-scoped.
 
 - `openai:*` usa Responses API y conserva `response.id`/termination/usage.
 - `minimax:*` usa el endpoint OpenAI-compatible `/v1/chat/completions`, preserva el mensaje completo
-  para continuidad de tool calling y separa razonamiento de texto visible.
+  para continuidad de tool calling y solicita `reasoning_split=true` para separar razonamiento de
+  texto visible. Los mensajes de canal `text` se proyectan como texto conversacional; únicamente
+  contenido no textual conserva el sobre estructurado con `content_kind`.
 - Los adapters omiten límites artificiales de salida cuando el proveedor lo permite.
 - Timeouts, HTTP, rate limit, auth, filtro de contenido y respuesta inválida tienen clasificación
   operativa explícita.

@@ -755,7 +755,7 @@ describe("durable Meta inbound worker cycle", () => {
       }
     });
     const states: boolean[] = [];
-    const processor = createProcessor(server.url, states, 25, createTelemetry(), 60_000, 10);
+    const processor = createProcessor(server.url, states, 25, createTelemetry(), 60_000, 100);
 
     await expect(processor.start()).resolves.toBe(false);
     await processor.stop();

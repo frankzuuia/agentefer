@@ -123,10 +123,7 @@ describe("OpenAI Responses adapter", () => {
       input: [
         {
           role: "user",
-          content: JSON.stringify({
-            content_kind: "text",
-            content: { text: { body: "Hola" } },
-          }),
+          content: "Hola",
         },
       ],
       reasoning: { effort: "medium" },
@@ -218,10 +215,7 @@ describe("OpenAI Responses adapter", () => {
       input: [
         {
           role: "assistant",
-          content: JSON.stringify({
-            content_kind: "text",
-            content: { text: { body: "Respuesta anterior" } },
-          }),
+          content: "Respuesta anterior",
         },
         { role: "assistant", content: "Parte uno" },
         { role: "assistant", content: "Parte dos" },
@@ -317,10 +311,7 @@ describe("MiniMax OpenAI-compatible adapter", () => {
         { role: "system", content: "Atiende." },
         {
           role: "user",
-          content: JSON.stringify({
-            content_kind: "text",
-            content: { text: { body: "Hola" } },
-          }),
+          content: "Hola",
         },
         { role: "assistant", content: "Respuesta parcial" },
         {
@@ -328,6 +319,7 @@ describe("MiniMax OpenAI-compatible adapter", () => {
           content: "Continúa exactamente desde la respuesta parcial anterior sin repetirla.",
         },
       ],
+      reasoning_split: true,
     });
     expect(capturedBody).not.toHaveProperty("max_tokens");
     expect(result.visibleText).toBe("Qué tal, ¿qué buscas?");
@@ -405,12 +397,10 @@ describe("MiniMax OpenAI-compatible adapter", () => {
         { role: "system", content: "system" },
         {
           role: "user",
-          content: JSON.stringify({
-            content_kind: "text",
-            content: { text: { body: "Hola" } },
-          }),
+          content: "Hola",
         },
       ],
+      reasoning_split: true,
       tools: [
         {
           type: "function",
@@ -421,6 +411,117 @@ describe("MiniMax OpenAI-compatible adapter", () => {
           },
         },
       ],
+    });
+  });
+
+  it("keeps MiniMax reasoning outside the customer-visible response", async () => {
+    const privateReasoning = "The user asks who I am; introduce the business assistant.";
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_reasoning_split",
+        choices: [
+          {
+            finish_reason: "stop",
+            message: {
+              content: "¡Hola! Soy el asistente comercial de este negocio. ¿En qué puedo ayudarte?",
+              reasoning_details: [{ type: "text", text: privateReasoning }],
+            },
+          },
+        ],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Responde de forma natural.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(
+      "¡Hola! Soy el asistente comercial de este negocio. ¿En qué puedo ayudarte?",
+    );
+    expect(JSON.stringify(result)).not.toContain(privateReasoning);
+  });
+});
+
+describe("provider-neutral conversation serialization", () => {
+  it("preserves the structured envelope for non-text channel content", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_media",
+        choices: [{ finish_reason: "stop", message: { content: "Recibí la imagen." } }],
+      });
+    });
+
+    await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Atiende.",
+      conversation: [
+        {
+          direction: "inbound",
+          contentKind: "media",
+          content: {
+            media: { kind: "image", object_key: "tenant/image.jpg" },
+            text: { body: "Leyenda que pertenece al sobre multimedia" },
+          },
+        },
+      ],
+      continuationParts: [],
+    });
+
+    expect(capturedBody).toEqual({
+      model: "MiniMax-M3",
+      messages: [
+        { role: "system", content: "Atiende." },
+        {
+          role: "user",
+          content: JSON.stringify({
+            content_kind: "media",
+            content: {
+              media: { kind: "image", object_key: "tenant/image.jpg" },
+              text: { body: "Leyenda que pertenece al sobre multimedia" },
+            },
+          }),
+        },
+      ],
+      reasoning_split: true,
+    });
+  });
+
+  it.each([
+    ["non-record content", "raw-text"],
+    ["non-record text member", { text: 7 }],
+    ["non-text body", { text: { body: 7 } }],
+  ] as const)("fails closed for malformed text with %s", async (_caseName, content) => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_malformed_text",
+        choices: [{ finish_reason: "stop", message: { content: "No pude leer el mensaje." } }],
+      });
+    });
+
+    await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Atiende.",
+      conversation: [{ direction: "inbound", contentKind: "text", content }],
+      continuationParts: [],
+    });
+
+    expect(capturedBody).toEqual({
+      model: "MiniMax-M3",
+      messages: [
+        { role: "system", content: "Atiende." },
+        {
+          role: "user",
+          content: JSON.stringify({ content_kind: "text", content }),
+        },
+      ],
+      reasoning_split: true,
     });
   });
 });

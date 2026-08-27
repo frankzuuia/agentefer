@@ -183,7 +183,17 @@ const postProviderJson = async (
   return Object.freeze({ status: response.status, headers: response.headers, body });
 };
 
+const readConversationTextBody = (item: CognitiveConversationItem): string | undefined => {
+  if (item.contentKind !== "text" || !isRecord(item.content)) {
+    return undefined;
+  }
+
+  const text = item.content.text;
+  return isRecord(text) ? readOptionalText(text.body) : undefined;
+};
+
 const serializeConversationContent = (item: CognitiveConversationItem): string =>
+  readConversationTextBody(item) ??
   JSON.stringify({ content_kind: item.contentKind, content: item.content });
 
 const toolDefinitionsForOpenAi = (
@@ -407,7 +417,11 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
           content: "Continúa exactamente desde la respuesta parcial anterior sin repetirla.",
         });
       }
-      const body: Record<string, unknown> = { model: request.model, messages };
+      const body: Record<string, unknown> = {
+        model: request.model,
+        messages,
+        reasoning_split: true,
+      };
       if (tools.length > 0) {
         body.tools = toolDefinitionsForChatCompletions(tools);
       }
