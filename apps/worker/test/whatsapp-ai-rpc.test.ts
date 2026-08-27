@@ -136,6 +136,172 @@ afterEach(async () => {
 });
 
 describe("WhatsApp AI Supabase RPC contract", () => {
+  it("preserves versioned cognitive content with boundary whitespace exactly", async () => {
+    const systemPrompt = "\nSystem prompt\n";
+    const continuationText = "\nPartial answer\n";
+    const server = await startServer((_request, response) => {
+      respond(response, [
+        {
+          ...turnRow,
+          system_prompt: systemPrompt,
+          continuation_parts: [{ text: continuationText }],
+        },
+      ]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const result = await client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    expect(result?.systemPrompt).toBe(systemPrompt);
+    expect(result?.continuationParts).toEqual([continuationText]);
+  });
+
+  it("rejects cognitive content containing only whitespace", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, system_prompt: "\n\t\n" }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const operation = client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      operation: "claim_whatsapp_agent_turn",
+      phase: "response_contract",
+      field: "system_prompt",
+    } satisfies Partial<WhatsAppAiRpcError>);
+  });
+
+  it("rejects a non-string system prompt through the safe response contract", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, system_prompt: null }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const operation = client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      operation: "claim_whatsapp_agent_turn",
+      phase: "response_contract",
+      field: "system_prompt",
+    } satisfies Partial<WhatsAppAiRpcError>);
+  });
+
+  it("accepts a one-character non-whitespace system prompt", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, system_prompt: "x" }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(
+      client.claimAgentTurn({
+        workerId: "worker-1",
+        model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+        visionModel: {
+          provider: "minimax",
+          model: "MiniMax-M3",
+          canonical: "minimax:MiniMax-M3",
+        },
+        leaseSeconds: 120,
+      }),
+    ).resolves.toMatchObject({ systemPrompt: "x" });
+  });
+
+  it("accepts a system prompt at the exact transport boundary", async () => {
+    const systemPrompt = "x".repeat(262_144);
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, system_prompt: systemPrompt }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const result = await client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    expect(result?.systemPrompt.length).toBe(262_144);
+  });
+
+  it("rejects a system prompt above the transport boundary", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [{ ...turnRow, system_prompt: "x".repeat(262_145) }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const operation = client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      operation: "claim_whatsapp_agent_turn",
+      phase: "response_contract",
+      field: "system_prompt",
+    } satisfies Partial<WhatsAppAiRpcError>);
+  });
+
   it("reports only safe operation, phase and field evidence for an invalid response", async () => {
     const server = await startServer((_request, response) => {
       respond(response, [{ ...turnRow, model: null }]);

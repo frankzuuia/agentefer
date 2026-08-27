@@ -255,6 +255,22 @@ const readText = (
   return value;
 };
 
+const readContentText = (
+  row: Readonly<Record<string, unknown>>,
+  field: string,
+  maximumLength: number,
+): string => {
+  const value = row[field];
+  if (
+    typeof value !== "string" ||
+    value.length > maximumLength ||
+    value.trim().length < 1
+  ) {
+    throw responseContractError(field);
+  }
+  return value;
+};
+
 const readOptionalText = (
   row: Readonly<Record<string, unknown>>,
   field: string,
@@ -361,7 +377,7 @@ const readContinuationParts = (row: Readonly<Record<string, unknown>>): readonly
       if (!isRecord(part)) {
         throw responseContractError("continuation_parts.item");
       }
-      return readText(part, "text", 262_000);
+      return readContentText(part, "text", 262_000);
     }),
   );
 };
@@ -516,7 +532,7 @@ export function createWhatsAppAiRpcClient(
           provider: readText(row, "provider", 80),
           model: readText(row, "model", 200),
           ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
-          systemPrompt: readText(row, "system_prompt", 262_144),
+          systemPrompt: readContentText(row, "system_prompt", 262_144),
           conversationHistory: readConversation(row),
           continuationParts: readContinuationParts(row),
           channelConnectionId: readUuid(row, "channel_connection_id"),

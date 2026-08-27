@@ -112,3 +112,9 @@ Característica: Respuesta cognitiva durable por WhatsApp
     Cuando el worker rechaza la respuesta
     Entonces registra únicamente la operación, fase y nombre del campo defectuoso
     Y no registra el cuerpo, la conversación, el prompt ni ningún secreto
+
+  Escenario: El prompt versionado conserva formato Markdown en sus bordes
+    Dado un prompt no vacío con saltos de línea iniciales o finales
+    Cuando el worker valida el contrato del turno cognitivo
+    Entonces conserva exactamente el contenido almacenado y su formato
+    Y rechaza únicamente contenido vacío o compuesto solo por espacios
