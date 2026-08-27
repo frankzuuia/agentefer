@@ -378,7 +378,11 @@ select extensions.is(
   'Vault stores the channel token only as ciphertext'
 );
 select extensions.is(
-  (select count(*)::integer from api.meta_whatsapp_connections),
+  (
+    select count(*)::integer
+    from api.meta_whatsapp_connections
+    where organization_id = 'b4110000-0000-4000-8000-000000000001'::uuid
+  ),
   1,
   'the service view projects the registered WhatsApp connection once'
 );

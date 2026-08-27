@@ -6399,6 +6399,22 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      checkpoint_whatsapp_agent_turn: {
+        Args: {
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_partial_text: string;
+          target_provider_request_id: string;
+          target_response_metadata_safe?: Json;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_run_id: string;
+          checkpoint_reference: string;
+          was_replayed: boolean;
+        }[];
+      };
       claim_agent_job: {
         Args: {
           target_lease_seconds?: number;
@@ -6468,6 +6484,77 @@ export type Database = {
           publication_job_id: string;
           target_instance_id: string;
           target_version_id: string;
+        }[];
+      };
+      claim_whatsapp_agent_turn: {
+        Args: {
+          target_lease_seconds?: number;
+          target_model: string;
+          target_organization_id?: string;
+          target_provider: string;
+          target_reasoning_effort: string;
+          target_vision_model: string;
+          target_vision_provider: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          attempt_number: number;
+          channel_connection_id: string;
+          continuation_parts: Json;
+          conversation_history: Json;
+          conversation_id: string;
+          correlation_id: string;
+          job_attempt_id: string;
+          lease_expires_at: string;
+          lease_token: string;
+          model: string;
+          organization_id: string;
+          provider: string;
+          reasoning_effort: string;
+          system_prompt: string;
+          trace_id: string;
+          trigger_message_id: string;
+        }[];
+      };
+      claim_whatsapp_outbox_event: {
+        Args: {
+          target_lease_seconds?: number;
+          target_max_attempts?: number;
+          target_organization_id?: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          access_token: string;
+          api_version: string;
+          attempt_number: number;
+          correlation_id: string;
+          destination: string;
+          lease_expires_at: string;
+          lease_token: string;
+          message_id: string;
+          organization_id: string;
+          outbox_event_id: string;
+          payload: Json;
+          phone_number_id: string;
+        }[];
+      };
+      complete_whatsapp_agent_turn: {
+        Args: {
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_provider_request_id: string;
+          target_response_metadata_safe?: Json;
+          target_visible_text: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_run_id: string;
+          outbound_message_count: number;
+          outbox_event_ids: string[];
+          was_replayed: boolean;
         }[];
       };
       confirm_meta_webhook_verification: {
@@ -7119,6 +7206,24 @@ export type Database = {
           budget_status: string;
           total_known_cost: number;
           usage_event_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      record_whatsapp_outbox_result: {
+        Args: {
+          target_error_code: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_outbox_event_id: string;
+          target_outcome: string;
+          target_provider_message_id: string;
+          target_retry_delay_seconds?: number;
+          target_worker_id: string;
+        };
+        Returns: {
+          message_status: string;
+          outbox_event_id: string;
+          outbox_status: string;
           was_replayed: boolean;
         }[];
       };
@@ -12159,6 +12264,8 @@ export type Database = {
           idempotency_key: string;
           last_error_code: string | null;
           lease_expires_at: string | null;
+          lease_owner: string | null;
+          lease_token: string | null;
           message_id: string | null;
           operation: string;
           organization_id: string;
@@ -12183,6 +12290,8 @@ export type Database = {
           idempotency_key: string;
           last_error_code?: string | null;
           lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           message_id?: string | null;
           operation: string;
           organization_id: string;
@@ -12207,6 +12316,8 @@ export type Database = {
           idempotency_key?: string;
           last_error_code?: string | null;
           lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           message_id?: string | null;
           operation?: string;
           organization_id?: string;
@@ -14628,6 +14739,10 @@ export type Database = {
           target_reference_type: string;
           target_sale_quantity: number;
         };
+        Returns: string;
+      };
+      ensure_customer_assistant_policy: {
+        Args: { target_organization_id: string };
         Returns: string;
       };
       insert_agent_audit_event: {

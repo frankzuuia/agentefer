@@ -902,31 +902,66 @@ values (
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.channel_connections),
+  (
+    select count(*)::integer
+    from app_private.channel_connections
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   2,
   'both valid channel connections satisfy the production schema'
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.channel_identities),
+  (
+    select count(*)::integer
+    from app_private.channel_identities
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   3,
   'contact and verified member identities satisfy scoped principal constraints'
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.conversations),
+  (
+    select count(*)::integer
+    from app_private.conversations
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   2,
   'both valid conversations have primary participants'
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.messages),
+  (
+    select count(*)::integer
+    from app_private.messages
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   3,
   'inbound and outbound messages satisfy direction-specific states'
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.outbox_events),
+  (
+    select count(*)::integer
+    from app_private.outbox_events
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   1,
   'one allowed idempotent send intent exists'
 );
@@ -1472,7 +1507,14 @@ reset role;
 set local role service_role;
 
 select extensions.is(
-  (select count(*)::integer from api.messages),
+  (
+    select count(*)::integer
+    from api.messages
+    where organization_id in (
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      '22222222-2222-4222-8222-222222222222'::uuid
+    )
+  ),
   3,
   'service_role can read both organizations for authorized backend workflows'
 );

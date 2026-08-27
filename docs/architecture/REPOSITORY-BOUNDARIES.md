@@ -22,7 +22,7 @@ Fuente: ADR-009 y ADR-010.
 
 | Workspace                  | Responsabilidad                                    | Dependencias internas permitidas |
 | -------------------------- | -------------------------------------------------- | -------------------------------- |
-| `@agentefer/ai`            | runtime y adaptadores OpenAI/MiniMax/futuros       | contracts, observability         |
+| `@agentefer/ai`            | runtime y adaptadores OpenAI/MiniMax/futuros       | config, contracts, observability |
 | `@agentefer/config`        | lectura, validación y redacción de env por proceso | ninguna                          |
 | `@agentefer/contracts`     | contratos de bordes, eventos y tools               | domain                           |
 | `@agentefer/database`      | acceso y transacciones Supabase/Postgres           | domain, observability            |
@@ -35,6 +35,7 @@ Fuente: ADR-009 y ADR-010.
 2. Contracts traduce bordes a conceptos del dominio; no ejecuta efectos.
 3. Database implementa persistencia; no decide intención ni redacta respuestas.
 4. AI transforma protocolos de modelos; no modifica directamente la base.
+   Sólo consume de config el contenedor no serializable `SensitiveValue` para credenciales.
 5. Worker conecta AI, tools autorizadas y adaptadores externos.
 6. API autentica/persiste/encola y responde rápido.
 7. Web consume contratos públicos/autorizados y nunca recibe secret keys.

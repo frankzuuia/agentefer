@@ -36,8 +36,13 @@ assert.deepEqual(
     "20260820201112_b4_001b_meta_whatsapp_onboarding.sql",
     "20260820223000_b4_001c_meta_whatsapp_profile_least_privilege.sql",
     "20260825094500_b4_003a_meta_whatsapp_inbound.sql",
+    "20260826153000_b4_004a_whatsapp_ai_response.sql",
+    "20260827030000_b4_004b_agent_policy_ambiguity_hardening.sql",
+    "20260827033000_b4_004c_agent_turn_trace_hardening.sql",
+    "20260827040000_b4_004d_outbox_claim_ambiguity_hardening.sql",
+    "20260827043000_b4_004e_tenant_scoped_worker_claims.sql",
   ],
-  "B2-001 through B4-003A must remain ordered, reviewable production migrations",
+  "B2-001 through B4-004E must remain ordered, reviewable production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -110,6 +115,26 @@ const metaWhatsAppInboundMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[18]),
   "utf8",
 );
+const metaWhatsAppAiResponseMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[19]),
+  "utf8",
+);
+const agentPolicyAmbiguityHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[20]),
+  "utf8",
+);
+const agentTurnTraceHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[21]),
+  "utf8",
+);
+const outboxClaimAmbiguityHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[22]),
+  "utf8",
+);
+const tenantScopedWorkerClaimsMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[23]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -164,6 +189,10 @@ const metaWhatsAppProfileLeastPrivilegeDatabaseTest = await readFile(
 );
 const metaWhatsAppInboundDatabaseTest = await readFile(
   path.join(testDirectory, "b4_003a_meta_whatsapp_inbound_test.sql"),
+  "utf8",
+);
+const metaWhatsAppAiResponseDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_004a_whatsapp_ai_response_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -237,6 +266,11 @@ for (const [name, migration] of [
   ["B4-001B Meta WhatsApp onboarding", metaWhatsAppOnboardingMigration],
   ["B4-001C Meta WhatsApp profile least privilege", metaWhatsAppProfileLeastPrivilegeMigration],
   ["B4-003A Meta WhatsApp inbound", metaWhatsAppInboundMigration],
+  ["B4-004A WhatsApp AI response", metaWhatsAppAiResponseMigration],
+  ["B4-004B agent policy ambiguity hardening", agentPolicyAmbiguityHardeningMigration],
+  ["B4-004C agent turn trace hardening", agentTurnTraceHardeningMigration],
+  ["B4-004D outbox claim ambiguity hardening", outboxClaimAmbiguityHardeningMigration],
+  ["B4-004E tenant-scoped worker claims", tenantScopedWorkerClaimsMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -594,6 +628,94 @@ for (const forbiddenStatement of [
 }
 
 for (const statement of [
+  "create or replace function app_private.ensure_customer_assistant_policy(",
+  "selected_prompt_version_id uuid;",
+  "selected_policy_id uuid;",
+  "selected_policy_version_id uuid;",
+  "version_value.policy_id = selected_policy_id",
+  "from public, anon, authenticated, service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    agentPolicyAmbiguityHardeningMigration.includes(statement),
+    `B4-004B ambiguity hardening migration must include: ${statement}`,
+  );
+}
+for (const ambiguousStatement of [
+  "version_value.policy_id = policy_id",
+  "returning id into policy_id",
+  "returning id into prompt_version_id",
+]) {
+  assert.equal(
+    agentPolicyAmbiguityHardeningMigration.includes(ambiguousStatement),
+    false,
+    `B4-004B cannot reintroduce ambiguous PL/pgSQL identifier: ${ambiguousStatement}`,
+  );
+}
+
+for (const statement of [
+  "create or replace function api.claim_whatsapp_agent_turn(",
+  "inbound_value.request_id,",
+  "inbound_value.trace_id as message_trace_id",
+  "for update of message_value skip locked",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    agentTurnTraceHardeningMigration.includes(statement),
+    `B4-004C trace hardening migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  agentTurnTraceHardeningMigration.includes("inbound_value.correlation_id"),
+  false,
+  "B4-004C cannot reference a nonexistent inbound correlation_id column",
+);
+
+for (const statement of [
+  "create or replace function api.claim_whatsapp_outbox_event(",
+  "update app_private.outbox_events as claimed_outbox",
+  "attempt_count = claimed_outbox.attempt_count + 1",
+  "where claimed_outbox.organization_id = event_record.organization_id",
+  "join vault.decrypted_secrets as secret_value",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    outboxClaimAmbiguityHardeningMigration.includes(statement),
+    `B4-004D outbox ambiguity hardening migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  outboxClaimAmbiguityHardeningMigration.includes("\n  where organization_id = event_record.organization_id"),
+  false,
+  "B4-004D cannot reintroduce an ambiguous outbox organization_id predicate",
+);
+
+for (const statement of [
+  "target_organization_id uuid default null",
+  "target_organization_id is null or job_value.organization_id = target_organization_id",
+  "target_organization_id is null or message_value.organization_id = target_organization_id",
+  "target_organization_id is null or outbox_value.organization_id = target_organization_id",
+  "text, text, text, text, text, text, integer, uuid",
+  "claim_whatsapp_outbox_event(text, integer, integer, uuid)",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    tenantScopedWorkerClaimsMigration.includes(statement),
+    `B4-004E tenant-scoped claims migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  tenantScopedWorkerClaimsMigration.split(
+    "target_organization_id is null or outbox_value.organization_id = target_organization_id",
+  ).length - 1,
+  3,
+  "B4-004E must tenant-scope outbox expiry, exhaustion and claim selection",
+);
+
+for (const statement of [
   "revoke select on app_private.meta_whatsapp_connection_profiles",
   "from authenticated;",
   "grant select (",
@@ -679,6 +801,39 @@ assert.equal(
   2,
   "B4-003A event availability must equal the authenticated delivery receipt time",
 );
+
+for (const statement of [
+  "outbox_events_lease_owner_valid",
+  "outbox_events_expired_lease_idx",
+  "create function app_private.ensure_customer_assistant_policy(",
+  "create function api.claim_whatsapp_agent_turn(",
+  "create function api.complete_whatsapp_agent_turn(",
+  "create function api.checkpoint_whatsapp_agent_turn(",
+  "create function api.claim_whatsapp_outbox_event(",
+  "create function api.record_whatsapp_outbox_result(",
+  "for update of message_value skip locked",
+  "for update of outbox_value skip locked",
+  "join vault.decrypted_secrets as secret_value",
+  "credential_value.credential_kind = 'channel_access_token'",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    metaWhatsAppAiResponseMigration.includes(statement),
+    `B4-004A WhatsApp AI response migration must include: ${statement}`,
+  );
+}
+for (const forbiddenStatement of [
+  "grant execute on function app_private.ensure_customer_assistant_policy(uuid)\n  to service_role",
+  "grant execute on function api.claim_whatsapp_agent_turn(\n  text, integer, integer\n) to authenticated",
+  "grant execute on function api.claim_whatsapp_outbox_event(text, integer, integer)\n  to authenticated",
+]) {
+  assert.equal(
+    metaWhatsAppAiResponseMigration.includes(forbiddenStatement),
+    false,
+    `B4-004A cannot widen its private worker boundary: ${forbiddenStatement}`,
+  );
+}
 
 const requiredMetaWhatsAppOnboardingMigrationStatements = [
   "create table app_private.meta_whatsapp_connection_profiles (",
@@ -1462,6 +1617,33 @@ for (const statement of [
   );
 }
 
+for (const statement of [
+  "select extensions.plan(40);",
+  "tenant policy bootstrap exists outside the Data API",
+  "policy bootstrap is idempotent",
+  "claim preserves the configured provider",
+  "one approved outbox effect receives one lease",
+  "outbox claim resolves the exact channel token from Vault",
+  "decrypted Vault token is never persisted in the outbox payload",
+  "expired service window blocks a free-form WhatsApp send",
+  "cognitive turn claim cannot read or return Meta access tokens",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    metaWhatsAppAiResponseDatabaseTest.includes(statement),
+    `B4-004A WhatsApp AI response database test must include: ${statement}`,
+  );
+}
+assert.ok(
+  metaWhatsAppAiResponseDatabaseTest.includes("extensions.digest("),
+  "B4-004A must compare Vault credentials without printing plaintext diagnostics",
+);
+assert.equal(
+  metaWhatsAppAiResponseDatabaseTest.includes("(select access_token from pg_temp.b404_outbox_claims),\n  'b404-whatsapp"),
+  false,
+  "B4-004A cannot compare a decrypted Vault credential as pgTAP plaintext",
+);
+
 for (const [name, databaseTest] of [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -1477,6 +1659,7 @@ for (const [name, databaseTest] of [
   ["B4-001B", metaWhatsAppOnboardingDatabaseTest],
   ["B4-001C", metaWhatsAppProfileLeastPrivilegeDatabaseTest],
   ["B4-003A", metaWhatsAppInboundDatabaseTest],
+  ["B4-004A", metaWhatsAppAiResponseDatabaseTest],
 ]) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
@@ -1808,5 +1991,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 947 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 987 pgTAP assertions, generated TypeScript schemas locked.`,
 );

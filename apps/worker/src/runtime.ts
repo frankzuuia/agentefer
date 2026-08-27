@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { createCognitiveProviderRegistry } from "@agentefer/ai";
 import { parseWorkerEnvironment, type RawEnvironment } from "@agentefer/config";
 import {
   createOperationalMetrics,
@@ -14,6 +15,9 @@ import {
 } from "./health-server.js";
 import { createMetaInboundProcessor } from "./meta-inbound-processor.js";
 import { createMetaInboundRpcClient } from "./meta-inbound-rpc.js";
+import { createWhatsAppAiProcessor } from "./whatsapp-ai-processor.js";
+import { createWhatsAppAiRpcClient } from "./whatsapp-ai-rpc.js";
+import { createWhatsAppGraphClient } from "./whatsapp-graph.js";
 
 export type WorkerTerminationSignal = "SIGINT" | "SIGTERM";
 
@@ -31,6 +35,15 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
   const metrics = createOperationalMetrics({ component: "worker" });
   const readiness = createReadinessState();
   const healthServer = createWorkerHealthServer({ readiness });
+  let metaInboundOperational = !configuration.metaInbound.enabled;
+  let whatsappAiOperational = !configuration.whatsappAi.enabled;
+  const synchronizeReadiness = (): void => {
+    if (metaInboundOperational && whatsappAiOperational) {
+      readiness.markReady();
+    } else {
+      readiness.markNotReady();
+    }
+  };
   const metaInboundProcessor = configuration.metaInbound.enabled
     ? createMetaInboundProcessor({
         configuration: {
@@ -49,11 +62,60 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         logger,
         metrics,
         onOperationalStateChange(operational) {
-          if (operational) {
-            readiness.markReady();
-          } else {
-            readiness.markNotReady();
-          }
+          metaInboundOperational = operational;
+          synchronizeReadiness();
+        },
+      })
+    : undefined;
+  const whatsappAiProcessor = configuration.whatsappAi.enabled
+    ? createWhatsAppAiProcessor({
+        configuration: {
+          workerId: `whatsapp-ai-${randomUUID()}`,
+          pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
+          leaseSeconds: configuration.whatsappAi.leaseSeconds,
+          maxAttempts: configuration.whatsappAi.maxAttempts,
+          retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
+          batchSize: configuration.whatsappAi.batchSize,
+          turnTimeoutMilliseconds: configuration.ai.limits.turnTimeoutMs,
+          model: configuration.ai.model,
+          visionModel: configuration.ai.visionModel,
+          ...(configuration.ai.reasoningEffort === undefined
+            ? {}
+            : { reasoningEffort: configuration.ai.reasoningEffort }),
+        },
+        providers: createCognitiveProviderRegistry({
+          ...(configuration.ai.credentials.openaiApiKey === undefined
+            ? {}
+            : {
+                openai: {
+                  apiKey: configuration.ai.credentials.openaiApiKey,
+                  ...(configuration.ai.endpoints.openai === undefined
+                    ? {}
+                    : { baseUrl: configuration.ai.endpoints.openai }),
+                },
+              }),
+          ...(configuration.ai.credentials.minimaxApiKey === undefined
+            ? {}
+            : {
+                minimax: {
+                  apiKey: configuration.ai.credentials.minimaxApiKey,
+                  ...(configuration.ai.endpoints.minimax === undefined
+                    ? {}
+                    : { baseUrl: configuration.ai.endpoints.minimax }),
+                },
+              }),
+        }),
+        rpcClient: createWhatsAppAiRpcClient({
+          supabaseUrl: configuration.supabase.url,
+          secretKey: configuration.supabase.secretKey,
+          timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
+        }),
+        graphClient: createWhatsAppGraphClient(),
+        logger,
+        metrics,
+        onOperationalStateChange(operational) {
+          whatsappAiOperational = operational;
+          synchronizeReadiness();
         },
       })
     : undefined;
@@ -63,6 +125,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
     shutdownPromise ??= (async () => {
       readiness.markNotReady();
       logger.info("worker.shutdown.started", "started", { signal });
+      await whatsappAiProcessor?.stop();
       await metaInboundProcessor?.stop();
       await closeWorkerHealthServer(healthServer);
       logger.info("worker.shutdown.completed", "succeeded", { signal });
@@ -73,19 +136,24 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
 
   try {
     await listenWorkerHealthServer(healthServer, configuration.health);
-    const metaInboundOperational =
+    metaInboundOperational =
       metaInboundProcessor === undefined ? true : await metaInboundProcessor.start();
-    if (metaInboundOperational) {
-      readiness.markReady();
-    }
+    whatsappAiOperational =
+      whatsappAiProcessor === undefined ? true : await whatsappAiProcessor.start();
+    synchronizeReadiness();
     logger.info("worker.runtime.started", "succeeded", {
       health_port: configuration.health.port,
       meta_inbound_enabled: configuration.metaInbound.enabled,
       meta_inbound_operational: metaInboundOperational,
+      whatsapp_ai_enabled: configuration.whatsappAi.enabled,
+      whatsapp_ai_operational: whatsappAiOperational,
+      ai_provider: configuration.ai.model.provider,
+      ai_model: configuration.ai.model.model,
     });
   } catch (error) {
     readiness.markNotReady();
     logger.error("worker.runtime.start_failed", error);
+    await whatsappAiProcessor?.stop();
     await metaInboundProcessor?.stop();
     if (healthServer.listening) {
       await closeWorkerHealthServer(healthServer);

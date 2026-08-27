@@ -16,6 +16,7 @@
     "node": ">=24 <25"
   },
   "dependencies": {
+    "@agentefer/ai": "*",
     "@agentefer/config": "*",
     "@agentefer/observability": "*"
   },

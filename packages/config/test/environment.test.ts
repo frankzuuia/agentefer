@@ -201,6 +201,15 @@ describe("worker environment", () => {
       retryDelaySeconds: 5,
       batchSize: 25,
     });
+    expect(configuration.whatsappAi).toEqual({
+      enabled: true,
+      rpcTimeoutMilliseconds: 5_000,
+      pollIntervalMilliseconds: 1_000,
+      leaseSeconds: 120,
+      maxAttempts: 8,
+      retryDelaySeconds: 5,
+      batchSize: 25,
+    });
     expect(configuration.ai.model.canonical).toBe("openai:gpt-5.6-luna");
     expect(configuration.ai.visionModel.canonical).toBe("minimax:MiniMax-M3");
     expect(configuration.ai.fallbackModels[0]?.canonical).toBe("minimax:MiniMax-M2.7-highspeed");
@@ -324,6 +333,7 @@ describe("worker environment", () => {
     const configuration = parseWorkerEnvironment({
       ...validWorkerEnvironment(),
       WORKER_META_INBOUND_ENABLED: "false",
+      WORKER_WHATSAPP_AI_ENABLED: "false",
       WORKER_META_RPC_TIMEOUT_MS: "250",
       WORKER_META_POLL_INTERVAL_MS: "100",
       WORKER_META_LEASE_SECONDS: "15",
@@ -341,6 +351,7 @@ describe("worker environment", () => {
       retryDelaySeconds: 0,
       batchSize: 100,
     });
+    expect(configuration.whatsappAi.enabled).toBe(false);
   });
 
   it.each([

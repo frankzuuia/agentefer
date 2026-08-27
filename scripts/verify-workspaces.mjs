@@ -49,7 +49,10 @@ const allowedInternalDependencies = new Map([
       "@agentefer/observability",
     ]),
   ],
-  ["@agentefer/ai", new Set(["@agentefer/contracts", "@agentefer/observability"])],
+  [
+    "@agentefer/ai",
+    new Set(["@agentefer/config", "@agentefer/contracts", "@agentefer/observability"]),
+  ],
   ["@agentefer/config", new Set()],
   ["@agentefer/contracts", new Set(["@agentefer/domain"])],
   ["@agentefer/database", new Set(["@agentefer/domain", "@agentefer/observability"])],

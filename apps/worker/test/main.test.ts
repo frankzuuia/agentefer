@@ -41,6 +41,7 @@ beforeAll(async () => {
     WORKER_HEALTH_HOST: "127.0.0.1",
     WORKER_HEALTH_PORT: String(port),
     WORKER_META_INBOUND_ENABLED: "false",
+    WORKER_WHATSAPP_AI_ENABLED: "false",
     SUPABASE_URL: "http://127.0.0.1:54321",
     SUPABASE_PROJECT_REF: "agenteferworkermain",
     SUPABASE_SECRET_KEY: ["sb", "secret", "worker", "main", "test"].join("_"),

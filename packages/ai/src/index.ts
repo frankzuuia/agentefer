@@ -10,3 +10,16 @@ export {
   type NormalizedTerminationReason,
   type TerminationContext,
 } from "./termination.js";
+export {
+  CognitiveProviderError,
+  createCognitiveProviderRegistry,
+  createMiniMaxProvider,
+  createOpenAiProvider,
+  type CognitiveConversationItem,
+  type CognitiveProvider,
+  type CognitiveProviderName,
+  type CognitiveTurnRequest,
+  type CognitiveTurnResult,
+  type NativeToolCall,
+  type NativeToolDefinition,
+} from "./provider.js";
