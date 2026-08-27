@@ -146,6 +146,7 @@ describe("OpenAI Responses adapter", () => {
       toolCalls: [],
       metadataSafe: {
         status: "completed",
+        visible_output_format: "provider_text",
         usage: { input_tokens: 12, output_tokens: 8, total_tokens: 20 },
       },
     });
@@ -183,6 +184,42 @@ describe("OpenAI Responses adapter", () => {
     ]);
     expect(capturedBody).not.toHaveProperty("tools");
     expect(capturedBody).not.toHaveProperty("reasoning");
+  });
+
+  it("projects a channel text envelope returned through Responses API", async () => {
+    const body = "Tu pedido quedó registrado para seguimiento.";
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_channel_envelope",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  content_kind: "text",
+                  content: { text: { body } },
+                }),
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-future",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(body);
+    expect(result.metadataSafe).toMatchObject({
+      visible_output_format: "channel_text_envelope",
+    });
   });
 
   it("preserves outbound roles and continuation instructions exactly", async () => {
@@ -254,6 +291,7 @@ describe("OpenAI Responses adapter", () => {
 
     expect(result.metadataSafe).toEqual({
       status: "completed",
+      visible_output_format: "provider_text",
       usage: { input_tokens: 0, completion_tokens: 7 },
     });
   });
@@ -280,6 +318,55 @@ describe("OpenAI Responses adapter", () => {
     });
 
     expect(result.terminationReason).toBe(expected);
+  });
+
+  it("does not project an internal envelope from an incomplete Responses result", async () => {
+    const rawEnvelope = JSON.stringify({
+      content_kind: "text",
+      content: { text: { body: "Respuesta todavía incompleta" } },
+    });
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_incomplete_envelope",
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: rawEnvelope }],
+          },
+        ],
+      });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-test",
+      systemPrompt: "system",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(rawEnvelope);
+    expect(result.metadataSafe).toMatchObject({
+      status: "incomplete",
+      visible_output_format: "provider_text",
+    });
+  });
+
+  it("reports a missing Responses status without inventing completion", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, { id: "resp_without_status", output: [] });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-test",
+      systemPrompt: "system",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.terminationReason).toBe("provider_error");
+    expect(result.metadataSafe).toMatchObject({ status: "unknown" });
   });
 });
 
@@ -346,6 +433,68 @@ describe("MiniMax OpenAI-compatible adapter", () => {
     });
 
     expect(result.terminationReason).toBe(expected);
+  });
+
+  it("does not project an internal envelope from a truncated MiniMax result", async () => {
+    const rawEnvelope = JSON.stringify({
+      content_kind: "text",
+      content: { text: { body: "Respuesta todavía incompleta" } },
+    });
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_incomplete_envelope",
+        choices: [{ finish_reason: "length", message: { content: rawEnvelope } }],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "system",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(rawEnvelope);
+    expect(result.metadataSafe).toMatchObject({
+      finish_reason: "length",
+      visible_output_format: "provider_text",
+    });
+  });
+
+  it("reports a missing MiniMax finish reason without inventing completion", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_without_finish_reason",
+        choices: [{ message: { content: "Respuesta sin estado terminal" } }],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "system",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.terminationReason).toBe("provider_error");
+    expect(result.metadataSafe).toMatchObject({ finish_reason: "unknown" });
+  });
+
+  it("rejects a MiniMax response without its provider request ID", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        choices: [{ finish_reason: "stop", message: { content: "No debe aceptarse" } }],
+      });
+    });
+
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "system",
+        conversation,
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({ code: "minimax_response_id_invalid", retryable: false });
   });
 
   it("normalizes compatible tool calls", async () => {
@@ -442,6 +591,125 @@ describe("MiniMax OpenAI-compatible adapter", () => {
       "¡Hola! Soy el asistente comercial de este negocio. ¿En qué puedo ayudarte?",
     );
     expect(JSON.stringify(result)).not.toContain(privateReasoning);
+  });
+
+  it("projects the real WhatsApp text envelope instead of exposing its JSON", async () => {
+    const body = "\n\n¡De nada! 😊 Estoy aquí para lo que necesites.";
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_channel_envelope",
+        choices: [
+          {
+            finish_reason: "stop",
+            message: {
+              content: JSON.stringify({
+                content_kind: "text",
+                content: { text: { body } },
+              }),
+            },
+          },
+        ],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Responde de forma natural.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(body);
+    expect(result.metadataSafe).toMatchObject({
+      visible_output_format: "channel_text_envelope",
+    });
+    expect(result.visibleText).not.toContain("content_kind");
+  });
+
+  it.each([
+    ["unknown object", JSON.stringify({ answer: "No exponer" })],
+    ["array", JSON.stringify(["No exponer"])],
+    [
+      "envelope with an extra top-level field",
+      JSON.stringify({
+        content_kind: "text",
+        content: { text: { body: "No exponer" } },
+        internal: "diagnóstico",
+      }),
+    ],
+    [
+      "envelope with extra fields",
+      JSON.stringify({
+        content_kind: "text",
+        content: { text: { body: "No exponer", internal: "diagnóstico" } },
+      }),
+    ],
+    [
+      "non-text envelope",
+      JSON.stringify({ content_kind: "media", content: { text: { body: "No exponer" } } }),
+    ],
+    ["non-string body", JSON.stringify({ content_kind: "text", content: { text: { body: 7 } } })],
+  ] as const)("rejects completed structured output with %s", async (_caseName, content) => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_invalid_visible_structure",
+        choices: [{ finish_reason: "stop", message: { content } }],
+      });
+    });
+
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Responde de forma natural.",
+        conversation,
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({
+      code: "provider_visible_output_structure_invalid",
+      retryable: true,
+    });
+  });
+
+  it.each(["1700", "true", "null", JSON.stringify("cotización disponible")])(
+    "preserves legitimate JSON-primitive-shaped customer text: %s",
+    async (content) => {
+      const server = await startServer((_request, response) => {
+        respondJson(response, 200, {
+          id: "minimax_primitive_visible_text",
+          choices: [{ finish_reason: "stop", message: { content } }],
+        });
+      });
+
+      const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Responde de forma natural.",
+        conversation,
+        continuationParts: [],
+      });
+
+      expect(result.visibleText).toBe(content);
+      expect(result.metadataSafe).toMatchObject({ visible_output_format: "provider_text" });
+    },
+  );
+
+  it("preserves ordinary non-JSON text exactly", async () => {
+    const content = "Cotización { disponible para hoy";
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_plain_visible_text",
+        choices: [{ finish_reason: "stop", message: { content } }],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Responde de forma natural.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe(content);
+    expect(result.metadataSafe).toMatchObject({ visible_output_format: "provider_text" });
   });
 });
 

@@ -71,6 +71,10 @@ en el claim tenant-scoped.
   para continuidad de tool calling y solicita `reasoning_split=true` para separar razonamiento de
   texto visible. Los mensajes de canal `text` se proyectan como texto conversacional; únicamente
   contenido no textual conserva el sobre estructurado con `content_kind`.
+- La salida pública acepta texto del proveedor o el sobre interno exacto
+  `content_kind=text/content.text.body`. El sobre se proyecta a `body`; cualquier estructura JSON
+  desconocida falla cerrado y nunca llega al canal. Esta frontera es validación de protocolo, no
+  clasificación de intención ni redacción en backend.
 - Los adapters omiten límites artificiales de salida cuando el proveedor lo permite.
 - Timeouts, HTTP, rate limit, auth, filtro de contenido y respuesta inválida tienen clasificación
   operativa explícita.

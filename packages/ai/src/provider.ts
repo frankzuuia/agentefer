@@ -196,6 +196,67 @@ const serializeConversationContent = (item: CognitiveConversationItem): string =
   readConversationTextBody(item) ??
   JSON.stringify({ content_kind: item.contentKind, content: item.content });
 
+type VisibleTextProjection = Readonly<{
+  text: string;
+  format: "provider_text" | "channel_text_envelope";
+}>;
+
+type JsonDecodeResult = Readonly<{ parsed: true; value: unknown }> | Readonly<{ parsed: false }>;
+
+const hasExactKeys = (
+  value: Readonly<Record<string, unknown>>,
+  expectedKeys: readonly string[],
+): boolean => {
+  const actualKeys = Object.keys(value);
+  return (
+    actualKeys.length === expectedKeys.length &&
+    expectedKeys.every((key) => Object.hasOwn(value, key))
+  );
+};
+
+const decodeJson = (rawText: string): JsonDecodeResult => {
+  try {
+    return Object.freeze({ parsed: true, value: JSON.parse(rawText) as unknown });
+  } catch {
+    return Object.freeze({ parsed: false });
+  }
+};
+
+const projectCustomerVisibleText = (rawText: string): VisibleTextProjection => {
+  const decodedResult = decodeJson(rawText);
+  if (!decodedResult.parsed) {
+    return Object.freeze({ text: rawText, format: "provider_text" });
+  }
+  const decoded = decodedResult.value;
+
+  if (typeof decoded !== "object" || decoded === null) {
+    return Object.freeze({ text: rawText, format: "provider_text" });
+  }
+  if (
+    !isRecord(decoded) ||
+    !hasExactKeys(decoded, ["content_kind", "content"]) ||
+    decoded.content_kind !== "text" ||
+    !isRecord(decoded.content) ||
+    !hasExactKeys(decoded.content, ["text"]) ||
+    !isRecord(decoded.content.text) ||
+    !hasExactKeys(decoded.content.text, ["body"])
+  ) {
+    throw new CognitiveProviderError({
+      code: "provider_visible_output_structure_invalid",
+      retryable: true,
+    });
+  }
+
+  const body = readOptionalText(decoded.content.text.body);
+  if (body === undefined) {
+    throw new CognitiveProviderError({
+      code: "provider_visible_output_structure_invalid",
+      retryable: true,
+    });
+  }
+  return Object.freeze({ text: body, format: "channel_text_envelope" });
+};
+
 const toolDefinitionsForOpenAi = (
   tools: readonly NativeToolDefinition[],
 ): readonly Readonly<Record<string, unknown>>[] =>
@@ -289,13 +350,22 @@ const parseOpenAiResponse = (value: unknown): CognitiveTurnResult => {
           : incompleteReason === "content_filter"
             ? "content_filter"
             : "provider_error";
+  const rawVisibleText = visibleParts.join("");
+  const visibleTextProjection =
+    terminationReason === "completed"
+      ? projectCustomerVisibleText(rawVisibleText)
+      : Object.freeze({ text: rawVisibleText, format: "provider_text" as const });
 
   return Object.freeze({
     providerRequestId,
-    visibleText: visibleParts.join(""),
+    visibleText: visibleTextProjection.text,
     terminationReason,
     toolCalls: Object.freeze(toolCalls),
-    metadataSafe: Object.freeze({ status: status ?? "unknown", usage: safeUsage(value.usage) }),
+    metadataSafe: Object.freeze({
+      status: status ?? "unknown",
+      visible_output_format: visibleTextProjection.format,
+      usage: safeUsage(value.usage),
+    }),
   });
 };
 
@@ -334,14 +404,20 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
           : finishReason === "content_filter"
             ? "content_filter"
             : "provider_error";
+  const rawVisibleText = readOptionalText(message.content) ?? "";
+  const visibleTextProjection =
+    terminationReason === "completed"
+      ? projectCustomerVisibleText(rawVisibleText)
+      : Object.freeze({ text: rawVisibleText, format: "provider_text" as const });
 
   return Object.freeze({
     providerRequestId: readRequiredText(value.id, "minimax_response_id_invalid", 512),
-    visibleText: readOptionalText(message.content) ?? "",
+    visibleText: visibleTextProjection.text,
     terminationReason,
     toolCalls: Object.freeze(toolCalls),
     metadataSafe: Object.freeze({
       finish_reason: finishReason ?? "unknown",
+      visible_output_format: visibleTextProjection.format,
       usage: safeUsage(value.usage),
     }),
   });

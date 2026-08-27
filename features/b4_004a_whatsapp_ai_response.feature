@@ -58,6 +58,12 @@ Característica: Respuesta cognitiva durable por WhatsApp
     Entonces el razonamiento permanece fuera del mensaje enviado al cliente
     Y el cliente recibe únicamente texto conversacional sin el sobre interno content_kind
 
+  Escenario: MiniMax serializa la respuesta dentro del sobre interno del canal
+    Dado un cliente que agradece dentro de una conversación con historial estructurado
+    Cuando el proveedor devuelve content_kind text con content text body como JSON válido
+    Entonces el adapter entrega únicamente el body como texto visible
+    Y un objeto, arreglo o sobre con campos desconocidos falla cerrado sin envío
+
   Escenario: El proveedor LLM está temporalmente indisponible
     Dado un run reclamado con lease vigente
     Cuando ocurre timeout, rate limit o error recuperable
