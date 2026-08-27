@@ -24,6 +24,7 @@ FROM development-dependencies AS build
 COPY tsconfig.base.json ./tsconfig.base.json
 COPY scripts ./scripts
 COPY apps/worker ./apps/worker
+COPY packages/ai ./packages/ai
 COPY packages/config ./packages/config
 COPY packages/observability ./packages/observability
 RUN npm run build --workspace @agentefer/worker
@@ -42,6 +43,7 @@ COPY packages/domain/package.json ./packages/domain/package.json
 COPY packages/observability/package.json ./packages/observability/package.json
 RUN npm ci --omit=dev --ignore-scripts \
   --workspace @agentefer/worker \
+  --workspace @agentefer/ai \
   --workspace @agentefer/config \
   --workspace @agentefer/observability
 
@@ -52,9 +54,11 @@ WORKDIR /app
 
 COPY --from=production-dependencies --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=production-dependencies --chown=node:node /workspace/apps/worker/package.json ./apps/worker/package.json
+COPY --from=production-dependencies --chown=node:node /workspace/packages/ai/package.json ./packages/ai/package.json
 COPY --from=production-dependencies --chown=node:node /workspace/packages/config/package.json ./packages/config/package.json
 COPY --from=production-dependencies --chown=node:node /workspace/packages/observability/package.json ./packages/observability/package.json
 COPY --from=build --chown=node:node /workspace/apps/worker/dist ./apps/worker/dist
+COPY --from=build --chown=node:node /workspace/packages/ai/dist ./packages/ai/dist
 COPY --from=build --chown=node:node /workspace/packages/config/dist ./packages/config/dist
 COPY --from=build --chown=node:node /workspace/packages/observability/dist ./packages/observability/dist
 

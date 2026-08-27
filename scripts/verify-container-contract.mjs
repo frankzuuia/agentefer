@@ -8,22 +8,43 @@ const repositoryRoot = path.resolve(scriptDirectory, "..");
 const approvedNodeImage =
   "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d";
 const dockerfilePaths = ["apps/api/Dockerfile", "apps/worker/Dockerfile"];
+const containerTargets = new Map([
+  ["apps/api/Dockerfile", "@agentefer/api"],
+  ["apps/worker/Dockerfile", "@agentefer/worker"],
+]);
 
 const workspaceManifestPaths = [];
+const workspaceManifestsByName = new Map();
 for (const workspaceRoot of ["apps", "packages"]) {
   const entries = await readdir(path.join(repositoryRoot, workspaceRoot), {
     withFileTypes: true,
   });
 
   for (const entry of entries.filter((candidate) => candidate.isDirectory())) {
-    workspaceManifestPaths.push(`${workspaceRoot}/${entry.name}/package.json`);
+    const manifestPath = `${workspaceRoot}/${entry.name}/package.json`;
+    const manifest = JSON.parse(
+      await readFile(path.join(repositoryRoot, manifestPath), "utf8"),
+    );
+    assert.equal(
+      typeof manifest.name,
+      "string",
+      `${manifestPath} must declare a workspace name`,
+    );
+    workspaceManifestPaths.push(manifestPath);
+    workspaceManifestsByName.set(manifest.name, {
+      directoryPath: `${workspaceRoot}/${entry.name}`,
+      manifestPath,
+      productionDependencies: Object.keys(manifest.dependencies ?? {}),
+    });
   }
 }
 
 workspaceManifestPaths.sort();
+const dockerfilesByPath = new Map();
 
 for (const relativeDockerfilePath of dockerfilePaths) {
   const dockerfile = await readFile(path.join(repositoryRoot, relativeDockerfilePath), "utf8");
+  dockerfilesByPath.set(relativeDockerfilePath, dockerfile);
 
   assert.equal(
     dockerfile.split(`FROM ${approvedNodeImage}`).length - 1,
@@ -64,6 +85,56 @@ for (const relativeDockerfilePath of dockerfilePaths) {
       dockerfile.split(copyInstruction).length - 1,
       2,
       `${relativeDockerfilePath} must copy ${manifestPath} in both dependency stages`,
+    );
+  }
+}
+
+const collectInternalProductionClosure = (rootWorkspaceName) => {
+  const closure = new Set();
+  const visit = (workspaceName) => {
+    if (closure.has(workspaceName)) {
+      return;
+    }
+    const workspace = workspaceManifestsByName.get(workspaceName);
+    assert.ok(workspace, `container target ${workspaceName} must be a known workspace`);
+    closure.add(workspaceName);
+    for (const dependencyName of workspace.productionDependencies) {
+      if (workspaceManifestsByName.has(dependencyName)) {
+        visit(dependencyName);
+      }
+    }
+  };
+  visit(rootWorkspaceName);
+  return [...closure].sort();
+};
+
+for (const [relativeDockerfilePath, targetWorkspaceName] of containerTargets) {
+  const dockerfile = dockerfilesByPath.get(relativeDockerfilePath);
+  assert.equal(typeof dockerfile, "string", `${relativeDockerfilePath} must be loaded`);
+
+  for (const workspaceName of collectInternalProductionClosure(targetWorkspaceName)) {
+    const workspace = workspaceManifestsByName.get(workspaceName);
+    assert.ok(workspace, `${workspaceName} must remain available during container verification`);
+
+    assert.ok(
+      dockerfile.includes(`COPY ${workspace.directoryPath} ./${workspace.directoryPath}`),
+      `${relativeDockerfilePath} build stage must copy production dependency ${workspaceName}`,
+    );
+    assert.ok(
+      dockerfile.includes(`--workspace ${workspaceName}`),
+      `${relativeDockerfilePath} production install must include ${workspaceName}`,
+    );
+    assert.ok(
+      dockerfile.includes(
+        `COPY --from=production-dependencies --chown=node:node /workspace/${workspace.manifestPath} ./${workspace.manifestPath}`,
+      ),
+      `${relativeDockerfilePath} runtime must include the manifest for ${workspaceName}`,
+    );
+    assert.ok(
+      dockerfile.includes(
+        `COPY --from=build --chown=node:node /workspace/${workspace.directoryPath}/dist ./${workspace.directoryPath}/dist`,
+      ),
+      `${relativeDockerfilePath} runtime must include the build for ${workspaceName}`,
     );
   }
 }
