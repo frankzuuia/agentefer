@@ -6414,6 +6414,42 @@ export type Database = {
           payload_safe: Json;
         }[];
       };
+      claim_meta_webhook_delivery: {
+        Args: {
+          target_lease_seconds?: number;
+          target_max_attempts?: number;
+          target_provider_object_type: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          attempt_number: number;
+          correlation_id: string;
+          delivery_id: string;
+          lease_expires_at: string;
+          lease_token: string;
+          meta_application_id: string;
+          organization_id: string;
+          provider_object_type: string;
+          trace_id: string;
+        }[];
+      };
+      claim_meta_whatsapp_message_event: {
+        Args: {
+          target_lease_seconds?: number;
+          target_max_attempts?: number;
+          target_worker_id: string;
+        };
+        Returns: {
+          attempt_number: number;
+          channel_connection_id: string;
+          correlation_id: string;
+          inbound_event_id: string;
+          lease_expires_at: string;
+          lease_token: string;
+          organization_id: string;
+          trace_id: string;
+        }[];
+      };
       claim_publication_job: {
         Args: {
           target_lease_seconds?: number;
@@ -6767,6 +6803,36 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      fail_meta_webhook_delivery: {
+        Args: {
+          target_delivery_id: string;
+          target_error_code: string;
+          target_lease_token: string;
+          target_max_attempts?: number;
+          target_retry_delay_seconds?: number;
+          target_retryable: boolean;
+        };
+        Returns: {
+          attempt_count: number;
+          delivery_id: string;
+          delivery_status: string;
+        }[];
+      };
+      fail_meta_whatsapp_message_event: {
+        Args: {
+          target_error_code: string;
+          target_inbound_event_id: string;
+          target_lease_token: string;
+          target_max_attempts?: number;
+          target_retry_delay_seconds?: number;
+          target_retryable: boolean;
+        };
+        Returns: {
+          attempt_count: number;
+          event_status: string;
+          inbound_event_id: string;
+        }[];
+      };
       ingest_meta_webhook_delivery: {
         Args: {
           target_endpoint_key: string;
@@ -6821,6 +6887,18 @@ export type Database = {
           effect_certainty: string;
           status: string;
           tool_execution_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      normalize_meta_whatsapp_message: {
+        Args: { target_inbound_event_id: string; target_lease_token: string };
+        Returns: {
+          channel_identity_id: string;
+          content_kind: string;
+          conversation_id: string;
+          inbound_event_id: string;
+          message_id: string;
+          principal_type: string;
           was_replayed: boolean;
         }[];
       };
@@ -7300,6 +7378,16 @@ export type Database = {
           activated_at: string;
           credential_version_id: string;
           version_number: number;
+        }[];
+      };
+      route_meta_whatsapp_delivery: {
+        Args: { target_delivery_id: string; target_lease_token: string };
+        Returns: {
+          delivery_id: string;
+          delivery_status: string;
+          ignored_change_count: number;
+          inserted_event_count: number;
+          replayed_event_count: number;
         }[];
       };
       start_agent_job_attempt: {
@@ -9993,6 +10081,9 @@ export type Database = {
           event_type: string;
           id: string;
           last_error_code: string | null;
+          lease_expires_at: string | null;
+          lease_owner: string | null;
+          lease_token: string | null;
           organization_id: string;
           payload: Json;
           payload_sha256: string;
@@ -10015,6 +10106,9 @@ export type Database = {
           event_type: string;
           id?: string;
           last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           organization_id: string;
           payload: Json;
           payload_sha256: string;
@@ -10037,6 +10131,9 @@ export type Database = {
           event_type?: string;
           id?: string;
           last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           organization_id?: string;
           payload?: Json;
           payload_sha256?: string;
@@ -11416,6 +11513,9 @@ export type Database = {
           latest_credential_version_id: string;
           latest_request_id: string;
           latest_trace_id: string | null;
+          lease_expires_at: string | null;
+          lease_owner: string | null;
+          lease_token: string | null;
           meta_application_id: string;
           organization_id: string;
           payload: Json;
@@ -11442,6 +11542,9 @@ export type Database = {
           latest_credential_version_id: string;
           latest_request_id: string;
           latest_trace_id?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           meta_application_id: string;
           organization_id: string;
           payload: Json;
@@ -11468,6 +11571,9 @@ export type Database = {
           latest_credential_version_id?: string;
           latest_request_id?: string;
           latest_trace_id?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
           meta_application_id?: string;
           organization_id?: string;
           payload?: Json;
