@@ -58,7 +58,7 @@ const claim = (): ClaimedOutboxEvent => ({
   leaseExpiresAt: "2026-08-27T00:00:00.000Z",
   attemptNumber: 1,
   apiVersion: "v26.0",
-  phoneNumberId: "1120384374493698",
+  phoneNumberId: "123456789012345",
   destination: "5213312345678",
   payload: { type: "text", text: { body: "Hola desde IA" } },
   accessToken: new SensitiveValue("meta-access-token-test"),
@@ -74,7 +74,7 @@ describe("WhatsApp Graph transport", () => {
     let requestBody: unknown;
     let authorization: string | undefined;
     const server = await startServer(async (request, response) => {
-      expect(request.url).toBe("/v26.0/1120384374493698/messages");
+      expect(request.url).toBe("/v26.0/123456789012345/messages");
       authorization = request.headers.authorization;
       requestBody = await readBody(request);
       response.statusCode = 200;

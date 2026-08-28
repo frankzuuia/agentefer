@@ -128,6 +128,7 @@ describe("OpenAI Responses adapter", () => {
       ],
       reasoning: { effort: "medium" },
       store: false,
+      include: ["reasoning.encrypted_content"],
       tools: [
         {
           type: "function",
@@ -137,6 +138,7 @@ describe("OpenAI Responses adapter", () => {
           strict: false,
         },
       ],
+      parallel_tool_calls: false,
     });
     expect(capturedBody).not.toHaveProperty("max_output_tokens");
     expect(result).toEqual({
@@ -182,8 +184,171 @@ describe("OpenAI Responses adapter", () => {
     expect(result.toolCalls).toEqual([
       { id: "call_1", name: "catalog_search", argumentsJson: '{"query":"tinaco"}' },
     ]);
+    expect(result.toolContinuationState).toEqual([
+      {
+        type: "function_call",
+        call_id: "call_1",
+        name: "catalog_search",
+        arguments: '{"query":"tinaco"}',
+      },
+    ]);
     expect(capturedBody).not.toHaveProperty("tools");
     expect(capturedBody).not.toHaveProperty("reasoning");
+  });
+
+  it("rejects oversized native continuation state before it can be persisted", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_oversized_tool_state",
+        status: "completed",
+        output: [
+          {
+            type: "function_call",
+            call_id: "call_oversized",
+            name: "catalog_search",
+            arguments: "{}",
+            opaque_provider_state: "x".repeat(900_001),
+          },
+        ],
+      });
+    });
+
+    await expect(
+      createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "gpt-future",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({
+      code: "provider_tool_continuation_too_large",
+      retryable: false,
+    } satisfies Partial<CognitiveProviderError>);
+  });
+
+  it("accepts native continuation state at the exact inclusive byte boundary", async () => {
+    const outputItem = {
+      type: "function_call",
+      call_id: "call_exact_boundary",
+      name: "catalog_search",
+      arguments: "{}",
+      opaque_provider_state: "",
+    };
+    const output = [outputItem];
+    const encoder = new TextEncoder();
+    const baseBytes = encoder.encode(JSON.stringify(output)).byteLength;
+    outputItem.opaque_provider_state = "x".repeat(900_000 - baseBytes);
+    expect(encoder.encode(JSON.stringify(output)).byteLength).toBe(900_000);
+
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_exact_tool_state",
+        status: "completed",
+        output,
+      });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-future",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+    });
+    expect(result.terminationReason).toBe("tool_calls");
+    expect(result.toolContinuationState).toEqual(output);
+  });
+
+  it("replays encrypted Responses reasoning and the durable tool result", async () => {
+    let capturedBody: unknown;
+    const providerState = [
+      { type: "reasoning", id: "rs_1", encrypted_content: "encrypted-reasoning" },
+      {
+        type: "function_call",
+        call_id: "call_1",
+        name: "catalog_search",
+        arguments: '{"query":"tinaco"}',
+      },
+    ];
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "resp_after_tool",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "output_text", text: "Encontré dos opciones." }],
+          },
+        ],
+      });
+    });
+
+    await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-future",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+      tools: [
+        {
+          name: "catalog_search",
+          description: "Busca ofertas.",
+          parameters: { type: "object" },
+        },
+      ],
+      toolHistory: [
+        {
+          provider: "openai",
+          providerState,
+          call: {
+            id: "call_1",
+            name: "catalog_search",
+            argumentsJson: '{"query":"tinaco"}',
+          },
+          result: { matches: [{ sku: "TIN-001" }] },
+        },
+      ],
+    });
+
+    expect(capturedBody).toMatchObject({
+      input: [
+        { role: "user", content: "Hola" },
+        ...providerState,
+        {
+          type: "function_call_output",
+          call_id: "call_1",
+          output: JSON.stringify({ matches: [{ sku: "TIN-001" }] }),
+        },
+      ],
+      include: ["reasoning.encrypted_content"],
+      parallel_tool_calls: false,
+    });
+  });
+
+  it.each([
+    ["a different provider", "minimax", []],
+    ["a non-array provider state", "openai", { type: "function_call" }],
+    ["a non-object provider item", "openai", [null]],
+  ] as const)("rejects OpenAI tool history from %s", async (_scenario, providerName, state) => {
+    await expect(
+      createOpenAiProvider({ apiKey, baseUrl: "http://127.0.0.1:1/v1/" }).executeTurn({
+        model: "gpt-future",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+        toolHistory: [
+          {
+            provider: providerName,
+            providerState: state,
+            call: { id: "call-1", name: "catalog_search", argumentsJson: "{}" },
+            result: { ok: true },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: "openai_tool_history_invalid",
+      retryable: false,
+    } satisfies Partial<CognitiveProviderError>);
   });
 
   it("projects a channel text envelope returned through Responses API", async () => {
@@ -262,6 +427,7 @@ describe("OpenAI Responses adapter", () => {
         },
       ],
       store: false,
+      include: ["reasoning.encrypted_content"],
     });
   });
 
@@ -540,6 +706,15 @@ describe("MiniMax OpenAI-compatible adapter", () => {
       name: "catalog_search",
       argumentsJson: '{"query":"llanta"}',
     });
+    expect(result.toolContinuationState).toEqual({
+      content: "",
+      tool_calls: [
+        {
+          id: "tool_1",
+          function: { name: "catalog_search", arguments: '{"query":"llanta"}' },
+        },
+      ],
+    });
     expect(capturedBody).toEqual({
       model: "MiniMax-M3",
       messages: [
@@ -561,6 +736,130 @@ describe("MiniMax OpenAI-compatible adapter", () => {
         },
       ],
     });
+  });
+
+  it("rejects oversized MiniMax assistant state before it can be persisted", async () => {
+    const message = {
+      content: "",
+      tool_calls: [
+        {
+          id: "tool_oversized",
+          function: { name: "catalog_search", arguments: "{}" },
+        },
+      ],
+      opaque_provider_state: "",
+    };
+    const encoder = new TextEncoder();
+    const baseBytes = encoder.encode(JSON.stringify(message)).byteLength;
+    message.opaque_provider_state = "x".repeat(900_001 - baseBytes);
+    expect(encoder.encode(JSON.stringify(message)).byteLength).toBe(900_001);
+
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_oversized_tool_state",
+        choices: [{ finish_reason: "tool_calls", message }],
+      });
+    });
+
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({
+      code: "provider_tool_continuation_too_large",
+      retryable: false,
+    } satisfies Partial<CognitiveProviderError>);
+  });
+
+  it("replays the complete MiniMax assistant state and durable tool result", async () => {
+    let capturedBody: unknown;
+    const providerState = {
+      role: "assistant",
+      content: "",
+      reasoning_details: [{ type: "text", text: "private provider state" }],
+      tool_calls: [
+        {
+          id: "tool_1",
+          type: "function",
+          function: { name: "catalog_search", arguments: '{"query":"llanta"}' },
+        },
+      ],
+    };
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_after_tool",
+        choices: [{ finish_reason: "stop", message: { content: "Encontré una opción." } }],
+      });
+    });
+
+    await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+      tools: [
+        {
+          name: "catalog_search",
+          description: "Busca ofertas.",
+          parameters: { type: "object" },
+        },
+      ],
+      toolHistory: [
+        {
+          provider: "minimax",
+          providerState,
+          call: {
+            id: "tool_1",
+            name: "catalog_search",
+            argumentsJson: '{"query":"llanta"}',
+          },
+          result: { matches: [{ sku: "LLA-001" }] },
+        },
+      ],
+    });
+
+    expect(capturedBody).toMatchObject({
+      messages: [
+        { role: "system", content: "Atiende." },
+        { role: "user", content: "Hola" },
+        providerState,
+        {
+          role: "tool",
+          tool_call_id: "tool_1",
+          content: JSON.stringify({ matches: [{ sku: "LLA-001" }] }),
+        },
+      ],
+      reasoning_split: true,
+    });
+  });
+
+  it.each([
+    ["a different provider", "openai", {}],
+    ["a non-object provider state", "minimax", []],
+  ] as const)("rejects MiniMax tool history from %s", async (_scenario, providerName, state) => {
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: "http://127.0.0.1:1/v1/" }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+        toolHistory: [
+          {
+            provider: providerName,
+            providerState: state,
+            call: { id: "call-1", name: "catalog_search", argumentsJson: "{}" },
+            result: { ok: true },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: "minimax_tool_history_invalid",
+      retryable: false,
+    } satisfies Partial<CognitiveProviderError>);
   });
 
   it("keeps MiniMax reasoning outside the customer-visible response", async () => {

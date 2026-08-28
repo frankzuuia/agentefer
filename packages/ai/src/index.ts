@@ -22,4 +22,5 @@ export {
   type CognitiveTurnResult,
   type NativeToolCall,
   type NativeToolDefinition,
+  type NativeToolExchange,
 } from "./provider.js";

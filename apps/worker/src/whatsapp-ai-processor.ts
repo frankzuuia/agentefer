@@ -53,6 +53,26 @@ export type CreateWhatsAppAiProcessorInput = Readonly<{
 const elapsedMilliseconds = (startedAt: number): number =>
   Math.max(0, performance.now() - startedAt);
 
+const parseToolArguments = (argumentsJson: string): Readonly<Record<string, unknown>> => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(argumentsJson) as unknown;
+  } catch (error) {
+    throw new CognitiveProviderError({
+      code: "provider_tool_arguments_invalid_json",
+      retryable: false,
+      cause: error,
+    });
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new CognitiveProviderError({
+      code: "provider_tool_arguments_not_object",
+      retryable: false,
+    });
+  }
+  return parsed as Readonly<Record<string, unknown>>;
+};
+
 const recordFailure = (
   input: CreateWhatsAppAiProcessorInput,
   operation: string,
@@ -112,6 +132,38 @@ const persistTurnResult = async (
   result: CognitiveTurnResult,
   signal: AbortSignal,
 ): Promise<void> => {
+  if (result.terminationReason === "tool_calls") {
+    const [toolCall] = result.toolCalls;
+    if (
+      toolCall === undefined ||
+      result.toolCalls.length !== 1 ||
+      result.toolContinuationState === undefined
+    ) {
+      await settleTurnFailure(
+        input,
+        claim,
+        "provider_tool_continuation_invalid",
+        false,
+        signal,
+        "provider_error",
+        result.providerRequestId,
+      );
+      return;
+    }
+    await input.rpcClient.executeReadOnlyToolCall({
+      claim,
+      workerId: input.configuration.workerId,
+      providerRequestId: result.providerRequestId,
+      providerToolCallId: toolCall.id,
+      toolName: toolCall.name,
+      argumentsSafe: parseToolArguments(toolCall.argumentsJson),
+      providerState: result.toolContinuationState,
+      responseMetadataSafe: result.metadataSafe,
+      signal,
+    });
+    return;
+  }
+
   if (result.terminationReason === "completed") {
     const visibleText = result.visibleText.trim();
     if (visibleText.length === 0) {
@@ -162,15 +214,11 @@ const persistTurnResult = async (
     return;
   }
 
-  const errorCode =
-    result.terminationReason === "tool_calls"
-      ? "unauthorized_provider_tool_call"
-      : "provider_incomplete_response";
   await settleTurnFailure(
     input,
     claim,
-    errorCode,
-    result.terminationReason !== "tool_calls",
+    "provider_incomplete_response",
+    true,
     signal,
     "provider_error",
     result.providerRequestId,
@@ -205,7 +253,8 @@ const processAgentTurn = async (
       conversation: claim.conversationHistory,
       continuationParts: claim.continuationParts,
       ...(claim.reasoningEffort === undefined ? {} : { reasoningEffort: claim.reasoningEffort }),
-      tools: [],
+      tools: claim.toolDefinitions,
+      toolHistory: claim.toolHistory,
       signal: turnSignal,
     });
     await persistTurnResult(input, claim, result, processorSignal);
@@ -307,12 +356,50 @@ const processOutboxEvent = async (
   }
 };
 
+const prepareWhatsAppAgentTools = async (
+  input: CreateWhatsAppAiProcessorInput,
+  signal: AbortSignal,
+): Promise<void> => {
+  const preparationOperation = "whatsapp.ai.tool_preparation";
+  const preparationStartedAt = performance.now();
+  input.metrics.recordStarted(preparationOperation);
+  let preparation: Awaited<ReturnType<WhatsAppAiRpcClient["prepareAgentTools"]>>;
+  try {
+    preparation = await input.rpcClient.prepareAgentTools({ signal });
+  } catch (error) {
+    recordFailure(input, preparationOperation, preparationStartedAt, error);
+    throw error;
+  }
+  if (preparation.organizationsFailed > 0) {
+    input.metrics.recordCompleted({
+      operation: preparationOperation,
+      outcome: "failed",
+      errorCategory: "dependency",
+      durationMilliseconds: elapsedMilliseconds(preparationStartedAt),
+    });
+    input.logger.warn("worker.whatsapp.ai.tool_preparation_partial", "failed", {
+      organizations_prepared: preparation.organizationsPrepared,
+      organizations_failed: preparation.organizationsFailed,
+    });
+  } else {
+    input.metrics.recordCompleted({
+      operation: preparationOperation,
+      outcome: "succeeded",
+      durationMilliseconds: elapsedMilliseconds(preparationStartedAt),
+    });
+  }
+};
+
 export async function drainWhatsAppAiOnce(
   input: CreateWhatsAppAiProcessorInput,
   signal: AbortSignal,
+  prepareTools = true,
 ): Promise<WhatsAppAiCycleResult> {
   let turnCount = 0;
   let outboxCount = 0;
+  if (prepareTools) {
+    await prepareWhatsAppAgentTools(input, signal);
+  }
   const recovery = await input.rpcClient.recoverExpiredAgentTurns({
     workerId: input.configuration.workerId,
     retryDelaySeconds: input.configuration.retryDelaySeconds,
@@ -375,6 +462,7 @@ export function createWhatsAppAiProcessor(
 ): WhatsAppAiProcessor {
   const controller = new AbortController();
   let started = false;
+  let preparationPending = true;
   let loopPromise: Promise<void> | undefined;
 
   const executeCycle = async (): Promise<boolean> => {
@@ -382,7 +470,11 @@ export function createWhatsAppAiProcessor(
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
     try {
-      const result = await drainWhatsAppAiOnce(input, controller.signal);
+      if (preparationPending) {
+        await prepareWhatsAppAgentTools(input, controller.signal);
+        preparationPending = false;
+      }
+      const result = await drainWhatsAppAiOnce(input, controller.signal, false);
       const outcome = controller.signal.aborted ? "cancelled" : "succeeded";
       input.metrics.recordCompleted({
         operation,

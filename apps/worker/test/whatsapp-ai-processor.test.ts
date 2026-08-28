@@ -4,7 +4,15 @@ import {
   type CognitiveTurnResult,
 } from "@agentefer/ai";
 import { SensitiveValue } from "@agentefer/config";
-import { createOperationalMetrics, createStructuredLogger } from "@agentefer/observability";
+import {
+  createOperationalMetrics,
+  createStructuredLogger,
+  type CompletedOperation,
+  type LogAttributes,
+  type LogOutcome,
+  type OperationalMetrics,
+  type StructuredLogger,
+} from "@agentefer/observability";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -47,6 +55,9 @@ const agentClaim = (): ClaimedAgentTurn => ({
     { direction: "inbound", contentKind: "text", content: { text: { body: "hola" } } },
   ],
   continuationParts: [],
+  toolDefinitions: [],
+  toolHistory: [],
+  nextToolRound: 1,
   channelConnectionId: uuids.connection,
   conversationId: uuids.conversation,
   triggerMessageId: uuids.trigger,
@@ -69,9 +80,12 @@ const outboxClaim = (): ClaimedOutboxEvent => ({
 });
 
 interface RpcEvidence {
+  preparationCalls: number;
+  preparationSignals: (AbortSignal | undefined)[];
   recoveryCalls: number;
   completed: string[];
   checkpoints: string[];
+  toolExecutions: Readonly<Record<string, unknown>>[];
   agentFailures: Readonly<Record<string, unknown>>[];
   outboxOutcomes: Readonly<Record<string, unknown>>[];
 }
@@ -80,18 +94,36 @@ const createRpcContract = (
   input: Readonly<{
     turns?: ClaimedAgentTurn[];
     outbox?: ClaimedOutboxEvent[];
+    preparationResult?: Readonly<{
+      organizationsPrepared: number;
+      organizationsFailed: number;
+    }>;
+    preparationError?: Error;
   }> = {},
 ): Readonly<{ client: WhatsAppAiRpcClient; evidence: RpcEvidence }> => {
   const turns = [...(input.turns ?? [])];
   const outbox = [...(input.outbox ?? [])];
   const evidence: RpcEvidence = {
+    preparationCalls: 0,
+    preparationSignals: [],
     recoveryCalls: 0,
     completed: [],
     checkpoints: [],
+    toolExecutions: [],
     agentFailures: [],
     outboxOutcomes: [],
   };
   const client: WhatsAppAiRpcClient = {
+    prepareAgentTools: (value) => {
+      evidence.preparationCalls += 1;
+      evidence.preparationSignals.push(value.signal);
+      if (input.preparationError !== undefined) {
+        return Promise.reject(input.preparationError);
+      }
+      return Promise.resolve(
+        input.preparationResult ?? { organizationsPrepared: 1, organizationsFailed: 0 },
+      );
+    },
     recoverExpiredAgentTurns: () => {
       evidence.recoveryCalls += 1;
       return Promise.resolve({
@@ -118,6 +150,10 @@ const createRpcContract = (
     },
     settleAgentFailure: (value) => {
       evidence.agentFailures.push(value);
+      return Promise.resolve();
+    },
+    executeReadOnlyToolCall: (value) => {
+      evidence.toolExecutions.push(value);
       return Promise.resolve();
     },
     claimOutboxEvent: () => Promise.resolve(outbox.shift()),
@@ -152,6 +188,8 @@ const createInput = (
     rpc: WhatsAppAiRpcClient;
     provider?: CognitiveProvider;
     graph?: WhatsAppGraphClient;
+    logger?: StructuredLogger;
+    metrics?: OperationalMetrics;
   }>,
 ): CreateWhatsAppAiProcessorInput => ({
   configuration: {
@@ -179,10 +217,38 @@ const createInput = (
     ({
       sendMessage: () => Promise.resolve({ providerMessageId: "wamid.1" }),
     } satisfies WhatsAppGraphClient),
-  logger: createStructuredLogger({ component: "whatsapp-ai-test", level: "fatal" }),
-  metrics: createOperationalMetrics({ component: "whatsapp-ai-test" }),
+  logger: input.logger ?? createStructuredLogger({ component: "whatsapp-ai-test", level: "fatal" }),
+  metrics: input.metrics ?? createOperationalMetrics({ component: "whatsapp-ai-test" }),
   onOperationalStateChange: () => undefined,
 });
+
+const createObservabilityEvidence = (): Readonly<{
+  logger: StructuredLogger;
+  metrics: OperationalMetrics;
+  started: string[];
+  completed: CompletedOperation[];
+  warnings: Readonly<Record<string, unknown>>[];
+}> => {
+  const started: string[] = [];
+  const completed: CompletedOperation[] = [];
+  const warnings: Readonly<Record<string, unknown>>[] = [];
+  return Object.freeze({
+    started,
+    completed,
+    warnings,
+    metrics: Object.freeze({
+      recordStarted: (operation: string) => started.push(operation),
+      recordCompleted: (operation: CompletedOperation) => completed.push(operation),
+    }),
+    logger: Object.freeze({
+      debug: () => undefined,
+      info: () => undefined,
+      warn: (event: string, outcome: LogOutcome = "observed", attributes: LogAttributes = {}) =>
+        warnings.push({ event, outcome, attributes }),
+      error: () => undefined,
+    }),
+  });
+};
 
 describe("WhatsApp cognitive and outbox processor", () => {
   it("persists visible provider output and sends the resulting outbox", async () => {
@@ -202,6 +268,7 @@ describe("WhatsApp cognitive and outbox processor", () => {
       outboxCount: 1,
     });
     expect(rpc.evidence.recoveryCalls).toBe(1);
+    expect(rpc.evidence.preparationCalls).toBe(1);
     expect(rpc.evidence.completed).toEqual(["Hola"]);
     expect(rpc.evidence.outboxOutcomes).toMatchObject([
       { outcome: "succeeded", providerMessageId: "wamid.1" },
@@ -224,7 +291,6 @@ describe("WhatsApp cognitive and outbox processor", () => {
 
   it.each([
     ["content_filter", "provider_content_filter", "halt_safely"],
-    ["tool_calls", "unauthorized_provider_tool_call", "halt_safely"],
     ["provider_error", "provider_incomplete_response", "retry_provider"],
   ] as const)("settles %s safely", async (termination, errorCode, disposition) => {
     const rpc = createRpcContract({ turns: [agentClaim()] });
@@ -234,6 +300,249 @@ describe("WhatsApp cognitive and outbox processor", () => {
     );
 
     expect(rpc.evidence.agentFailures).toMatchObject([{ errorCode, disposition }]);
+  });
+
+  it("executes one native read-only tool call and persists its continuation state", async () => {
+    const claim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      toolDefinitions: [
+        {
+          name: "catalog_search",
+          description: "Busca ofertas vigentes del catálogo autorizado.",
+          parameters: { type: "object", properties: { query: { type: "string" } } },
+        },
+      ],
+    };
+    const providerState = {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call-1",
+          function: { name: "catalog_search", arguments: '{"query":"tinaco"}' },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [claim] });
+    let providerRequest: Parameters<CognitiveProvider["executeTurn"]>[0] | undefined;
+    const provider: CognitiveProvider = {
+      executeTurn: (request) => {
+        providerRequest = request;
+        return Promise.resolve({
+          providerRequestId: "provider-request-tool-1",
+          visibleText: "",
+          terminationReason: "tool_calls",
+          toolCalls: [
+            {
+              id: "call-1",
+              name: "catalog_search",
+              argumentsJson: '{"query":"tinaco"}',
+            },
+          ],
+          toolContinuationState: providerState,
+          metadataSafe: { total_tokens: 12 },
+        });
+      },
+    };
+
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider }),
+      new AbortController().signal,
+    );
+
+    expect(providerRequest?.tools).toEqual(claim.toolDefinitions);
+    expect(providerRequest?.toolHistory).toEqual([]);
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(rpc.evidence.agentFailures).toEqual([]);
+    expect(rpc.evidence.toolExecutions).toMatchObject([
+      {
+        providerRequestId: "provider-request-tool-1",
+        providerToolCallId: "call-1",
+        toolName: "catalog_search",
+        argumentsSafe: { query: "tinaco" },
+        providerState,
+      },
+    ]);
+  });
+
+  it.each([
+    [
+      "missing continuation state",
+      {
+        providerRequestId: "provider-request-invalid-1",
+        visibleText: "",
+        terminationReason: "tool_calls" as const,
+        toolCalls: [{ id: "call-1", name: "catalog_search", argumentsJson: "{}" }],
+        metadataSafe: {},
+      },
+      "provider_tool_continuation_invalid",
+    ],
+    [
+      "multiple calls in a sequential round",
+      {
+        providerRequestId: "provider-request-invalid-2",
+        visibleText: "",
+        terminationReason: "tool_calls" as const,
+        toolCalls: [
+          { id: "call-1", name: "catalog_search", argumentsJson: "{}" },
+          { id: "call-2", name: "catalog_get_offer", argumentsJson: "{}" },
+        ],
+        toolContinuationState: { role: "assistant", tool_calls: [] },
+        metadataSafe: {},
+      },
+      "provider_tool_continuation_invalid",
+    ],
+  ])("fails closed for %s", async (_scenario, providerResult, errorCode) => {
+    const rpc = createRpcContract({ turns: [agentClaim()] });
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider: providerReturning(providerResult) }),
+      new AbortController().signal,
+    );
+
+    expect(rpc.evidence.toolExecutions).toEqual([]);
+    expect(rpc.evidence.agentFailures).toMatchObject([
+      { errorCode, disposition: "halt_safely", terminationReason: "provider_error" },
+    ]);
+  });
+
+  it("fails closed when native tool arguments are not valid JSON", async () => {
+    const rpc = createRpcContract({ turns: [agentClaim()] });
+    const providerResult: CognitiveTurnResult = {
+      providerRequestId: "provider-request-invalid-json",
+      visibleText: "",
+      terminationReason: "tool_calls",
+      toolCalls: [{ id: "call-1", name: "catalog_search", argumentsJson: "{" }],
+      toolContinuationState: { role: "assistant", tool_calls: [] },
+      metadataSafe: {},
+    };
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider: providerReturning(providerResult) }),
+      new AbortController().signal,
+    );
+
+    expect(rpc.evidence.toolExecutions).toEqual([]);
+    expect(rpc.evidence.agentFailures).toMatchObject([
+      { errorCode: "provider_tool_arguments_invalid_json", disposition: "halt_safely" },
+    ]);
+  });
+
+  it.each(["[]", "null", '"tinaco"'])(
+    "fails closed when native tool arguments are valid JSON but not an object: %s",
+    async (argumentsJson) => {
+      const rpc = createRpcContract({ turns: [agentClaim()] });
+      const providerResult: CognitiveTurnResult = {
+        providerRequestId: "provider-request-invalid-shape",
+        visibleText: "",
+        terminationReason: "tool_calls",
+        toolCalls: [{ id: "call-1", name: "catalog_search", argumentsJson }],
+        toolContinuationState: { role: "assistant", tool_calls: [] },
+        metadataSafe: {},
+      };
+
+      await drainWhatsAppAiOnce(
+        createInput({ rpc: rpc.client, provider: providerReturning(providerResult) }),
+        new AbortController().signal,
+      );
+
+      expect(rpc.evidence.toolExecutions).toEqual([]);
+      expect(rpc.evidence.agentFailures).toMatchObject([
+        { errorCode: "provider_tool_arguments_not_object", disposition: "halt_safely" },
+      ]);
+    },
+  );
+
+  it("isolates a partial tenant tool preparation failure without stopping other tenants", async () => {
+    const observability = createObservabilityEvidence();
+    const rpc = createRpcContract({
+      turns: [agentClaim()],
+      preparationResult: { organizationsPrepared: 1, organizationsFailed: 1 },
+    });
+
+    const signal = new AbortController().signal;
+    await expect(
+      drainWhatsAppAiOnce(
+        createInput({
+          rpc: rpc.client,
+          provider: providerReturning(result("completed")),
+          logger: observability.logger,
+          metrics: observability.metrics,
+        }),
+        signal,
+      ),
+    ).resolves.toMatchObject({ turnCount: 1 });
+    expect(rpc.evidence.preparationCalls).toBe(1);
+    expect(rpc.evidence.preparationSignals).toEqual([signal]);
+    expect(rpc.evidence.recoveryCalls).toBe(1);
+    expect(rpc.evidence.completed).toEqual(["Respuesta real"]);
+    expect(observability.started).toContain("whatsapp.ai.tool_preparation");
+    expect(observability.completed).toContainEqual(
+      expect.objectContaining({
+        operation: "whatsapp.ai.tool_preparation",
+        outcome: "failed",
+        errorCategory: "dependency",
+      }),
+    );
+    expect(observability.warnings).toEqual([
+      {
+        event: "worker.whatsapp.ai.tool_preparation_partial",
+        outcome: "failed",
+        attributes: { organizations_prepared: 1, organizations_failed: 1 },
+      },
+    ]);
+  });
+
+  it("records successful tenant tool preparation without a partial-failure warning", async () => {
+    const observability = createObservabilityEvidence();
+    const rpc = createRpcContract();
+
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: rpc.client,
+        provider: providerReturning(result("completed")),
+        logger: observability.logger,
+        metrics: observability.metrics,
+      }),
+      new AbortController().signal,
+    );
+
+    expect(observability.completed).toContainEqual(
+      expect.objectContaining({
+        operation: "whatsapp.ai.tool_preparation",
+        outcome: "succeeded",
+      }),
+    );
+    expect(observability.warnings).toEqual([]);
+  });
+
+  it("fails the cycle before claims when the tenant preparation RPC is unavailable", async () => {
+    const observability = createObservabilityEvidence();
+    const preparationError = new Error("preparation unavailable");
+    const rpc = createRpcContract({
+      turns: [agentClaim()],
+      preparationError,
+    });
+
+    await expect(
+      drainWhatsAppAiOnce(
+        createInput({
+          rpc: rpc.client,
+          provider: providerReturning(result("completed")),
+          logger: observability.logger,
+          metrics: observability.metrics,
+        }),
+        new AbortController().signal,
+      ),
+    ).rejects.toBe(preparationError);
+    expect(rpc.evidence.preparationCalls).toBe(1);
+    expect(rpc.evidence.recoveryCalls).toBe(0);
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(observability.completed).toContainEqual(
+      expect.objectContaining({
+        operation: "whatsapp.ai.tool_preparation",
+        outcome: "failed",
+        errorCategory: "internal",
+      }),
+    );
   });
 
   it("retries an empty completed response instead of sending it", async () => {
@@ -300,5 +609,24 @@ describe("WhatsApp cognitive and outbox processor", () => {
     await expect(processor.start()).resolves.toBe(true);
     await expect(processor.start()).rejects.toThrow("cannot be started twice");
     await processor.stop();
+  });
+
+  it("prepares tenant tools once per worker process instead of on every poll", async () => {
+    const rpc = createRpcContract();
+    const baseInput = createInput({
+      rpc: rpc.client,
+      provider: providerReturning(result("completed")),
+    });
+    const processor = createWhatsAppAiProcessor({
+      ...baseInput,
+      configuration: { ...baseInput.configuration, pollIntervalMilliseconds: 5 },
+    });
+
+    await expect(processor.start()).resolves.toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    await processor.stop();
+
+    expect(rpc.evidence.preparationCalls).toBe(1);
+    expect(rpc.evidence.recoveryCalls).toBeGreaterThan(1);
   });
 });

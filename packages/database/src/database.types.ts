@@ -6890,6 +6890,31 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      execute_whatsapp_read_only_tool_call: {
+        Args: {
+          target_arguments_safe: Json;
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_provider: string;
+          target_provider_request_id: string;
+          target_provider_state: Json;
+          target_provider_tool_call_id: string;
+          target_response_metadata_safe: Json;
+          target_run_id: string;
+          target_tool_name: string;
+          target_tool_round: number;
+          target_worker_id: string;
+        };
+        Returns: {
+          job_status: string;
+          run_status: string;
+          tool_execution_id: string;
+          tool_result: Json;
+          tool_status: string;
+          was_replayed: boolean;
+        }[];
+      };
       fail_meta_webhook_delivery: {
         Args: {
           target_delivery_id: string;
@@ -6918,6 +6943,20 @@ export type Database = {
           attempt_count: number;
           event_status: string;
           inbound_event_id: string;
+        }[];
+      };
+      get_agent_turn_tool_context: {
+        Args: {
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_run_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          next_tool_round: number;
+          tool_definitions: Json;
+          tool_history: Json;
         }[];
       };
       ingest_meta_webhook_delivery: {
@@ -7006,6 +7045,13 @@ export type Database = {
         Returns: {
           social_capability_id: string;
           was_replayed: boolean;
+        }[];
+      };
+      prepare_customer_assistant_read_tools: {
+        Args: { target_limit?: number };
+        Returns: {
+          organizations_failed: number;
+          organizations_prepared: number;
         }[];
       };
       propose_tool_execution: {
@@ -14656,6 +14702,14 @@ export type Database = {
         Args: { target_organization_id: string; target_variant_id: string };
         Returns: undefined;
       };
+      catalog_offer_for_agent: {
+        Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
+      catalog_search_for_agent: {
+        Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
       claim_agent_command: {
         Args: {
           target_allow_system?: boolean;
@@ -14741,6 +14795,14 @@ export type Database = {
         Args: { left_value: string; right_value: string };
         Returns: boolean;
       };
+      conversation_context_for_agent: {
+        Args: {
+          target_arguments: Json;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
       create_inventory_reservation_core: {
         Args: {
           target_command_id: string;
@@ -14756,7 +14818,15 @@ export type Database = {
         };
         Returns: string;
       };
+      customer_assistant_read_tools_ready: {
+        Args: { target_organization_id: string };
+        Returns: boolean;
+      };
       ensure_customer_assistant_policy: {
+        Args: { target_organization_id: string };
+        Returns: string;
+      };
+      ensure_customer_assistant_read_tools: {
         Args: { target_organization_id: string };
         Returns: string;
       };

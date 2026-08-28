@@ -42,8 +42,11 @@ assert.deepEqual(
     "20260827040000_b4_004d_outbox_claim_ambiguity_hardening.sql",
     "20260827043000_b4_004e_tenant_scoped_worker_claims.sql",
     "20260827152500_b4_004f_whatsapp_agent_lease_recovery.sql",
+    "20260827170000_b3_001a_read_only_agent_tools.sql",
+    "20260828110000_b3_001a_plpgsql_lint_hardening.sql",
+    "20260828123000_b3_001a_tool_preparation_scaling.sql",
   ],
-  "B2-001 through B4-004F must remain ordered, reviewable production migrations",
+  "B2-001 through B3-001A preparation scaling must remain ordered production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -140,6 +143,18 @@ const whatsappAgentLeaseRecoveryMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[24]),
   "utf8",
 );
+const readOnlyAgentToolsMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[25]),
+  "utf8",
+);
+const plpgsqlLintHardeningMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[26]),
+  "utf8",
+);
+const toolPreparationScalingMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[27]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -200,6 +215,18 @@ const metaWhatsAppAiResponseDatabaseTest = await readFile(
   path.join(testDirectory, "b4_004a_whatsapp_ai_response_test.sql"),
   "utf8",
 );
+const readOnlyAgentToolsDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_001a_read_only_agent_tools_test.sql"),
+  "utf8",
+);
+const plpgsqlLintHardeningDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_001a_plpgsql_lint_hardening_test.sql"),
+  "utf8",
+);
+const toolPreparationScalingDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_001a_tool_preparation_scaling_test.sql"),
+  "utf8",
+);
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
 const qualityWorkflow = await readFile(
   path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
@@ -245,6 +272,22 @@ const linkedB4003aMutationRunner = await readFile(
   path.join(repositoryRoot, "scripts", "verify-linked-pending-database-mutations.mjs"),
   "utf8",
 );
+const b3001aMutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b3-001a-mutants.mjs"),
+  "utf8",
+);
+const linkedB3001aMutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-b3-001a-database-mutations.mjs"),
+  "utf8",
+);
+const b3001aPreparationMutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b3-001a-preparation-mutants.mjs"),
+  "utf8",
+);
+const linkedB3001aPreparationMutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-b3-001a-preparation-database-mutations.mjs"),
+  "utf8",
+);
 const databaseConcurrencyScript = await readFile(
   path.join(repositoryRoot, "scripts", "verify-database-concurrency.mjs"),
   "utf8",
@@ -277,6 +320,8 @@ for (const [name, migration] of [
   ["B4-004D outbox claim ambiguity hardening", outboxClaimAmbiguityHardeningMigration],
   ["B4-004E tenant-scoped worker claims", tenantScopedWorkerClaimsMigration],
   ["B4-004F WhatsApp agent lease recovery", whatsappAgentLeaseRecoveryMigration],
+  ["B3-001A read-only agent tools", readOnlyAgentToolsMigration],
+  ["B3-001A PL/pgSQL lint hardening", plpgsqlLintHardeningMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -749,6 +794,104 @@ for (const forbiddenSecretReference of ["vault.", "access_token", "credential_ve
     whatsappAgentLeaseRecoveryMigration.includes(forbiddenSecretReference),
     false,
     `B4-004F recovery cannot access secret material: ${forbiddenSecretReference}`,
+  );
+}
+
+for (const statement of [
+  "create function app_private.catalog_search_for_agent(",
+  "create function app_private.catalog_offer_for_agent(",
+  "create function app_private.conversation_context_for_agent(",
+  "create function app_private.ensure_customer_assistant_read_tools(",
+  "create function api.prepare_customer_assistant_read_tools(",
+  "create function api.get_agent_turn_tool_context(",
+  "create function api.execute_whatsapp_read_only_tool_call(",
+  "from api.propose_tool_execution(",
+  "from api.authorize_tool_execution(",
+  "perform api.record_tool_execution_result(",
+  "from api.record_agent_attempt_result(",
+  "from api.resume_agent_run_after_tools(",
+  "target_tool_round <> run_record.tool_round_count + 1",
+  "revoke all on function app_private.catalog_search_for_agent",
+  "grant execute on function api.execute_whatsapp_read_only_tool_call",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    readOnlyAgentToolsMigration.includes(statement),
+    `B3-001A read-only agent tools migration must include: ${statement}`,
+  );
+}
+for (const forbiddenPattern of [
+  "grant execute on function api.execute_whatsapp_read_only_tool_call(\n  uuid, uuid, uuid, text, uuid, text, text, text, text, integer, jsonb, jsonb, jsonb\n) to authenticated",
+  "create table public.",
+  "access_token",
+  "vault.decrypted_secrets",
+]) {
+  assert.equal(
+    readOnlyAgentToolsMigration.includes(forbiddenPattern),
+    false,
+    `B3-001A cannot widen or read a secret-bearing boundary: ${forbiddenPattern}`,
+  );
+}
+
+for (const statement of [
+  "create or replace function app_private.ensure_customer_assistant_read_tools(",
+  "create or replace function api.execute_whatsapp_read_only_tool_call(",
+  "create or replace function api.complete_whatsapp_agent_turn(",
+  "create or replace function api.checkpoint_whatsapp_agent_turn(",
+  "perform api.append_agent_message(",
+  "perform api.record_agent_attempt_result(",
+  "for chunk_ordinal in 1..chunk_count loop",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    plpgsqlLintHardeningMigration.includes(statement),
+    `B3-001A lint hardening migration must include: ${statement}`,
+  );
+}
+for (const forbiddenIdentifier of [
+  "selected_policy_id",
+  "selected_policy_version_id",
+  "selected_contract_id",
+  "result_message_record",
+  "attempt_result_record",
+  "result_record record",
+  "chunk_ordinal integer",
+]) {
+  assert.equal(
+    plpgsqlLintHardeningMigration.includes(forbiddenIdentifier),
+    false,
+    `B3-001A lint hardening cannot retain: ${forbiddenIdentifier}`,
+  );
+}
+
+for (const statement of [
+  "create index audit_events_read_tools_prepare_failure_idx",
+  "create function app_private.customer_assistant_read_tools_ready(",
+  "create or replace function api.prepare_customer_assistant_read_tools(",
+  "not app_private.customer_assistant_read_tools_ready(organization_value.id)",
+  "statement_timestamp() - interval '5 minutes'",
+  "create or replace function api.claim_whatsapp_agent_turn(",
+  "perform app_private.ensure_customer_assistant_read_tools(",
+  "'customer_assistant.read_tools_prepare_failed'",
+  "revoke all on function app_private.customer_assistant_read_tools_ready(uuid)",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    toolPreparationScalingMigration.includes(statement),
+    `B3-001A preparation scaling migration must include: ${statement}`,
+  );
+}
+for (const forbiddenPattern of [
+  "grant execute on function app_private.customer_assistant_read_tools_ready",
+  "create table public.",
+  "access_token",
+  "vault.decrypted_secrets",
+]) {
+  assert.equal(
+    toolPreparationScalingMigration.includes(forbiddenPattern),
+    false,
+    `B3-001A preparation scaling cannot widen or read a secret-bearing boundary: ${forbiddenPattern}`,
   );
 }
 
@@ -1686,7 +1829,7 @@ assert.equal(
   "B4-004A cannot compare a decrypted Vault credential as pgTAP plaintext",
 );
 
-for (const [name, databaseTest] of [
+const productionDatabaseTests = [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
   ["B2-003", catalogDatabaseTest],
@@ -1702,11 +1845,43 @@ for (const [name, databaseTest] of [
   ["B4-001C", metaWhatsAppProfileLeastPrivilegeDatabaseTest],
   ["B4-003A", metaWhatsAppInboundDatabaseTest],
   ["B4-004A", metaWhatsAppAiResponseDatabaseTest],
-]) {
+  ["B3-001A", readOnlyAgentToolsDatabaseTest],
+  ["B3-001A lint hardening", plpgsqlLintHardeningDatabaseTest],
+  ["B3-001A preparation scaling", toolPreparationScalingDatabaseTest],
+];
+
+for (const [name, databaseTest] of productionDatabaseTests) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
     databaseTest.trimEnd().endsWith("rollback;"),
     `${name} database fixtures must roll back`,
+  );
+}
+
+const plannedDatabaseAssertions = productionDatabaseTests.reduce((total, [name, databaseTest]) => {
+  const planPrefix = "select extensions.plan(";
+  const planStart = databaseTest.indexOf(planPrefix);
+  assert.notEqual(planStart, -1, `${name} database test must declare its pgTAP plan`);
+  const countStart = planStart + planPrefix.length;
+  const countEnd = databaseTest.indexOf(");", countStart);
+  assert.notEqual(countEnd, -1, `${name} database test plan must be closed`);
+  const plannedCount = Number(databaseTest.slice(countStart, countEnd));
+  assert.ok(Number.isSafeInteger(plannedCount) && plannedCount > 0, `${name} plan must be valid`);
+  return total + plannedCount;
+}, 0);
+
+for (const statement of [
+  "select extensions.plan(10);",
+  "all hardened functions retain SECURITY DEFINER with an empty search path",
+  "private read-tool bootstrap remains unreachable from API roles",
+  "worker RPC permissions remain service-role-only",
+  "read-tool bootstrap contains no unused identifier captures",
+  "read-only tool executor contains no unused result captures",
+  "completion and checkpoint functions contain no unused or shadowed declarations",
+]) {
+  assert.ok(
+    plpgsqlLintHardeningDatabaseTest.includes(statement),
+    `B3-001A lint hardening database test must include: ${statement}`,
   );
 }
 
@@ -1912,6 +2087,16 @@ assert.equal(
   "root package must expose controlled pending WhatsApp mutation testing",
 );
 assert.equal(
+  rootManifest.scripts?.["test:database:linked:b3-001a-mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-001a-database-mutations.mjs",
+  "root package must expose controlled pending B3-001A mutation testing",
+);
+assert.equal(
+  rootManifest.scripts?.["test:database:linked:b3-001a-preparation-mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-001a-preparation-database-mutations.mjs",
+  "root package must expose controlled B3-001A preparation mutation testing",
+);
+assert.equal(
   b4MutationCatalog.split('name: "').length - 1,
   23,
   "B4 must preserve eleven Vault mutants and twelve authenticated ingress mutants",
@@ -1951,6 +2136,41 @@ for (const runnerGuard of [
   assert.ok(
     linkedB4MutationRunner.includes(runnerGuard),
     `linked B4 mutation runner must include: ${runnerGuard}`,
+  );
+}
+assert.equal(
+  b3001aPreparationMutationCatalog.split('name: "').length - 1,
+  8,
+  "B3-001A preparation scaling must preserve eight database mutants",
+);
+for (const mutationGuard of [
+  "expose private read-tool readiness to the worker role",
+  "accept an incomplete two-tool policy as ready",
+  "treat a disabled tool contract as ready",
+  "prepare organizations whose active policy is already ready",
+  "remove preparation failure cooldown",
+  "enqueue a new turn without preparing native read tools",
+  "remove claim failure cooldown",
+  "remove tenant scope from claim preparation failures",
+]) {
+  assert.ok(
+    b3001aPreparationMutationCatalog.includes(mutationGuard),
+    `B3-001A preparation mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "20260828123000_b3_001a_tool_preparation_scaling.sql",
+  "b3_001a_tool_preparation_scaling_test.sql",
+  "buildLinkedMigrationPgtapCollector",
+  "must target exactly one migration fragment",
+  "outcomes.every((outcome) => outcome.killed)",
+]) {
+  assert.ok(
+    linkedB3001aPreparationMutationRunner.includes(runnerGuard),
+    `linked B3-001A preparation mutation runner must include: ${runnerGuard}`,
   );
 }
 assert.equal(
@@ -2027,11 +2247,53 @@ for (const mutationGuard of [
     `B4-003A mutation catalog must include: ${mutationGuard}`,
   );
 }
+assert.equal(
+  b3001aMutationCatalog.split('name: "').length - 1,
+  15,
+  "B3-001A must preserve fifteen native read-tool database mutants",
+);
+for (const mutationGuard of [
+  "expose customer tool preparation to authenticated callers",
+  "expose leased tool history to authenticated callers",
+  "expose atomic tool execution to authenticated callers",
+  "allow service role to bypass the atomic catalog search boundary",
+  "allow service role to bypass the atomic catalog offer boundary",
+  "widen the model-controlled catalog search result limit",
+  "remove catalog search tenant isolation",
+  "remove catalog offer tenant isolation",
+  "guess an unconfigured quantity from the one-piece price",
+  "remove leased tool context tenant isolation",
+  "disable sequential tool round enforcement",
+  "execute a tool even when policy authorization blocks it",
+  "disconnect conversation context from its registered handler",
+  "discard durable provider continuation state",
+  "break unchanged tool bootstrap idempotency",
+]) {
+  assert.ok(
+    b3001aMutationCatalog.includes(mutationGuard),
+    `B3-001A mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "20260827170000_b3_001a_read_only_agent_tools.sql",
+  "b3_001a_read_only_agent_tools_test.sql",
+  "buildLinkedMigrationPgtapCollector",
+  "must target exactly one migration fragment",
+  "outcomes.every((outcome) => outcome.killed)",
+]) {
+  assert.ok(
+    linkedB3001aMutationRunner.includes(runnerGuard),
+    `linked B3-001A mutation runner must include: ${runnerGuard}`,
+  );
+}
 assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, 987 pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
 );

@@ -1028,7 +1028,10 @@ select extensions.is(
   (
     select concat_ws('|', event_type, status)
     from app_private.inbound_events
-    where event_type = 'whatsapp.status'
+    where organization_id = 'b4031000-0000-4000-8000-000000000001'
+      and event_type = 'whatsapp.status'
+      and payload #>> '{status,id}' = 'wamid.B403.outbound.1'
+      and payload #>> '{status,status}' = 'delivered'
   ),
   'whatsapp.status|received',
   'status event remains pending for the dedicated B4-004 reconciler'

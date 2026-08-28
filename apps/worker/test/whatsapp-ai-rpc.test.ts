@@ -110,11 +110,23 @@ const turnClaim = (): ClaimedAgentTurn => ({
     { direction: "inbound", contentKind: "text", content: { text: { body: "hola" } } },
   ],
   continuationParts: [],
+  toolDefinitions: [],
+  toolHistory: [],
+  nextToolRound: 1,
   channelConnectionId: uuids.connection,
   conversationId: uuids.conversation,
   triggerMessageId: uuids.trigger,
   correlationId: "correlation-1",
 });
+
+const emptyToolContextRow = {
+  tool_definitions: [],
+  tool_history: [],
+  next_tool_round: 1,
+} as const;
+
+const isToolContextRequest = (request: IncomingMessage): boolean =>
+  request.url === "/rest/v1/rpc/get_agent_turn_tool_context";
 
 const outboxClaim = (): ClaimedOutboxEvent => ({
   organizationId: uuids.organization,
@@ -139,7 +151,11 @@ describe("WhatsApp AI Supabase RPC contract", () => {
   it("preserves versioned cognitive content with boundary whitespace exactly", async () => {
     const systemPrompt = "\nSystem prompt\n";
     const continuationText = "\nPartial answer\n";
-    const server = await startServer((_request, response) => {
+    const server = await startServer((request, response) => {
+      if (isToolContextRequest(request)) {
+        respond(response, [emptyToolContextRow]);
+        return;
+      }
       respond(response, [
         {
           ...turnRow,
@@ -226,7 +242,11 @@ describe("WhatsApp AI Supabase RPC contract", () => {
   });
 
   it("accepts a one-character non-whitespace system prompt", async () => {
-    const server = await startServer((_request, response) => {
+    const server = await startServer((request, response) => {
+      if (isToolContextRequest(request)) {
+        respond(response, [emptyToolContextRow]);
+        return;
+      }
       respond(response, [{ ...turnRow, system_prompt: "x" }]);
     });
     const client = createWhatsAppAiRpcClient({
@@ -251,7 +271,11 @@ describe("WhatsApp AI Supabase RPC contract", () => {
 
   it("accepts a system prompt at the exact transport boundary", async () => {
     const systemPrompt = "x".repeat(262_144);
-    const server = await startServer((_request, response) => {
+    const server = await startServer((request, response) => {
+      if (isToolContextRequest(request)) {
+        respond(response, [emptyToolContextRow]);
+        return;
+      }
       respond(response, [{ ...turnRow, system_prompt: systemPrompt }]);
     });
     const client = createWhatsAppAiRpcClient({
@@ -378,6 +402,18 @@ describe("WhatsApp AI Supabase RPC contract", () => {
     let requestBody: Record<string, unknown> | undefined;
     let apiKeyHeader: string | undefined;
     const server = await startServer(async (request, response) => {
+      if (isToolContextRequest(request)) {
+        const toolRequestBody = await readJson(request);
+        expect(toolRequestBody).toMatchObject({
+          target_organization_id: uuids.organization,
+          target_run_id: uuids.run,
+          target_job_attempt_id: uuids.attempt,
+          target_worker_id: "worker-1",
+          target_lease_token: uuids.lease,
+        });
+        respond(response, [emptyToolContextRow]);
+        return;
+      }
       expect(request.url).toBe("/rest/v1/rpc/claim_whatsapp_agent_turn");
       apiKeyHeader = request.headers.apikey as string | undefined;
       requestBody = await readJson(request);
@@ -431,6 +467,349 @@ describe("WhatsApp AI Supabase RPC contract", () => {
     await expect(
       client.claimOutboxEvent({ workerId: "worker-1", leaseSeconds: 120, maxAttempts: 8 }),
     ).resolves.toBeUndefined();
+  });
+
+  it("prepares tenant tool registries through the bounded service-role RPC", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const server = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/prepare_customer_assistant_read_tools");
+      requestBody = await readJson(request);
+      respond(response, [{ organizations_prepared: 2, organizations_failed: 0 }]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(client.prepareAgentTools({})).resolves.toEqual({
+      organizationsPrepared: 2,
+      organizationsFailed: 0,
+    });
+    expect(requestBody).toEqual({ target_limit: 100 });
+  });
+
+  it("loads authorized tools and validates durable call-result provenance", async () => {
+    const providerState = {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call-1",
+          function: { name: "catalog_search", arguments: '{"query":"tinaco"}' },
+        },
+      ],
+    };
+    const server = await startServer((_request, response) => {
+      if (isToolContextRequest(_request)) {
+        respond(response, [
+          {
+            tool_definitions: [
+              {
+                name: "catalog_search",
+                description: "Busca ofertas activas.",
+                parameters: { type: "object", required: ["query"] },
+              },
+            ],
+            tool_history: [
+              {
+                call: {
+                  provider: "minimax",
+                  provider_state: providerState,
+                  tool_call: {
+                    id: "call-1",
+                    name: "catalog_search",
+                    arguments: { query: "tinaco" },
+                  },
+                },
+                result: {
+                  provider_tool_call_id: "call-1",
+                  tool_name: "catalog_search",
+                  result: { ok: true, matches: [] },
+                },
+              },
+            ],
+            next_tool_round: 2,
+          },
+        ]);
+        return;
+      }
+      respond(response, [turnRow]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    const claimed = await client.claimAgentTurn({
+      workerId: "worker-1",
+      model: { provider: "minimax", model: "MiniMax-M3", canonical: "minimax:MiniMax-M3" },
+      visionModel: {
+        provider: "minimax",
+        model: "MiniMax-M3",
+        canonical: "minimax:MiniMax-M3",
+      },
+      leaseSeconds: 120,
+    });
+
+    expect(claimed?.toolDefinitions).toEqual([
+      {
+        name: "catalog_search",
+        description: "Busca ofertas activas.",
+        parameters: { type: "object", required: ["query"] },
+      },
+    ]);
+    expect(claimed?.toolHistory).toEqual([
+      {
+        provider: "minimax",
+        providerState,
+        call: {
+          id: "call-1",
+          name: "catalog_search",
+          argumentsJson: '{"query":"tinaco"}',
+        },
+        result: { ok: true, matches: [] },
+      },
+    ]);
+    expect(claimed?.nextToolRound).toBe(2);
+  });
+
+  it.each([
+    ["provider call ID", "call-other", "catalog_search"],
+    ["tool name", "call-1", "catalog_get_offer"],
+  ])(
+    "rejects durable tool history whose result %s does not match its call",
+    async (_scenario, resultCallId, resultToolName) => {
+      const server = await startServer((request, response) => {
+        if (isToolContextRequest(request)) {
+          respond(response, [
+            {
+              tool_definitions: [],
+              tool_history: [
+                {
+                  call: {
+                    provider: "openai",
+                    provider_state: [],
+                    tool_call: { id: "call-1", name: "catalog_search", arguments: {} },
+                  },
+                  result: {
+                    provider_tool_call_id: resultCallId,
+                    tool_name: resultToolName,
+                    result: { ok: true },
+                  },
+                },
+              ],
+              next_tool_round: 2,
+            },
+          ]);
+          return;
+        }
+        respond(response, [turnRow]);
+      });
+      const client = createWhatsAppAiRpcClient({
+        supabaseUrl: server.url,
+        secretKey: new SensitiveValue("supabase-secret-test"),
+        timeoutMilliseconds: 1_000,
+      });
+
+      await expect(
+        client.claimAgentTurn({
+          workerId: "worker-1",
+          model: { provider: "openai", model: "gpt-future", canonical: "openai:gpt-future" },
+          visionModel: {
+            provider: "openai",
+            model: "gpt-future",
+            canonical: "openai:gpt-future",
+          },
+          leaseSeconds: 120,
+        }),
+      ).rejects.toMatchObject({
+        operation: "get_agent_turn_tool_context",
+        phase: "response_contract",
+        field: "tool_history.provenance",
+      } satisfies Partial<WhatsAppAiRpcError>);
+    },
+  );
+
+  it.each([
+    {
+      scenario: "tool definitions are not an array",
+      context: { ...emptyToolContextRow, tool_definitions: {} },
+      field: "tool_definitions",
+    },
+    {
+      scenario: "a tool definition is not an object",
+      context: { ...emptyToolContextRow, tool_definitions: [null] },
+      field: "tool_definitions.item",
+    },
+    {
+      scenario: "tool history is not an array",
+      context: { ...emptyToolContextRow, tool_history: {} },
+      field: "tool_history",
+    },
+    {
+      scenario: "a tool history exchange is not an object",
+      context: { ...emptyToolContextRow, tool_history: [null] },
+      field: "tool_history.item",
+    },
+    {
+      scenario: "a durable tool result has an invalid shape",
+      context: {
+        ...emptyToolContextRow,
+        tool_history: [
+          {
+            call: {
+              provider: "openai",
+              provider_state: [],
+              tool_call: { id: "call-1", name: "catalog_search", arguments: {} },
+            },
+            result: {
+              provider_tool_call_id: "call-1",
+              tool_name: "catalog_search",
+              result: "invalid",
+            },
+          },
+        ],
+      },
+      field: "tool_history.result",
+    },
+    {
+      scenario: "durable provider state is neither an object nor an array",
+      context: {
+        ...emptyToolContextRow,
+        tool_history: [
+          {
+            call: {
+              provider: "openai",
+              provider_state: "invalid",
+              tool_call: { id: "call-1", name: "catalog_search", arguments: {} },
+            },
+            result: {
+              provider_tool_call_id: "call-1",
+              tool_name: "catalog_search",
+              result: { ok: true },
+            },
+          },
+        ],
+      },
+      field: "tool_history.provider_state",
+    },
+  ])("rejects a malformed durable tool context: $scenario", async ({ context, field }) => {
+    const server = await startServer((request, response) => {
+      respond(response, isToolContextRequest(request) ? [context] : [turnRow]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(
+      client.claimAgentTurn({
+        workerId: "worker-1",
+        model: { provider: "openai", model: "gpt-future", canonical: "openai:gpt-future" },
+        visionModel: {
+          provider: "openai",
+          model: "gpt-future",
+          canonical: "openai:gpt-future",
+        },
+        leaseSeconds: 120,
+      }),
+    ).rejects.toMatchObject({
+      operation: "get_agent_turn_tool_context",
+      phase: "response_contract",
+      field,
+    } satisfies Partial<WhatsAppAiRpcError>);
+  });
+
+  it("sends an exact tool execution envelope and validates the atomic outcome", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const server = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/execute_whatsapp_read_only_tool_call");
+      requestBody = await readJson(request);
+      respond(response, [
+        {
+          tool_execution_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          tool_status: "succeeded",
+          tool_result: { ok: true, matches: [] },
+          run_status: "waiting_provider",
+          job_status: "retryable",
+          was_replayed: false,
+        },
+      ]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+    const providerState = { role: "assistant", tool_calls: [] };
+
+    await expect(
+      client.executeReadOnlyToolCall({
+        claim: turnClaim(),
+        workerId: "worker-1",
+        providerRequestId: "provider-request-1",
+        providerToolCallId: "call-1",
+        toolName: "catalog_search",
+        argumentsSafe: { query: "tinaco" },
+        providerState,
+        responseMetadataSafe: { total_tokens: 12 },
+      }),
+    ).resolves.toBeUndefined();
+    expect(requestBody).toMatchObject({
+      target_organization_id: uuids.organization,
+      target_run_id: uuids.run,
+      target_job_attempt_id: uuids.attempt,
+      target_worker_id: "worker-1",
+      target_lease_token: uuids.lease,
+      target_provider: "minimax",
+      target_provider_request_id: "provider-request-1",
+      target_provider_tool_call_id: "call-1",
+      target_tool_name: "catalog_search",
+      target_tool_round: 1,
+      target_arguments_safe: { query: "tinaco" },
+      target_provider_state: providerState,
+      target_response_metadata_safe: { total_tokens: 12 },
+    });
+  });
+
+  it("rejects an atomic tool execution response with a malformed result", async () => {
+    const server = await startServer((_request, response) => {
+      respond(response, [
+        {
+          tool_execution_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          tool_status: "succeeded",
+          tool_result: "invalid",
+          run_status: "waiting_provider",
+          job_status: "retryable",
+          was_replayed: false,
+        },
+      ]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(
+      client.executeReadOnlyToolCall({
+        claim: turnClaim(),
+        workerId: "worker-1",
+        providerRequestId: "provider-request-1",
+        providerToolCallId: "call-1",
+        toolName: "catalog_search",
+        argumentsSafe: {},
+        providerState: [],
+        responseMetadataSafe: {},
+      }),
+    ).rejects.toMatchObject({
+      operation: "execute_whatsapp_read_only_tool_call",
+      phase: "response_contract",
+      field: "tool_result",
+    } satisfies Partial<WhatsAppAiRpcError>);
   });
 
   it("persists completed and checkpointed provider evidence", async () => {

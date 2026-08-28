@@ -97,6 +97,13 @@ for (const featureEntry of featureEntries) {
     );
   }
 
+  if (featureEntry === "b3_001a_read_only_agent_tools.feature") {
+    assert.ok(
+      pickles.length >= 19,
+      "B3-001A must preserve catalog tools, provider continuation, scaling and tenant-failure scenarios",
+    );
+  }
+
   totalPickles += pickles.length;
 }
 

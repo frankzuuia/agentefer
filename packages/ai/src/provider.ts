@@ -3,6 +3,7 @@ import { type SensitiveValue } from "@agentefer/config";
 import { type NormalizedTerminationReason } from "./termination.js";
 
 const MAXIMUM_PROVIDER_RESPONSE_BYTES = 2_097_152;
+const MAXIMUM_TOOL_CONTINUATION_BYTES = 900_000;
 
 export type CognitiveConversationItem = Readonly<{
   direction: "inbound" | "outbound";
@@ -21,6 +22,7 @@ export type CognitiveTurnRequest = Readonly<{
   systemPrompt: string;
   conversation: readonly CognitiveConversationItem[];
   continuationParts: readonly string[];
+  toolHistory?: readonly NativeToolExchange[];
   reasoningEffort?: string;
   tools?: readonly NativeToolDefinition[];
   signal?: AbortSignal;
@@ -32,11 +34,19 @@ export type NativeToolCall = Readonly<{
   argumentsJson: string;
 }>;
 
+export type NativeToolExchange = Readonly<{
+  provider: string;
+  providerState: unknown;
+  call: NativeToolCall;
+  result: unknown;
+}>;
+
 export type CognitiveTurnResult = Readonly<{
   providerRequestId: string;
   visibleText: string;
   terminationReason: NormalizedTerminationReason;
   toolCalls: readonly NativeToolCall[];
+  toolContinuationState?: unknown;
   metadataSafe: Readonly<Record<string, unknown>>;
 }>;
 
@@ -301,6 +311,22 @@ const safeUsage = (value: unknown): Readonly<Record<string, number>> => {
   );
 };
 
+const assertToolContinuationSize = (value: unknown): void => {
+  if (
+    new TextEncoder().encode(JSON.stringify(value)).byteLength > MAXIMUM_TOOL_CONTINUATION_BYTES
+  ) {
+    throw new CognitiveProviderError({
+      code: "provider_tool_continuation_too_large",
+      retryable: false,
+    });
+  }
+};
+
+const boundedToolContinuationState = <State extends object>(state: State): Readonly<State> => {
+  assertToolContinuationSize(state);
+  return Object.freeze(state);
+};
+
 const parseOpenAiResponse = (value: unknown): CognitiveTurnResult => {
   if (!isRecord(value)) {
     throw new CognitiveProviderError({ code: "openai_response_invalid", retryable: false });
@@ -355,12 +381,15 @@ const parseOpenAiResponse = (value: unknown): CognitiveTurnResult => {
     terminationReason === "completed"
       ? projectCustomerVisibleText(rawVisibleText)
       : Object.freeze({ text: rawVisibleText, format: "provider_text" as const });
+  const toolContinuationState =
+    toolCalls.length === 0 ? undefined : boundedToolContinuationState(output);
 
   return Object.freeze({
     providerRequestId,
     visibleText: visibleTextProjection.text,
     terminationReason,
     toolCalls: Object.freeze(toolCalls),
+    ...(toolContinuationState === undefined ? {} : { toolContinuationState }),
     metadataSafe: Object.freeze({
       status: status ?? "unknown",
       visible_output_format: visibleTextProjection.format,
@@ -409,12 +438,15 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
     terminationReason === "completed"
       ? projectCustomerVisibleText(rawVisibleText)
       : Object.freeze({ text: rawVisibleText, format: "provider_text" as const });
+  const toolContinuationState =
+    toolCalls.length === 0 ? undefined : boundedToolContinuationState(message);
 
   return Object.freeze({
     providerRequestId: readRequiredText(value.id, "minimax_response_id_invalid", 512),
     visibleText: visibleTextProjection.text,
     terminationReason,
     toolCalls: Object.freeze(toolCalls),
+    ...(toolContinuationState === undefined ? {} : { toolContinuationState }),
     metadataSafe: Object.freeze({
       finish_reason: finishReason ?? "unknown",
       visible_output_format: visibleTextProjection.format,
@@ -428,10 +460,33 @@ export const createOpenAiProvider = (credentials: ProviderCredentials): Cognitiv
   return Object.freeze({
     async executeTurn(request) {
       const tools = request.tools ?? [];
+      const toolHistory = request.toolHistory ?? [];
       const input: Record<string, unknown>[] = request.conversation.map((item) => ({
         role: item.direction === "inbound" ? "user" : "assistant",
         content: serializeConversationContent(item),
       }));
+      for (const exchange of toolHistory) {
+        if (exchange.provider !== "openai" || !Array.isArray(exchange.providerState)) {
+          throw new CognitiveProviderError({
+            code: "openai_tool_history_invalid",
+            retryable: false,
+          });
+        }
+        for (const providerItem of exchange.providerState) {
+          if (!isRecord(providerItem)) {
+            throw new CognitiveProviderError({
+              code: "openai_tool_history_invalid",
+              retryable: false,
+            });
+          }
+          input.push({ ...providerItem });
+        }
+        input.push({
+          type: "function_call_output",
+          call_id: exchange.call.id,
+          output: JSON.stringify(exchange.result),
+        });
+      }
       for (const part of request.continuationParts) {
         input.push({ role: "assistant", content: part });
       }
@@ -446,12 +501,14 @@ export const createOpenAiProvider = (credentials: ProviderCredentials): Cognitiv
         instructions: request.systemPrompt,
         input,
         store: false,
+        include: ["reasoning.encrypted_content"],
       };
       if (request.reasoningEffort !== undefined) {
         body.reasoning = { effort: request.reasoningEffort };
       }
       if (tools.length > 0) {
         body.tools = toolDefinitionsForOpenAi(tools);
+        body.parallel_tool_calls = false;
       }
 
       return parseOpenAiResponse(
@@ -477,6 +534,7 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
   return Object.freeze({
     async executeTurn(request) {
       const tools = request.tools ?? [];
+      const toolHistory = request.toolHistory ?? [];
       const messages: Record<string, unknown>[] = [
         { role: "system", content: request.systemPrompt },
         ...request.conversation.map((item) => ({
@@ -484,6 +542,20 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
           content: serializeConversationContent(item),
         })),
       ];
+      for (const exchange of toolHistory) {
+        if (exchange.provider !== "minimax" || !isRecord(exchange.providerState)) {
+          throw new CognitiveProviderError({
+            code: "minimax_tool_history_invalid",
+            retryable: false,
+          });
+        }
+        messages.push({ ...exchange.providerState });
+        messages.push({
+          role: "tool",
+          tool_call_id: exchange.call.id,
+          content: JSON.stringify(exchange.result),
+        });
+      }
       for (const part of request.continuationParts) {
         messages.push({ role: "assistant", content: part });
       }

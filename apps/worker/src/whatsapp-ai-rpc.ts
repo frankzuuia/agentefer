@@ -1,3 +1,4 @@
+import { type NativeToolDefinition, type NativeToolExchange } from "@agentefer/ai";
 import { SensitiveValue, type ModelSelector } from "@agentefer/config";
 import { OperationalError } from "@agentefer/observability";
 
@@ -89,6 +90,9 @@ export type ClaimedAgentTurn = Readonly<{
     content: unknown;
   }>[];
   continuationParts: readonly string[];
+  toolDefinitions: readonly NativeToolDefinition[];
+  toolHistory: readonly NativeToolExchange[];
+  nextToolRound: number;
   channelConnectionId: string;
   conversationId: string;
   triggerMessageId: string;
@@ -127,6 +131,12 @@ export type ClaimedOutboxEvent = Readonly<{
 }>;
 
 export type WhatsAppAiRpcClient = Readonly<{
+  prepareAgentTools(input: RpcSignal): Promise<
+    Readonly<{
+      organizationsPrepared: number;
+      organizationsFailed: number;
+    }>
+  >;
   recoverExpiredAgentTurns(
     input: Readonly<{
       workerId: string;
@@ -175,6 +185,19 @@ export type WhatsAppAiRpcClient = Readonly<{
       disposition: "retry_provider" | "halt_safely";
       providerRequestId?: string;
       errorCode: string;
+    }> &
+      RpcSignal,
+  ): Promise<void>;
+  executeReadOnlyToolCall(
+    input: Readonly<{
+      claim: ClaimedAgentTurn;
+      workerId: string;
+      providerRequestId: string;
+      providerToolCallId: string;
+      toolName: string;
+      argumentsSafe: Readonly<Record<string, unknown>>;
+      providerState: unknown;
+      responseMetadataSafe: Readonly<Record<string, unknown>>;
     }> &
       RpcSignal,
   ): Promise<void>;
@@ -261,11 +284,7 @@ const readContentText = (
   maximumLength: number,
 ): string => {
   const value = row[field];
-  if (
-    typeof value !== "string" ||
-    value.length > maximumLength ||
-    value.trim().length < 1
-  ) {
+  if (typeof value !== "string" || value.length > maximumLength || value.trim().length < 1) {
     throw responseContractError(field);
   }
   return value;
@@ -382,6 +401,72 @@ const readContinuationParts = (row: Readonly<Record<string, unknown>>): readonly
   );
 };
 
+const readToolDefinitions = (
+  row: Readonly<Record<string, unknown>>,
+): readonly NativeToolDefinition[] => {
+  const value = row.tool_definitions;
+  if (!Array.isArray(value)) {
+    throw responseContractError("tool_definitions");
+  }
+  return Object.freeze(
+    value.map((definition) => {
+      if (!isRecord(definition)) {
+        throw responseContractError("tool_definitions.item");
+      }
+      return Object.freeze({
+        name: readText(definition, "name", 120),
+        description: readContentText(definition, "description", 4_000),
+        parameters: readRecord(definition, "parameters"),
+      });
+    }),
+  );
+};
+
+const readToolHistory = (row: Readonly<Record<string, unknown>>): readonly NativeToolExchange[] => {
+  const value = row.tool_history;
+  if (!Array.isArray(value)) {
+    throw responseContractError("tool_history");
+  }
+  return Object.freeze(
+    value.map((exchange) => {
+      if (!isRecord(exchange) || !isRecord(exchange.call) || !isRecord(exchange.result)) {
+        throw responseContractError("tool_history.item");
+      }
+      const callEnvelope = exchange.call;
+      const resultEnvelope = exchange.result;
+      const toolCall = readRecord(callEnvelope, "tool_call");
+      const argumentsSafe = readRecord(toolCall, "arguments");
+      const result = resultEnvelope.result;
+      if (!isRecord(result) && !Array.isArray(result)) {
+        throw responseContractError("tool_history.result");
+      }
+      const providerToolCallId = readText(toolCall, "id", 512);
+      const resultToolCallId = readText(resultEnvelope, "provider_tool_call_id", 512);
+      const toolName = readText(toolCall, "name", 120);
+      if (
+        resultToolCallId !== providerToolCallId ||
+        readText(resultEnvelope, "tool_name", 120) !== toolName
+      ) {
+        throw responseContractError("tool_history.provenance");
+      }
+      const providerState = callEnvelope.provider_state;
+      if (!isRecord(providerState) && !Array.isArray(providerState)) {
+        throw responseContractError("tool_history.provider_state");
+      }
+      return Object.freeze({
+        provider: readText(callEnvelope, "provider", 80),
+        providerState,
+        call: Object.freeze({
+          id: providerToolCallId,
+          name: toolName,
+          argumentsJson: JSON.stringify(argumentsSafe),
+        }),
+        result,
+      });
+    }),
+  );
+};
+
 const failureKindForStatus = (status: number): WhatsAppAiRpcFailureKind => {
   if (status === 400 || status === 413 || status === 422) {
     return "invalid";
@@ -475,6 +560,17 @@ export function createWhatsAppAiRpcClient(
   };
 
   return Object.freeze({
+    async prepareAgentTools(inputValue) {
+      const operation = "prepare_customer_assistant_read_tools";
+      const response = await postRpc(operation, { target_limit: 100 }, inputValue.signal);
+      return validateRpcResponse(operation, () => {
+        const row = readSingleRow(response);
+        return Object.freeze({
+          organizationsPrepared: readInteger(row, "organizations_prepared", 0),
+          organizationsFailed: readInteger(row, "organizations_failed", 0),
+        });
+      });
+    },
     async recoverExpiredAgentTurns(inputValue) {
       const operation = "recover_expired_whatsapp_agent_turns";
       const response = await postRpc(
@@ -514,7 +610,7 @@ export function createWhatsAppAiRpcClient(
         },
         inputValue.signal,
       );
-      return validateRpcResponse(operation, () => {
+      const claimed = validateRpcResponse(operation, () => {
         const row = readOptionalSingleRow(response);
         if (row === undefined) {
           return undefined;
@@ -540,6 +636,31 @@ export function createWhatsAppAiRpcClient(
           triggerMessageId: readUuid(row, "trigger_message_id"),
           correlationId: readText(row, "correlation_id", 128),
           ...(traceId === undefined ? {} : { traceId }),
+        });
+      });
+      if (claimed === undefined) {
+        return undefined;
+      }
+
+      const toolOperation = "get_agent_turn_tool_context";
+      const toolResponse = await postRpc(
+        toolOperation,
+        {
+          target_organization_id: claimed.organizationId,
+          target_run_id: claimed.agentRunId,
+          target_job_attempt_id: claimed.jobAttemptId,
+          target_worker_id: inputValue.workerId,
+          target_lease_token: claimed.leaseToken,
+        },
+        inputValue.signal,
+      );
+      return validateRpcResponse(toolOperation, () => {
+        const toolRow = readSingleRow(toolResponse);
+        return Object.freeze({
+          ...claimed,
+          toolDefinitions: readToolDefinitions(toolRow),
+          toolHistory: readToolHistory(toolRow),
+          nextToolRound: readInteger(toolRow, "next_tool_round", 1),
         });
       });
     },
@@ -611,6 +732,40 @@ export function createWhatsAppAiRpcClient(
         inputValue.signal,
       );
       validateRpcResponse(operation, () => readSingleRow(response));
+    },
+    async executeReadOnlyToolCall(inputValue) {
+      const operation = "execute_whatsapp_read_only_tool_call";
+      const response = await postRpc(
+        operation,
+        {
+          target_organization_id: inputValue.claim.organizationId,
+          target_run_id: inputValue.claim.agentRunId,
+          target_job_attempt_id: inputValue.claim.jobAttemptId,
+          target_worker_id: inputValue.workerId,
+          target_lease_token: inputValue.claim.leaseToken,
+          target_provider: inputValue.claim.provider,
+          target_provider_request_id: inputValue.providerRequestId,
+          target_provider_tool_call_id: inputValue.providerToolCallId,
+          target_tool_name: inputValue.toolName,
+          target_tool_round: inputValue.claim.nextToolRound,
+          target_arguments_safe: inputValue.argumentsSafe,
+          target_provider_state: inputValue.providerState,
+          target_response_metadata_safe: inputValue.responseMetadataSafe,
+        },
+        inputValue.signal,
+      );
+      validateRpcResponse(operation, () => {
+        const row = readSingleRow(response);
+        readUuid(row, "tool_execution_id");
+        readText(row, "tool_status", 40);
+        const toolResult = row.tool_result;
+        if (!isRecord(toolResult) && !Array.isArray(toolResult)) {
+          throw responseContractError("tool_result");
+        }
+        readText(row, "run_status", 40);
+        readText(row, "job_status", 40);
+        readBoolean(row, "was_replayed");
+      });
     },
     async claimOutboxEvent(inputValue) {
       const operation = "claim_whatsapp_outbox_event";
