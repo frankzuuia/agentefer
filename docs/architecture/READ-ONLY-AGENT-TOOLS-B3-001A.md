@@ -1,6 +1,6 @@
 # AgenteFer — herramientas cognitivas de lectura B3-001A
 
-Estado: **DATABASE VERIFIED — WORKER DEPLOYMENT PENDING**.  
+Estado: **WORKER DEPLOYED — REAL WHATSAPP E2E PENDING**.  
 Fecha de corte: 2026-08-28.  
 Dependencias: B2-003, B2-004, B2-005, B2-008, B2-009 y B4-004A–F.
 

@@ -1,6 +1,6 @@
 # AgenteFer — QA B3-001A herramientas cognitivas de lectura
 
-Estado: **DATABASE VERIFIED — WORKER DEPLOYMENT AND REAL E2E PENDING**.  
+Estado: **WORKER DEPLOYED — REAL WHATSAPP E2E PENDING**.  
 Fecha de corte: 2026-08-28.
 
 ## Puertas obligatorias
@@ -51,10 +51,12 @@ Fecha de corte: 2026-08-28.
 | Aceptación Gherkin | Verde | 13 archivos y 306 escenarios ejecutables, con 0 errores de parseo. |
 | Build, runtime y supply chain | Verde | Build completo; API y worker arrancaron en puertos TCP efímeros; `npm audit` completo y producción: 0 vulnerabilidades. |
 | Regresión de base real no vacía | Verde | B4-003A dejó de consultar todos los `whatsapp.status`; ahora identifica su fixture por organización y `payload.status.id/status`. Sus 78 pruebas pasan sin depender de una base vacía. |
+| Git | Verde | Commit de código `af404e4bdf0d8a8a0a93689fc65714ba1b25fa25` publicado exclusivamente en `origin/develop`; `main` no fue modificado. |
+| EasyPanel | Verde | Action `cmtd46m4b00ea07ri8r2z4ffj` construyó correctamente `agente-fer / worker` desde `develop` y `apps/worker/Dockerfile`; réplica `actual=1`, `desired=1`. |
+| Arranque desplegado | Verde | `worker.runtime.started` observado con inbound y WhatsApp AI operativos, provider `minimax` y modelo `MiniMax-M3`; ningún `worker.bootstrap.failed` posterior al último arranque sano. |
+| Regresión de metadata de despliegue | Verde | Un SHA abreviado fue rechazado en bootstrap como exige el contrato. Se corrigió a los 40 caracteres, se redeployó mediante action `cmtd48zc100el07rieiub37k1` y se confirmó recuperación sin relajar la validación. |
 
 ## Pendiente para cerrar el bloque
 
-- Commit y push exclusivamente a `develop`.
-- Despliegue exclusivo del servicio `agente-fer / worker` en EasyPanel.
 - E2E real por WhatsApp para producto existente, inexistente, cantidad con precio y cantidad sin precio.
 - Registrar correlation ID, tool call, ledger durable, respuesta visible, latencia y revisión de advisors después del E2E.
