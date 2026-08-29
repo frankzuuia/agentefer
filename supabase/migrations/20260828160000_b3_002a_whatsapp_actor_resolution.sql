@@ -868,7 +868,6 @@ declare
   selected_actor_user_id uuid;
   selected_policy_version app_private.agent_policy_versions%rowtype;
   selected_contract_version_id uuid;
-  selected_contract_id uuid;
   selected_contract_hash bytea;
   expected_contract_hash bytea;
   definition_record record;
@@ -963,8 +962,8 @@ begin
       'handler_key', definition_record.handler_key
     )::text, 'sha256');
 
-    select contract_value.id, contract_value.current_version_id, version_value.contract_hash
-    into selected_contract_id, selected_contract_version_id, selected_contract_hash
+    select contract_value.current_version_id, version_value.contract_hash
+    into selected_contract_version_id, selected_contract_hash
     from app_private.tool_contracts as contract_value
     left join app_private.tool_contract_versions as version_value
       on version_value.organization_id = contract_value.organization_id
@@ -974,8 +973,8 @@ begin
 
     if selected_contract_version_id is null
       or selected_contract_hash is distinct from expected_contract_hash then
-      select registered.tool_contract_id, registered.tool_contract_version_id
-      into selected_contract_id, selected_contract_version_id
+      select registered.tool_contract_version_id
+      into selected_contract_version_id
       from api.register_tool_contract_version(
         target_organization_id,
         'b3-002a:tool:' || definition_record.tool_name || ':' || encode(expected_contract_hash, 'hex'),
@@ -997,7 +996,6 @@ begin
     tool_versions := tool_versions || jsonb_build_object(
       definition_record.tool_name, selected_contract_version_id
     );
-    selected_contract_id := null;
     selected_contract_version_id := null;
     selected_contract_hash := null;
   end loop;

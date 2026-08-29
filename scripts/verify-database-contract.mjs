@@ -2269,6 +2269,17 @@ for (const statement of [
     `B3-002A actor resolution database test must include: ${statement}`,
   );
 }
+for (const forbiddenIdentifier of [
+  "selected_policy_id",
+  "selected_policy_version_id",
+  "selected_contract_id",
+]) {
+  assert.equal(
+    whatsappActorResolutionMigration.includes(forbiddenIdentifier),
+    false,
+    `B3-002A cannot reintroduce the hardened unused identifier: ${forbiddenIdentifier}`,
+  );
+}
 
 for (const statement of [
   "select extensions.plan(10);",

@@ -416,3 +416,8 @@ App/Página/WABA/número/permisos.
   grants de columnas reconstruidos desde las vistas `security_invoker`, Storage compatible por
   inspección de la fila, inventario 101/96/98 y plan pgTAP 13. Falta certificarla en un nuevo run CI;
   no se aplicó ninguna migración ni se emitió ningún efecto Meta durante la reparación.
+- CI candidato `33274325337`: `Verify` aprobó en 23m9s y contenedor en 57s; la base confirmó
+  migración limpia desde cero y eliminó todos los fallos previos. El único fallo restante fue 1/10
+  del lint PL/pgSQL: B3-002A había redeclarado después del hardening una captura
+  `selected_contract_id` sin uso. La corrección elimina sólo esa captura y añade una guardia
+  estática para impedir que una migración posterior la reintroduzca; nueva certificación pendiente.
