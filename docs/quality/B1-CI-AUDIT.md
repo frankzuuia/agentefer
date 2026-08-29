@@ -32,7 +32,9 @@ Cuando aparezca el primer archivo de código en un workspace diferido, `verify-w
 - Trigger pull request: `develop` y `main`.
 - Permisos: `contents: read`.
 - Concurrencia: cancela ejecuciones obsoletas de la misma referencia.
-- Timeout: 20 minutos.
+- Timeout original de B1: 20 minutos. Desde B4-005/B4-006, `Verify` conserva 60 minutos porque
+  cobertura y los cuatro perfiles de mutación requieren aproximadamente 41 minutos medidos; la
+  política automatizada impide reducir ese presupuesto sin actualizar explícitamente el contrato.
 - `actions/checkout`: SHA `3d3c42e5aac5ba805825da76410c181273ba90b1`, release v7.0.1, runtime Node 24.
 - `actions/setup-node`: SHA `820762786026740c76f36085b0efc47a31fe5020`, release v7.0.0, runtime Node 24.
 - Instalación: `npm ci --ignore-scripts`.

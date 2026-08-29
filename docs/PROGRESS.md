@@ -405,3 +405,6 @@ App/Página/WABA/número/permisos.
 - Edición de descripción/precio/foto principal y eliminación/despublicación en cascada no se exponen
   todavía; requieren el siguiente bloque de RPC/tools y pruebas, sin botones falsos.
 - Estado: **calidad local certificada; no hubo despliegue de base ni publicación externa**.
+- CI remoto inicial `33271706383`: cancelado por el timeout histórico de 20 minutos durante el gate
+  completo, no por una aserción. El presupuesto de `Verify` se elevó a 60 minutos con una nueva
+  aserción en `verify-ci-policy`; la suite y los umbrales permanecen intactos.

@@ -89,6 +89,12 @@ assert.ok(
 assert.ok(qualityWorkflow.includes("npm run verify"), "CI must run the complete quality gate");
 assert.ok(qualityWorkflow.includes("npm audit signatures"), "CI must verify registry signatures");
 assert.ok(
+  qualityWorkflow.includes(
+    "verify:\n    name: Verify\n    runs-on: ubuntu-latest\n    timeout-minutes: 60",
+  ),
+  "verify CI must retain the measured budget for coverage and all mutation profiles",
+);
+assert.ok(
   qualityWorkflow.includes("database:\n    name: Database contract"),
   "CI must define the isolated database contract job",
 );
