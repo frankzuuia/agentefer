@@ -390,7 +390,7 @@ App/Página/WABA/número/permisos.
   navegación inferior y `safe-area`; no existe infinite scroll.
 - Imágenes del panel: sólo URL de `storefront_webp` publicado; la respuesta no expone bucket/path,
   original privado, base64 ni clave de servicio. Montos/quantities viajan como decimal textual exacto.
-- QA DB: contrato estático 35 migraciones, 97 tablas RLS forzado, 1,214 pgTAP; ensayo enlazado
+- QA DB: contrato estático 35 migraciones, 101 tablas RLS forzado, 1,215 pgTAP; ensayo enlazado
   23/23 y rollback sobre `AgenteFer` `hprdctmblmfcoagugvyp`.
 - QA API focal: 87/87 pruebas y typecheck verde. QA visual del shell: 360/375/390/412/768/1024/1440,
   cero overflow horizontal y cero objetivos visibles menores a 44 px.
@@ -408,3 +408,11 @@ App/Página/WABA/número/permisos.
 - CI remoto inicial `33271706383`: cancelado por el timeout histórico de 20 minutos durante el gate
   completo, no por una aserción. El presupuesto de `Verify` se elevó a 60 minutos con una nueva
   aserción en `verify-ci-policy`; la suite y los umbrales permanecen intactos.
+- CI remoto `33272667154`: `Verify` aprobó en 22m11s y confirmó el presupuesto corregido. Los jobs
+  de contenedor y base aislaron cuatro contratos obsoletos: procesadores externos activos durante el
+  health check, inventario B2-009 anterior a las tablas/vistas B3/B4, dos columnas opcionales de
+  Storage no presentes en la versión fijada, y firma/plan incorrectos en el pgTAP de ingesta.
+- Reparación candidata: health de proceso con integraciones externas explícitamente apagadas,
+  grants de columnas reconstruidos desde las vistas `security_invoker`, Storage compatible por
+  inspección de la fila, inventario 101/96/98 y plan pgTAP 13. Falta certificarla en un nuevo run CI;
+  no se aplicó ninguna migración ni se emitió ningún efecto Meta durante la reparación.

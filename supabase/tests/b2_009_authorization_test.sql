@@ -54,8 +54,8 @@ select extensions.is(
     where namespace.nspname = 'app_private'
       and relation.relkind in ('r', 'p')
   ),
-  96,
-  'the private data model contains the 96 reviewed tables'
+  101,
+  'the private data model contains the 101 reviewed tables'
 );
 select extensions.is(
   (
@@ -66,7 +66,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relrowsecurity
   ),
-  96,
+  101,
   'RLS is enabled on every private table'
 );
 select extensions.is(
@@ -78,12 +78,12 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relforcerowsecurity
   ),
-  96,
+  101,
   'RLS is forced on every private table'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private'),
-  93,
+  96,
   'the reviewed tenant read-policy set is complete'
 );
 select extensions.is(
@@ -97,12 +97,12 @@ select extensions.is(
         select 1 from pg_catalog.pg_policy as policy where policy.polrelid = relation.oid
       )
   ),
-  'inbound_events, meta_webhook_deliveries, outbox_events',
-  'only authenticated backend inbox and outbox tables remain default deny without read policies'
+  'admin_catalog_commands, inbound_events, media_ingest_requests, meta_webhook_deliveries, outbox_events',
+  'only reviewed backend queues remain default deny without read policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and cmd = 'SELECT'),
-  93,
+  96,
   'every private policy is read-only'
 );
 select extensions.is(
@@ -112,7 +112,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and roles = array['authenticated']::name[]
   ),
-  93,
+  96,
   'every private policy targets authenticated users only'
 );
 select extensions.is(
@@ -122,7 +122,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and coalesce(qual, '') like '%SELECT auth.uid()%'
   ),
-  93,
+  96,
   'every private policy uses the init-plan auth.uid pattern'
 );
 select extensions.is(
@@ -145,8 +145,8 @@ select extensions.is(
     join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
     where namespace.nspname = 'api' and relation.relkind = 'v'
   ),
-  95,
-  'the explicit API surface contains the 95 reviewed views'
+  98,
+  'the explicit API surface contains the 98 reviewed views'
 );
 select extensions.is(
   (
@@ -158,7 +158,7 @@ select extensions.is(
       and coalesce(relation.reloptions, array[]::text[])
         @> array['security_invoker=true', 'security_barrier=true']::text[]
   ),
-  95,
+  98,
   'every API view invokes caller RLS and acts as a security barrier'
 );
 select extensions.is(
@@ -241,7 +241,7 @@ select extensions.is(
       and relation.relkind = 'v'
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
-  95,
+  98,
   'authenticated can select every reviewed API view'
 );
 select extensions.is(
@@ -343,18 +343,18 @@ select extensions.is(
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_admin_select'),
-  16,
-  'the reviewed admin policy class contains 16 policies'
+  19,
+  'the reviewed admin policy class contains 19 policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_operator_select'),
-  32,
-  'the reviewed operator policy class contains 32 policies'
+  33,
+  'the reviewed operator policy class contains 33 policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_member_select'),
-  41,
-  'the reviewed member policy class contains 41 policies'
+  42,
+  'the reviewed member policy class contains 42 policies'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and policyname like '%_self_select'),

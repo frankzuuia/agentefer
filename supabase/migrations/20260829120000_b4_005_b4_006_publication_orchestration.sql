@@ -1746,9 +1746,34 @@ revoke all on
   app_private.publication_batch_subscriptions
 from public, anon, authenticated;
 
-grant select on app_private.social_publication_dispatch_states to authenticated;
-grant select on app_private.social_rate_limit_observations to authenticated;
-grant select on app_private.publication_batch_subscriptions to authenticated;
+-- Security-invoker API views need the exact referenced base columns. Rebuild the
+-- authenticated read grant set after adding these views so operational columns
+-- remain private and dependencies introduced on existing tables stay usable.
+revoke select on all tables in schema app_private from authenticated;
+do $$
+declare
+  dependency record;
+begin
+  for dependency in
+    select
+      usage.table_schema,
+      usage.table_name,
+      string_agg(quote_ident(usage.column_name), ', ' order by usage.column_name) as columns
+    from information_schema.view_column_usage as usage
+    where usage.view_schema = 'api'
+      and usage.table_schema = 'app_private'
+    group by usage.table_schema, usage.table_name
+    order by usage.table_schema, usage.table_name
+  loop
+    execute format(
+      'grant select (%s) on table %I.%I to authenticated',
+      dependency.columns,
+      dependency.table_schema,
+      dependency.table_name
+    );
+  end loop;
+end;
+$$;
 
 revoke all on
   api.social_rate_limit_observations,

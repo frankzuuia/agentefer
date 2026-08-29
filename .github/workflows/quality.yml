@@ -131,6 +131,8 @@ jobs:
             --env WORKER_HEALTH_HOST=0.0.0.0 \
             --env WORKER_HEALTH_PORT=3002 \
             --env WORKER_META_INBOUND_ENABLED=false \
+            --env WORKER_WHATSAPP_AI_ENABLED=false \
+            --env WORKER_FACEBOOK_PUBLICATION_ENABLED=false \
             --env SUPABASE_URL=http://127.0.0.1:54321 \
             --env SUPABASE_PROJECT_REF=agentefercitest \
             --env SUPABASE_SECRET_KEY="$worker_secret_key" \

@@ -1,11 +1,16 @@
 begin;
 
-select extensions.plan(12);
+select extensions.plan(13);
 
 select has_table('app_private', 'media_ingest_requests', 'media ingest requests table exists');
 select col_not_null('app_private', 'media_ingest_requests', 'provider_media_id', 'provider media id is required');
 select col_not_null('app_private', 'media_ingest_requests', 'status', 'media request status is required');
-select has_index('app_private', 'media_ingest_requests_claim_idx', 'claim index exists');
+select has_index(
+  'app_private',
+  'media_ingest_requests',
+  'media_ingest_requests_claim_idx',
+  'claim index exists'
+);
 select function_privs_are(
   'api',
   'claim_whatsapp_media_ingest',

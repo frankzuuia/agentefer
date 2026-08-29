@@ -2234,6 +2234,26 @@ const plannedDatabaseAssertions = productionDatabaseTests.reduce((total, [name, 
   return total + plannedCount;
 }, 0);
 
+const privateTableNames = new Set();
+const forcedRlsTableNames = new Set();
+for (const migrationEntry of migrationEntries) {
+  const migration = await readFile(path.join(migrationDirectory, migrationEntry), "utf8");
+  for (const match of migration.matchAll(/create table app_private\.([a-z0-9_]+)\s*\(/g)) {
+    privateTableNames.add(match[1]);
+  }
+  for (const match of migration.matchAll(
+    /alter table app_private\.([a-z0-9_]+) force row level security;/g,
+  )) {
+    forcedRlsTableNames.add(match[1]);
+  }
+}
+assert.equal(privateTableNames.size, 101, "the private table inventory must remain reviewed");
+assert.deepEqual(
+  [...forcedRlsTableNames].sort(),
+  [...privateTableNames].sort(),
+  "every private table created by migrations must force RLS",
+);
+
 for (const statement of [
   "select extensions.plan(28);",
   "an observed account is a contact before explicit member linking",
@@ -2806,5 +2826,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 97 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, ${forcedRlsTableNames.size} forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
 );

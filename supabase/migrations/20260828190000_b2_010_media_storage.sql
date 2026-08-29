@@ -313,8 +313,11 @@ begin
     from storage.objects as object_value
     where object_value.bucket_id = new.bucket_id
       and object_value.name = new.object_path
-      and object_value.archived_at is null
-      and not object_value.is_delete_marker
+      and (to_jsonb(object_value) ->> 'archived_at') is null
+      and not coalesce(
+        (to_jsonb(object_value) ->> 'is_delete_marker')::boolean,
+        false
+      )
   ) then
     raise exception using
       errcode = '23514',

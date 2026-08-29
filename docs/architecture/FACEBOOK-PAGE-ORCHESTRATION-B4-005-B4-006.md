@@ -127,7 +127,7 @@ La verificación responsive cubre 360, 375, 390, 412, 768, 1024 y 1440 px; a 375
 
 ## Evidencia local del panel
 
-- Contrato de base acumulado: 35 migraciones, 97 tablas con RLS forzado y 1,214 aserciones pgTAP planificadas.
+- Contrato de base acumulado: 35 migraciones, 101 tablas con RLS forzado y 1,215 aserciones pgTAP planificadas.
 - Ensayo enlazado exacto sobre `AgenteFer` (`hprdctmblmfcoagugvyp`): 23/23 aserciones terminales aprobadas y transacción revertida.
 - API focal: 87/87 pruebas de protocolo, gateway TCP y rutas Fastify; typecheck verde.
 - Suite acumulada: 945/945 pruebas, 91.74% statements, 86.78% ramas, 94.34% funciones y
