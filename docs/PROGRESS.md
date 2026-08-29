@@ -427,3 +427,9 @@ App/Página/WABA/número/permisos.
   La reparación candidata califica tablas/columnas, descarta resultados no usados con `PERFORM`,
   retira `STABLE` de la consulta que autoriza al actor y añade guardias estáticas; falta certificarla
   en un nuevo run. La base enlazada, `main` y Meta permanecen sin cambios.
+- CI candidato `33279233989`: `Verify` aprobó en 22m31s, contenedor en 50s y la base aislada aprobó
+  migraciones desde cero, 1,215/1,215 pgTAP, concurrencia, mutation testing SQL, lint y advisors.
+  El único fallo fue drift del contrato TypeScript: las tablas, vista, relaciones y RPC de las tres
+  migraciones B4 nuevas aún no estaban en `database.types.ts`. El artefacto canónico preservado por
+  ese mismo run fue verificado por SHA-256 y sincronizado sin edición manual; nueva certificación
+  pendiente. No se desplegó Supabase ni se produjo un efecto externo en Meta.

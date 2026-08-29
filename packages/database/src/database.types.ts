@@ -1162,6 +1162,13 @@ export type Database = {
             foreignKeyName: "catalog_candidate_matches_variant_fk";
             columns: ["organization_id", "candidate_variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "catalog_candidate_matches_variant_fk";
+            columns: ["organization_id", "candidate_variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -1264,6 +1271,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "catalog_ingestion_drafts_applied_variant_fk";
+            columns: ["organization_id", "applied_variant_id"];
+            isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "catalog_ingestion_drafts_applied_variant_fk";
@@ -2215,6 +2229,39 @@ export type Database = {
           },
         ];
       };
+      facebook_catalog_admin: {
+        Row: {
+          available_actions: string[] | null;
+          created_at: string | null;
+          currency_code: string | null;
+          external_publication_id: string | null;
+          external_url: string | null;
+          facebook_page_name: string | null;
+          facebook_status: string | null;
+          last_error_code: string | null;
+          latest_effect_certainty: string | null;
+          latest_job_id: string | null;
+          latest_job_status: string | null;
+          organization_id: string | null;
+          price_amount: number | null;
+          price_unit_id: string | null;
+          pricing_status: string | null;
+          product_id: string | null;
+          product_name: string | null;
+          product_status: string | null;
+          publication_id: string | null;
+          publication_instance_id: string | null;
+          publication_status: string | null;
+          publication_version_id: string | null;
+          sku: string | null;
+          social_connection_id: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+          variant_name: string | null;
+          variant_status: string | null;
+        };
+        Relationships: [];
+      };
       handoffs: {
         Row: {
           accepted_assignment_id: string | null;
@@ -2361,6 +2408,13 @@ export type Database = {
             foreignKeyName: "inventory_items_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: true;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "inventory_items_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: true;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -2449,6 +2503,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_units";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_variant_fk";
+            columns: ["organization_id", "offered_variant_id"];
+            isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "inventory_compositions_variant_fk";
@@ -2571,6 +2632,13 @@ export type Database = {
             foreignKeyName: "inventory_compositions_variant_fk";
             columns: ["organization_id", "offered_variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "inventory_compositions_variant_fk";
+            columns: ["organization_id", "offered_variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -2621,6 +2689,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_units";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "inventory_items_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: true;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "inventory_items_variant_fk";
@@ -3149,6 +3224,13 @@ export type Database = {
             foreignKeyName: "lead_interests_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "lead_interests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -3348,97 +3430,6 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "messages";
             referencedColumns: ["organization_id", "id"];
-          },
-        ];
-      };
-      media_ingest_requests: {
-        Row: {
-          attempt_count: number;
-          available_at: string;
-          channel_connection_id: string;
-          completed_at: string | null;
-          created_at: string;
-          declared_file_size: number | null;
-          declared_mime_type: string | null;
-          declared_sha256_hex: string | null;
-          id: string;
-          last_error_code: string | null;
-          lease_expires_at: string | null;
-          lease_owner: string | null;
-          lease_token: string | null;
-          media_asset_id: string | null;
-          message_id: string;
-          organization_id: string;
-          processing_started_at: string | null;
-          provider_media_id: string;
-          status: string;
-          updated_at: string;
-        };
-        Insert: {
-          attempt_count?: number;
-          available_at?: string;
-          channel_connection_id: string;
-          completed_at?: string | null;
-          created_at?: string;
-          declared_file_size?: number | null;
-          declared_mime_type?: string | null;
-          declared_sha256_hex?: string | null;
-          id?: string;
-          last_error_code?: string | null;
-          lease_expires_at?: string | null;
-          lease_owner?: string | null;
-          lease_token?: string | null;
-          media_asset_id?: string | null;
-          message_id: string;
-          organization_id: string;
-          processing_started_at?: string | null;
-          provider_media_id: string;
-          status?: string;
-          updated_at?: string;
-        };
-        Update: {
-          attempt_count?: number;
-          available_at?: string;
-          channel_connection_id?: string;
-          completed_at?: string | null;
-          created_at?: string;
-          declared_file_size?: number | null;
-          declared_mime_type?: string | null;
-          declared_sha256_hex?: string | null;
-          id?: string;
-          last_error_code?: string | null;
-          lease_expires_at?: string | null;
-          lease_owner?: string | null;
-          lease_token?: string | null;
-          media_asset_id?: string | null;
-          message_id?: string;
-          organization_id?: string;
-          processing_started_at?: string | null;
-          provider_media_id?: string;
-          status?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "media_ingest_requests_asset_fk";
-            columns: ["organization_id", "media_asset_id"];
-            isOneToOne: false;
-            referencedRelation: "media_assets";
-            referencedColumns: ["organization_id", "id"];
-          },
-          {
-            foreignKeyName: "media_ingest_requests_connection_fk";
-            columns: ["organization_id", "channel_connection_id"];
-            isOneToOne: false;
-            referencedRelation: "channel_connections";
-            referencedColumns: ["organization_id", "id"];
-          },
-          {
-            foreignKeyName: "media_ingest_requests_message_fk";
-            columns: ["organization_id", "channel_connection_id", "message_id"];
-            isOneToOne: false;
-            referencedRelation: "messages";
-            referencedColumns: ["organization_id", "channel_connection_id", "id"];
           },
         ];
       };
@@ -4057,6 +4048,13 @@ export type Database = {
             foreignKeyName: "order_lines_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "order_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -4427,6 +4425,13 @@ export type Database = {
             foreignKeyName: "pending_requests_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "pending_requests_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -4516,6 +4521,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_units";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "price_tiers_variant_fk";
@@ -4619,6 +4631,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_units";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "price_tiers_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "price_tiers_variant_fk";
@@ -4793,6 +4812,13 @@ export type Database = {
             foreignKeyName: "product_media_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "product_media_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -4925,6 +4951,108 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      publication_batch_subscriptions: {
+        Row: {
+          attempt_count: number | null;
+          available_at: string | null;
+          channel_connection_id: string | null;
+          completed_at: string | null;
+          conversation_id: string | null;
+          created_at: string | null;
+          destination_identity_id: string | null;
+          id: string | null;
+          last_error_code: string | null;
+          max_attempts: number | null;
+          message_id: string | null;
+          organization_id: string | null;
+          origin_agent_run_id: string | null;
+          outbox_event_id: string | null;
+          provider_request_id: string | null;
+          publication_batch_id: string | null;
+          status: string | null;
+          summary_payload: Json | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          attempt_count?: number | null;
+          available_at?: string | null;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          destination_identity_id?: string | null;
+          id?: string | null;
+          last_error_code?: string | null;
+          max_attempts?: number | null;
+          message_id?: string | null;
+          organization_id?: string | null;
+          origin_agent_run_id?: string | null;
+          outbox_event_id?: string | null;
+          provider_request_id?: string | null;
+          publication_batch_id?: string | null;
+          status?: string | null;
+          summary_payload?: Json | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          attempt_count?: number | null;
+          available_at?: string | null;
+          channel_connection_id?: string | null;
+          completed_at?: string | null;
+          conversation_id?: string | null;
+          created_at?: string | null;
+          destination_identity_id?: string | null;
+          id?: string | null;
+          last_error_code?: string | null;
+          max_attempts?: number | null;
+          message_id?: string | null;
+          organization_id?: string | null;
+          origin_agent_run_id?: string | null;
+          outbox_event_id?: string | null;
+          provider_request_id?: string | null;
+          publication_batch_id?: string | null;
+          status?: string | null;
+          summary_payload?: Json | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_batch_subscriptions_batch_fk";
+            columns: ["organization_id", "publication_batch_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_destination_fk";
+            columns: ["organization_id", "channel_connection_id", "destination_identity_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_identities";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_message_fk";
+            columns: ["organization_id", "channel_connection_id", "message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_run_fk";
+            columns: ["organization_id", "origin_agent_run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -5687,6 +5815,13 @@ export type Database = {
             foreignKeyName: "publications_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "publications_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -5788,6 +5923,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "catalog_units";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "sale_lines_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
           },
           {
             foreignKeyName: "sale_lines_variant_fk";
@@ -6007,6 +6149,63 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      social_rate_limit_observations: {
+        Row: {
+          blocked_until: string | null;
+          created_at: string | null;
+          id: string | null;
+          observation_source: string | null;
+          observed_at: string | null;
+          organization_id: string | null;
+          provider_request_id: string | null;
+          publication_job_id: string | null;
+          retry_after_at: string | null;
+          social_connection_id: string | null;
+          usage_snapshot: Json | null;
+        };
+        Insert: {
+          blocked_until?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          observation_source?: string | null;
+          observed_at?: string | null;
+          organization_id?: string | null;
+          provider_request_id?: string | null;
+          publication_job_id?: string | null;
+          retry_after_at?: string | null;
+          social_connection_id?: string | null;
+          usage_snapshot?: Json | null;
+        };
+        Update: {
+          blocked_until?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          observation_source?: string | null;
+          observed_at?: string | null;
+          organization_id?: string | null;
+          provider_request_id?: string | null;
+          publication_job_id?: string | null;
+          retry_after_at?: string | null;
+          social_connection_id?: string | null;
+          usage_snapshot?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_rate_limit_observations_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_rate_limit_observations_job_fk";
+            columns: ["organization_id", "publication_job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -6458,6 +6657,13 @@ export type Database = {
             foreignKeyName: "variant_attribute_values_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "variant_attribute_values_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -6502,6 +6708,13 @@ export type Database = {
             foreignKeyName: "variant_skus_variant_fk";
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
+            referencedRelation: "facebook_catalog_admin";
+            referencedColumns: ["organization_id", "variant_id"];
+          },
+          {
+            foreignKeyName: "variant_skus_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
             referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
@@ -6524,6 +6737,58 @@ export type Database = {
           organization_id: string;
           webhook_endpoint_id: string;
         }[];
+      };
+      admin_enqueue_facebook_catalog: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_social_connection_id: string;
+        };
+        Returns: Json;
+      };
+      admin_enqueue_facebook_publication: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_social_connection_id: string;
+          target_variant_id: string;
+        };
+        Returns: Json;
+      };
+      admin_retry_facebook_publication: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_job_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_catalog_offer_status: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_reason: string;
+          target_status: string;
+          target_variant_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_facebook_batch_state: {
+        Args: {
+          target_action: string;
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+          target_reason: string;
+        };
+        Returns: Json;
       };
       append_agent_message: {
         Args: {
@@ -6625,16 +6890,16 @@ export type Database = {
       begin_media_asset_ingest: {
         Args: {
           target_actor_kind: string;
-          target_actor_user_id: string | null;
+          target_actor_user_id: string;
           target_byte_size: number;
           target_content_sha256: string;
           target_correlation_id: string;
           target_height_pixels: number;
           target_mime_type: string;
           target_organization_id: string;
-          target_original_file_name: string | null;
+          target_original_file_name: string;
           target_source_kind: string;
-          target_source_message_id: string | null;
+          target_source_message_id: string;
           target_trace_id?: string;
           target_width_pixels: number;
         };
@@ -6691,6 +6956,38 @@ export type Database = {
           payload_safe: Json;
         }[];
       };
+      claim_facebook_publication_job: {
+        Args: {
+          target_lease_seconds?: number;
+          target_now?: string;
+          target_organization_id?: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          access_token: string;
+          api_version: string;
+          attempt_count: number;
+          body: string;
+          call_to_action: string;
+          content_payload: Json;
+          currency_code: string;
+          external_effect_key: string;
+          headline: string;
+          lease_expires_at: string;
+          lease_token: string;
+          max_attempts: number;
+          media: Json;
+          operation: string;
+          organization_id: string;
+          page_id: string;
+          price_amount: number;
+          pricing_status: string;
+          publication_batch_id: string;
+          publication_id: string;
+          publication_job_id: string;
+          publication_version_id: string;
+        }[];
+      };
       claim_meta_webhook_delivery: {
         Args: {
           target_lease_seconds?: number;
@@ -6725,6 +7022,26 @@ export type Database = {
           lease_token: string;
           organization_id: string;
           trace_id: string;
+        }[];
+      };
+      claim_publication_batch_notification: {
+        Args: {
+          target_lease_seconds?: number;
+          target_organization_id?: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          attempt_count: number;
+          lease_expires_at: string;
+          lease_token: string;
+          model: string;
+          organization_id: string;
+          provider: string;
+          publication_batch_id: string;
+          publication_batch_subscription_id: string;
+          reasoning_effort: string;
+          summary_payload: Json;
+          system_prompt: string;
         }[];
       };
       claim_publication_job: {
@@ -6792,9 +7109,9 @@ export type Database = {
           attempt_number: number;
           channel_connection_id: string;
           correlation_id: string;
-          declared_file_size: number | null;
-          declared_mime_type: string | null;
-          declared_sha256_hex: string | null;
+          declared_file_size: number;
+          declared_mime_type: string;
+          declared_sha256_hex: string;
           lease_expires_at: string;
           lease_token: string;
           message_id: string;
@@ -6802,7 +7119,7 @@ export type Database = {
           phone_number_id: string;
           provider_media_id: string;
           request_id: string;
-          trace_id: string | null;
+          trace_id: string;
         }[];
       };
       claim_whatsapp_outbox_event: {
@@ -6830,7 +7147,7 @@ export type Database = {
       complete_media_asset_ingest: {
         Args: {
           target_actor_kind: string;
-          target_actor_user_id: string | null;
+          target_actor_user_id: string;
           target_correlation_id: string;
           target_media_asset_id: string;
           target_organization_id: string;
@@ -6840,6 +7157,21 @@ export type Database = {
           ingest_status: string;
           media_asset_id: string;
           was_replayed: boolean;
+        }[];
+      };
+      complete_publication_batch_notification: {
+        Args: {
+          target_lease_token: string;
+          target_organization_id: string;
+          target_provider_request_id: string;
+          target_subscription_id: string;
+          target_visible_text: string;
+        };
+        Returns: {
+          message_id: string;
+          outbox_event_id: string;
+          publication_batch_subscription_id: string;
+          status: string;
         }[];
       };
       complete_whatsapp_agent_turn: {
@@ -7232,36 +7564,29 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
-      fail_whatsapp_media_ingest: {
+      execute_whatsapp_tool_call: {
         Args: {
-          target_error_code: string;
-          target_lease_token: string;
-          target_max_attempts?: number;
-          target_organization_id: string;
-          target_request_id: string;
-          target_retry_delay_seconds?: number;
-          target_retryable: boolean;
-          target_worker_id: string;
-        };
-        Returns: {
-          request_id: string;
-          status: string;
-          was_replayed: boolean;
-        }[];
-      };
-      get_whatsapp_media_visual_inputs: {
-        Args: {
+          target_arguments_safe: Json;
           target_job_attempt_id: string;
           target_lease_token: string;
-          target_message_ids: string[];
           target_organization_id: string;
+          target_provider: string;
+          target_provider_request_id: string;
+          target_provider_state: Json;
+          target_provider_tool_call_id: string;
+          target_response_metadata_safe: Json;
+          target_run_id: string;
+          target_tool_name: string;
+          target_tool_round: number;
           target_worker_id: string;
         };
         Returns: {
-          analysis_sha256_hex: string;
-          media_asset_id: string;
-          message_id: string;
-          mime_type: string;
+          job_status: string;
+          run_status: string;
+          tool_execution_id: string;
+          tool_result: Json;
+          tool_status: string;
+          was_replayed: boolean;
         }[];
       };
       fail_meta_webhook_delivery: {
@@ -7294,6 +7619,37 @@ export type Database = {
           inbound_event_id: string;
         }[];
       };
+      fail_publication_batch_notification: {
+        Args: {
+          target_error_code: string;
+          target_lease_token: string;
+          target_organization_id: string;
+          target_retry_at?: string;
+          target_retryable: boolean;
+          target_subscription_id: string;
+        };
+        Returns: {
+          publication_batch_subscription_id: string;
+          status: string;
+        }[];
+      };
+      fail_whatsapp_media_ingest: {
+        Args: {
+          target_error_code: string;
+          target_lease_token: string;
+          target_max_attempts?: number;
+          target_organization_id: string;
+          target_request_id: string;
+          target_retry_delay_seconds?: number;
+          target_retryable: boolean;
+          target_worker_id: string;
+        };
+        Returns: {
+          request_id: string;
+          status: string;
+          was_replayed: boolean;
+        }[];
+      };
       get_agent_turn_tool_context: {
         Args: {
           target_job_attempt_id: string;
@@ -7306,6 +7662,41 @@ export type Database = {
           next_tool_round: number;
           tool_definitions: Json;
           tool_history: Json;
+        }[];
+      };
+      get_facebook_catalog_admin_page: {
+        Args: {
+          target_actor_user_id: string;
+          target_cursor_updated_at?: string;
+          target_cursor_variant_id?: string;
+          target_organization_id: string;
+          target_page_size?: number;
+          target_search?: string;
+          target_social_connection_id?: string;
+          target_status?: string;
+        };
+        Returns: Json;
+      };
+      get_publication_batch_status: {
+        Args: {
+          target_organization_id: string;
+          target_publication_batch_id: string;
+        };
+        Returns: Json;
+      };
+      get_whatsapp_media_visual_inputs: {
+        Args: {
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_message_ids: string[];
+          target_organization_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          analysis_sha256_hex: string;
+          media_asset_id: string;
+          message_id: string;
+          mime_type: string;
         }[];
       };
       ingest_meta_webhook_delivery: {
@@ -7346,7 +7737,7 @@ export type Database = {
       link_product_media: {
         Args: {
           target_actor_user_id: string;
-          target_alt_text: string | null;
+          target_alt_text: string;
           target_correlation_id: string;
           target_media_asset_id: string;
           target_media_role: string;
@@ -7354,7 +7745,7 @@ export type Database = {
           target_organization_id: string;
           target_product_id: string;
           target_trace_id?: string;
-          target_variant_id: string | null;
+          target_variant_id: string;
         };
         Returns: {
           media_status: string;
@@ -7438,6 +7829,13 @@ export type Database = {
           organizations_prepared: number;
         }[];
       };
+      prepare_customer_assistant_tools: {
+        Args: { target_limit?: number };
+        Returns: {
+          organizations_failed: number;
+          organizations_prepared: number;
+        }[];
+      };
       propose_tool_execution: {
         Args: {
           target_arguments_safe: Json;
@@ -7457,6 +7855,18 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      reconcile_due_publication_batches: {
+        Args: {
+          target_limit?: number;
+          target_now?: string;
+          target_organization_id?: string;
+        };
+        Returns: {
+          notifications_ready: number;
+          scanned_count: number;
+          terminal_count: number;
+        }[];
+      };
       reconcile_publication_batch: {
         Args: {
           target_now?: string;
@@ -7465,6 +7875,19 @@ export type Database = {
         };
         Returns: {
           job_counts: Json;
+          publication_batch_id: string;
+          status: string;
+        }[];
+      };
+      reconcile_publication_batch_notifications: {
+        Args: {
+          target_now?: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+        };
+        Returns: {
+          job_counts: Json;
+          notifications_ready: number;
           publication_batch_id: string;
           status: string;
         }[];
@@ -7592,6 +8015,24 @@ export type Database = {
           sale_id: string;
         }[];
       };
+      record_social_rate_limit_observation: {
+        Args: {
+          target_blocked_until: string;
+          target_lease_token: string;
+          target_observation_source: string;
+          target_observed_at?: string;
+          target_organization_id: string;
+          target_provider_request_id: string;
+          target_publication_job_id: string;
+          target_retry_after_at: string;
+          target_usage_snapshot: Json;
+        };
+        Returns: {
+          next_dispatch_at: string;
+          social_connection_id: string;
+          social_rate_limit_observation_id: string;
+        }[];
+      };
       record_tool_execution_result: {
         Args: {
           target_effect_certainty: string;
@@ -7673,6 +8114,19 @@ export type Database = {
           run_status: string;
         }[];
       };
+      recover_expired_facebook_publication_jobs: {
+        Args: {
+          target_limit?: number;
+          target_now?: string;
+          target_organization_id?: string;
+        };
+        Returns: {
+          failed_count: number;
+          retryable_count: number;
+          scanned_count: number;
+          uncertain_count: number;
+        }[];
+      };
       recover_expired_publication_job: {
         Args: {
           target_now?: string;
@@ -7722,7 +8176,7 @@ export type Database = {
       register_media_asset_object: {
         Args: {
           target_actor_kind: string;
-          target_actor_user_id: string | null;
+          target_actor_user_id: string;
           target_bucket_id: string;
           target_byte_size: number;
           target_content_sha256: string;
@@ -7917,6 +8371,20 @@ export type Database = {
           run_status: string;
         }[];
       };
+      retry_publication_job: {
+        Args: {
+          target_available_at?: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_job_id: string;
+        };
+        Returns: {
+          publication_job_id: string;
+          retry_of_job_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       rollback_business_configuration: {
         Args: {
           target_configuration_id: string;
@@ -7980,6 +8448,18 @@ export type Database = {
           job_attempt_id: string;
           model: string;
           provider: string;
+        }[];
+      };
+      subscribe_publication_batch: {
+        Args: {
+          target_agent_run_id: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+        };
+        Returns: {
+          publication_batch_subscription_id: string;
+          status: string;
+          was_replayed: boolean;
         }[];
       };
       transition_handoff: {
@@ -8064,6 +8544,22 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      transition_publication_batch_pause: {
+        Args: {
+          target_action: string;
+          target_created_by_user_id?: string;
+          target_idempotency_key: string;
+          target_organization_id: string;
+          target_publication_batch_id: string;
+          target_reason: string;
+          target_resume_at?: string;
+        };
+        Returns: {
+          publication_batch_id: string;
+          status: string;
+          was_replayed: boolean;
+        }[];
+      };
       transition_publication_schedule: {
         Args: {
           target_created_by_user_id?: string;
@@ -8135,6 +8631,60 @@ export type Database = {
   };
   app_private: {
     Tables: {
+      admin_catalog_commands: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by_user_id: string;
+          id: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_payload: Json | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id: string;
+          id?: string;
+          idempotency_key: string;
+          operation: string;
+          organization_id: string;
+          request_fingerprint: string;
+          request_payload: Json;
+          result_payload?: Json | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string;
+          id?: string;
+          idempotency_key?: string;
+          operation?: string;
+          organization_id?: string;
+          request_fingerprint?: string;
+          request_payload?: Json;
+          result_payload?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_catalog_commands_created_by_user_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "admin_catalog_commands_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agent_commands: {
         Row: {
           completed_at: string | null;
@@ -11631,6 +12181,77 @@ export type Database = {
           },
         ];
       };
+      media_asset_objects: {
+        Row: {
+          bucket_id: string;
+          byte_size: number;
+          content_sha256: string;
+          created_at: string;
+          derivation_spec: Json;
+          height_pixels: number;
+          id: string;
+          media_asset_id: string;
+          mime_type: string;
+          object_path: string;
+          organization_id: string;
+          published_at: string | null;
+          rendition_kind: string;
+          retired_at: string | null;
+          status: string;
+          updated_at: string;
+          verified_at: string;
+          width_pixels: number;
+        };
+        Insert: {
+          bucket_id: string;
+          byte_size: number;
+          content_sha256: string;
+          created_at?: string;
+          derivation_spec?: Json;
+          height_pixels: number;
+          id?: string;
+          media_asset_id: string;
+          mime_type: string;
+          object_path: string;
+          organization_id: string;
+          published_at?: string | null;
+          rendition_kind: string;
+          retired_at?: string | null;
+          status: string;
+          updated_at?: string;
+          verified_at?: string;
+          width_pixels: number;
+        };
+        Update: {
+          bucket_id?: string;
+          byte_size?: number;
+          content_sha256?: string;
+          created_at?: string;
+          derivation_spec?: Json;
+          height_pixels?: number;
+          id?: string;
+          media_asset_id?: string;
+          mime_type?: string;
+          object_path?: string;
+          organization_id?: string;
+          published_at?: string | null;
+          rendition_kind?: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string;
+          width_pixels?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_asset_objects_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -11700,74 +12321,94 @@ export type Database = {
           },
         ];
       };
-      media_asset_objects: {
+      media_ingest_requests: {
         Row: {
-          bucket_id: string;
-          byte_size: number;
-          content_sha256: string;
+          attempt_count: number;
+          available_at: string;
+          channel_connection_id: string;
+          completed_at: string | null;
           created_at: string;
-          derivation_spec: Json;
-          height_pixels: number;
+          declared_file_size: number | null;
+          declared_mime_type: string | null;
+          declared_sha256_hex: string | null;
           id: string;
-          media_asset_id: string;
-          mime_type: string;
-          object_path: string;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          lease_owner: string | null;
+          lease_token: string | null;
+          media_asset_id: string | null;
+          message_id: string;
           organization_id: string;
-          published_at: string | null;
-          rendition_kind: string;
-          retired_at: string | null;
+          processing_started_at: string | null;
+          provider_media_id: string;
           status: string;
           updated_at: string;
-          verified_at: string;
-          width_pixels: number;
         };
         Insert: {
-          bucket_id: string;
-          byte_size: number;
-          content_sha256: string;
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id: string;
+          completed_at?: string | null;
           created_at?: string;
-          derivation_spec?: Json;
-          height_pixels: number;
+          declared_file_size?: number | null;
+          declared_mime_type?: string | null;
+          declared_sha256_hex?: string | null;
           id?: string;
-          media_asset_id: string;
-          mime_type: string;
-          object_path: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
+          media_asset_id?: string | null;
+          message_id: string;
           organization_id: string;
-          published_at?: string | null;
-          rendition_kind: string;
-          retired_at?: string | null;
-          status: string;
-          updated_at?: string;
-          verified_at?: string;
-          width_pixels: number;
-        };
-        Update: {
-          bucket_id?: string;
-          byte_size?: number;
-          content_sha256?: string;
-          created_at?: string;
-          derivation_spec?: Json;
-          height_pixels?: number;
-          id?: string;
-          media_asset_id?: string;
-          mime_type?: string;
-          object_path?: string;
-          organization_id?: string;
-          published_at?: string | null;
-          rendition_kind?: string;
-          retired_at?: string | null;
+          processing_started_at?: string | null;
+          provider_media_id: string;
           status?: string;
           updated_at?: string;
-          verified_at?: string;
-          width_pixels?: number;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          declared_file_size?: number | null;
+          declared_mime_type?: string | null;
+          declared_sha256_hex?: string | null;
+          id?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
+          media_asset_id?: string | null;
+          message_id?: string;
+          organization_id?: string;
+          processing_started_at?: string | null;
+          provider_media_id?: string;
+          status?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "media_asset_objects_asset_fk";
+            foreignKeyName: "media_ingest_requests_asset_fk";
             columns: ["organization_id", "media_asset_id"];
             isOneToOne: false;
             referencedRelation: "media_assets";
             referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "media_ingest_requests_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "media_ingest_requests_message_fk";
+            columns: ["organization_id", "channel_connection_id", "message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
           },
         ];
       };
@@ -13326,50 +13967,6 @@ export type Database = {
           },
         ];
       };
-      product_variants: {
-        Row: {
-          created_at: string;
-          created_by_user_id: string | null;
-          description: string | null;
-          id: string;
-          name: string;
-          organization_id: string;
-          product_id: string;
-          status: string;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          created_by_user_id?: string | null;
-          description?: string | null;
-          id?: string;
-          name: string;
-          organization_id: string;
-          product_id: string;
-          status?: string;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by_user_id?: string | null;
-          description?: string | null;
-          id?: string;
-          name?: string;
-          organization_id?: string;
-          product_id?: string;
-          status?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "product_variants_product_fk";
-            columns: ["organization_id", "product_id"];
-            isOneToOne: false;
-            referencedRelation: "products";
-            referencedColumns: ["organization_id", "id"];
-          },
-        ];
-      };
       product_media: {
         Row: {
           alt_text: string | null;
@@ -13456,6 +14053,50 @@ export type Database = {
             columns: ["organization_id", "variant_id"];
             isOneToOne: false;
             referencedRelation: "product_variants";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      product_variants: {
+        Row: {
+          created_at: string;
+          created_by_user_id: string | null;
+          description: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          product_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          product_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by_user_id?: string | null;
+          description?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          product_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -13552,6 +14193,121 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      publication_batch_subscriptions: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          channel_connection_id: string;
+          completed_at: string | null;
+          conversation_id: string;
+          created_at: string;
+          destination_identity_id: string;
+          id: string;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          lease_token: string | null;
+          max_attempts: number;
+          message_id: string | null;
+          organization_id: string;
+          origin_agent_run_id: string;
+          outbox_event_id: string | null;
+          provider_request_id: string | null;
+          publication_batch_id: string;
+          status: string;
+          summary_payload: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id: string;
+          completed_at?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          destination_identity_id: string;
+          id?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts?: number;
+          message_id?: string | null;
+          organization_id: string;
+          origin_agent_run_id: string;
+          outbox_event_id?: string | null;
+          provider_request_id?: string | null;
+          publication_batch_id: string;
+          status?: string;
+          summary_payload?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id?: string;
+          completed_at?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          destination_identity_id?: string;
+          id?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          max_attempts?: number;
+          message_id?: string | null;
+          organization_id?: string;
+          origin_agent_run_id?: string;
+          outbox_event_id?: string | null;
+          provider_request_id?: string | null;
+          publication_batch_id?: string;
+          status?: string;
+          summary_payload?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_batch_subscriptions_batch_fk";
+            columns: ["organization_id", "publication_batch_id"];
+            isOneToOne: true;
+            referencedRelation: "publication_batches";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_conversation_fk";
+            columns: ["organization_id", "channel_connection_id", "conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_destination_fk";
+            columns: ["organization_id", "channel_connection_id", "destination_identity_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_identities";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_message_fk";
+            columns: ["organization_id", "channel_connection_id", "message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_outbox_fk";
+            columns: ["organization_id", "channel_connection_id", "outbox_event_id"];
+            isOneToOne: false;
+            referencedRelation: "outbox_events";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_batch_subscriptions_run_fk";
+            columns: ["organization_id", "origin_agent_run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
           },
         ];
       };
@@ -13926,6 +14682,7 @@ export type Database = {
           provider_request_id: string | null;
           publication_id: string;
           request_fingerprint: string;
+          retry_of_job_id: string | null;
           schedule_id: string | null;
           status: string;
           target_instance_id: string | null;
@@ -13960,6 +14717,7 @@ export type Database = {
           provider_request_id?: string | null;
           publication_id: string;
           request_fingerprint: string;
+          retry_of_job_id?: string | null;
           schedule_id?: string | null;
           status?: string;
           target_instance_id?: string | null;
@@ -13994,6 +14752,7 @@ export type Database = {
           provider_request_id?: string | null;
           publication_id?: string;
           request_fingerprint?: string;
+          retry_of_job_id?: string | null;
           schedule_id?: string | null;
           status?: string;
           target_instance_id?: string | null;
@@ -14020,6 +14779,13 @@ export type Database = {
             columns: ["organization_id", "publication_id"];
             isOneToOne: false;
             referencedRelation: "publications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "publication_jobs_retry_of_fk";
+            columns: ["organization_id", "retry_of_job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
             referencedColumns: ["organization_id", "id"];
           },
           {
@@ -14705,6 +15471,102 @@ export type Database = {
           },
         ];
       };
+      social_publication_dispatch_states: {
+        Row: {
+          last_publication_job_id: string | null;
+          next_dispatch_at: string;
+          organization_id: string;
+          social_connection_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          last_publication_job_id?: string | null;
+          next_dispatch_at?: string;
+          organization_id: string;
+          social_connection_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          last_publication_job_id?: string | null;
+          next_dispatch_at?: string;
+          organization_id?: string;
+          social_connection_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_publication_dispatch_states_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: true;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_publication_dispatch_states_last_job_fk";
+            columns: ["organization_id", "last_publication_job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      social_rate_limit_observations: {
+        Row: {
+          blocked_until: string | null;
+          created_at: string;
+          id: string;
+          observation_source: string;
+          observed_at: string;
+          organization_id: string;
+          provider_request_id: string | null;
+          publication_job_id: string | null;
+          retry_after_at: string | null;
+          social_connection_id: string;
+          usage_snapshot: Json;
+        };
+        Insert: {
+          blocked_until?: string | null;
+          created_at?: string;
+          id?: string;
+          observation_source: string;
+          observed_at: string;
+          organization_id: string;
+          provider_request_id?: string | null;
+          publication_job_id?: string | null;
+          retry_after_at?: string | null;
+          social_connection_id: string;
+          usage_snapshot?: Json;
+        };
+        Update: {
+          blocked_until?: string | null;
+          created_at?: string;
+          id?: string;
+          observation_source?: string;
+          observed_at?: string;
+          organization_id?: string;
+          provider_request_id?: string | null;
+          publication_job_id?: string | null;
+          retry_after_at?: string | null;
+          social_connection_id?: string;
+          usage_snapshot?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_rate_limit_observations_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "social_rate_limit_observations_job_fk";
+            columns: ["organization_id", "publication_job_id"];
+            isOneToOne: false;
+            referencedRelation: "publication_jobs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       tool_contract_versions: {
         Row: {
           contract_hash: string;
@@ -15298,9 +16160,36 @@ export type Database = {
         Args: { target_arguments: Json; target_organization_id: string };
         Returns: Json;
       };
+      catalog_recent_for_owner_agent: {
+        Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
       catalog_search_for_agent: {
         Args: { target_arguments: Json; target_organization_id: string };
         Returns: Json;
+      };
+      catalog_set_offer_status_for_owner_agent: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      claim_admin_catalog_command: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_request_payload: Json;
+        };
+        Returns: {
+          admin_catalog_command_id: string;
+          previous_result_payload: Json;
+          was_replayed: boolean;
+        }[];
       };
       claim_agent_command: {
         Args: {
@@ -15355,6 +16244,14 @@ export type Database = {
           claimed_command_id: string;
           was_replayed: boolean;
         }[];
+      };
+      complete_admin_catalog_command: {
+        Args: {
+          target_admin_catalog_command_id: string;
+          target_organization_id: string;
+          target_result_payload: Json;
+        };
+        Returns: undefined;
       };
       complete_agent_command: {
         Args: {
@@ -15418,9 +16315,20 @@ export type Database = {
         Args: { target_organization_id: string };
         Returns: string;
       };
+      ensure_customer_assistant_publication_tools: {
+        Args: { target_organization_id: string };
+        Returns: string;
+      };
       ensure_customer_assistant_read_tools: {
         Args: { target_organization_id: string };
         Returns: string;
+      };
+      facebook_dispatch_policy_for_agent: {
+        Args: {
+          target_organization_id: string;
+          target_social_connection_id: string;
+        };
+        Returns: Json;
       };
       insert_agent_audit_event: {
         Args: {
@@ -15509,6 +16417,15 @@ export type Database = {
         };
         Returns: string;
       };
+      media_actor_is_authorized: {
+        Args: {
+          target_actor_kind: string;
+          target_actor_user_id: string;
+          target_allowed_roles: string[];
+          target_organization_id: string;
+        };
+        Returns: boolean;
+      };
       post_inventory_movement: {
         Args: {
           target_command_id: string;
@@ -15532,6 +16449,62 @@ export type Database = {
           target_variant_id: string;
         };
         Returns: Json;
+      };
+      publication_batch_state_for_owner_agent: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      publication_enqueue_catalog_for_owner_agent: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      publication_publish_for_owner_agent: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      publication_retry_for_owner_agent: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      publication_status_for_owner_agent: {
+        Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
+      resolve_whatsapp_agent_actor: {
+        Args: {
+          target_channel_connection_id: string;
+          target_conversation_id: string;
+          target_organization_id: string;
+        };
+        Returns: {
+          actor_channel_identity_id: string;
+          actor_kind: string;
+          actor_user_id: string;
+        }[];
+      };
+      whatsapp_agent_run_actor_is_current: {
+        Args: { target_organization_id: string; target_run_id: string };
+        Returns: boolean;
       };
     };
     Enums: {
