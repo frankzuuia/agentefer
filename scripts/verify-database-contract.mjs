@@ -45,8 +45,12 @@ assert.deepEqual(
     "20260827170000_b3_001a_read_only_agent_tools.sql",
     "20260828110000_b3_001a_plpgsql_lint_hardening.sql",
     "20260828123000_b3_001a_tool_preparation_scaling.sql",
+    "20260828160000_b3_002a_whatsapp_actor_resolution.sql",
+    "20260828190000_b2_010_media_storage.sql",
+    "20260828200000_b3_005_media_ingest_requests.sql",
+    "20260828203000_b3_005_vision_model_routing.sql",
   ],
-  "B2-001 through B3-001A preparation scaling must remain ordered production migrations",
+  "B2-001 through B3-002A actor resolution must remain ordered production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -155,6 +159,22 @@ const toolPreparationScalingMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[27]),
   "utf8",
 );
+const whatsappActorResolutionMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[28]),
+  "utf8",
+);
+const mediaStorageMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[29]),
+  "utf8",
+);
+const mediaIngestMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[30]),
+  "utf8",
+);
+const visionModelRoutingMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[31]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -227,6 +247,22 @@ const toolPreparationScalingDatabaseTest = await readFile(
   path.join(testDirectory, "b3_001a_tool_preparation_scaling_test.sql"),
   "utf8",
 );
+const whatsappActorResolutionDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_002a_whatsapp_actor_resolution_test.sql"),
+  "utf8",
+);
+const mediaStorageDatabaseTest = await readFile(
+  path.join(testDirectory, "b2_010_media_storage_test.sql"),
+  "utf8",
+);
+const mediaIngestDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_005_media_ingest_requests_test.sql"),
+  "utf8",
+);
+const visionModelRoutingDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_005_vision_model_routing_test.sql"),
+  "utf8",
+);
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
 const qualityWorkflow = await readFile(
   path.join(repositoryRoot, ".github", "workflows", "quality.yml"),
@@ -288,6 +324,22 @@ const linkedB3001aPreparationMutationRunner = await readFile(
   path.join(repositoryRoot, "scripts", "verify-linked-b3-001a-preparation-database-mutations.mjs"),
   "utf8",
 );
+const b3002aMutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b3-002a-mutants.mjs"),
+  "utf8",
+);
+const linkedB3002aMutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-b3-002a-database-mutations.mjs"),
+  "utf8",
+);
+const b2010MutationCatalog = await readFile(
+  path.join(repositoryRoot, "scripts", "database-b2-010-mutants.mjs"),
+  "utf8",
+);
+const linkedB2010MutationRunner = await readFile(
+  path.join(repositoryRoot, "scripts", "verify-linked-b2-010-database-mutations.mjs"),
+  "utf8",
+);
 const databaseConcurrencyScript = await readFile(
   path.join(repositoryRoot, "scripts", "verify-database-concurrency.mjs"),
   "utf8",
@@ -322,6 +374,11 @@ for (const [name, migration] of [
   ["B4-004F WhatsApp agent lease recovery", whatsappAgentLeaseRecoveryMigration],
   ["B3-001A read-only agent tools", readOnlyAgentToolsMigration],
   ["B3-001A PL/pgSQL lint hardening", plpgsqlLintHardeningMigration],
+  ["B3-001A preparation scaling", toolPreparationScalingMigration],
+  ["B3-002A WhatsApp actor resolution", whatsappActorResolutionMigration],
+  ["B2-010 media storage", mediaStorageMigration],
+  ["B3-005 media ingest requests", mediaIngestMigration],
+  ["B3-005 vision model routing", visionModelRoutingMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -896,6 +953,46 @@ for (const forbiddenPattern of [
 }
 
 for (const statement of [
+  "agent_policy_tools_role_gate_member_only",
+  "conversation_agent_snapshots_actor_lane_unique",
+  "create function app_private.resolve_whatsapp_agent_actor(",
+  "create function app_private.whatsapp_agent_run_actor_is_current(",
+  "create or replace function app_private.validate_agent_run()",
+  "create or replace function api.enqueue_agent_run(",
+  "snapshot.actor_kind = target_actor_kind",
+  "actor_lane_enforced",
+  "policy_tool.allowed_actor_kinds @> array['contact', 'member']::text[]",
+  "create or replace function api.get_agent_turn_tool_context(",
+  "create or replace function api.authorize_tool_execution(",
+  "create or replace function api.claim_whatsapp_agent_turn(",
+  "cross join lateral app_private.resolve_whatsapp_agent_actor(",
+  "create function api.link_whatsapp_member_identity(",
+  "'whatsapp_identity.member_linked'",
+  "revoke all on function api.link_whatsapp_member_identity",
+  "grant execute on function api.link_whatsapp_member_identity",
+  "to service_role;",
+  "notify pgrst, 'reload schema';",
+]) {
+  assert.ok(
+    whatsappActorResolutionMigration.includes(statement),
+    `B3-002A actor resolution migration must include: ${statement}`,
+  );
+}
+for (const forbiddenPattern of [
+  "grant execute on function api.link_whatsapp_member_identity(uuid, text, uuid, uuid, uuid, text, text)\n  to authenticated",
+  "'external_subject_id', source_identity.external_subject_id",
+  "create table public.",
+  "access_token",
+  "vault.decrypted_secrets",
+]) {
+  assert.equal(
+    whatsappActorResolutionMigration.includes(forbiddenPattern),
+    false,
+    `B3-002A cannot widen authority or persist secret/phone material: ${forbiddenPattern}`,
+  );
+}
+
+for (const statement of [
   "revoke select on app_private.meta_whatsapp_connection_profiles",
   "from authenticated;",
   "grant select (",
@@ -1394,6 +1491,52 @@ for (const forbiddenProviderBinding of ["gpt-", "MiniMax-M", "luna-medium"]) {
   );
 }
 
+const requiredMediaStorageMigrationStatements = [
+  "insert into storage.buckets (",
+  "'agentefer-catalog-private'",
+  "'agentefer-catalog-public'",
+  "create table app_private.media_asset_objects (",
+  "create table app_private.product_media (",
+  "constraint media_asset_objects_path_valid",
+  "verified media asset requires original and analysis WebP objects",
+  "storefront media requires approved product media",
+  "create function api.begin_media_asset_ingest(",
+  "create function api.register_media_asset_object(",
+  "create function api.complete_media_asset_ingest(",
+  "create function api.link_product_media(",
+  "create function api.transition_product_media(",
+  "create policy agentefer_catalog_private_member_read",
+  "from storage.objects as object_value",
+  "grant execute on function api.begin_media_asset_ingest(",
+];
+
+for (const statement of requiredMediaStorageMigrationStatements) {
+  assert.ok(
+    mediaStorageMigration.includes(statement),
+    `B2-010 media Storage migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  mediaStorageMigration.split("with (security_invoker = true, security_barrier = true)").length - 1,
+  2,
+  "both B2-010 API views must preserve caller RLS",
+);
+assert.equal(
+  mediaStorageMigration.split("force row level security;").length - 1,
+  2,
+  "both B2-010 private relations must force RLS",
+);
+assert.equal(
+  mediaStorageMigration.split("create policy ").length - 1,
+  3,
+  "B2-010 must define two private policies and one Storage policy",
+);
+assert.equal(
+  mediaStorageMigration.split("create function api.").length - 1,
+  5,
+  "B2-010 must expose exactly five service-only media RPCs",
+);
+
 const requiredAuthorizationMigrationStatements = [
   "alter default privileges for role postgres\n  revoke execute on functions from public;",
   "alter default privileges for role postgres in schema app_private",
@@ -1652,8 +1795,8 @@ const requiredAuthorizationTestStatements = [
   "service_role cannot read tenant Vault references from credential metadata",
   "tenant Vault references are absent from the Data API projection",
   "new API functions require an explicit authenticated signature grant",
-  "service_role can insert only into the 36 reviewed entry tables",
-  "service_role can update only the 29 reviewed mutable tables",
+  "service_role can insert only into the 38 reviewed entry tables",
+  "service_role can update only the 31 reviewed mutable tables",
   "service_role can delete only from the four reviewed foundation tables",
   "no third application routine is executable by authenticated",
   "select * from extensions.finish();",
@@ -1663,6 +1806,64 @@ for (const statement of requiredAuthorizationTestStatements) {
   assert.ok(
     authorizationDatabaseTest.includes(statement),
     `B2-009 database test must include: ${statement}`,
+  );
+}
+
+const requiredMediaStorageTestStatements = [
+  "select extensions.plan(58);",
+  "database stores neither image bytes nor durable delivery URLs",
+  "only the trusted backend can execute media ingestion RPCs",
+  "registry rejects metadata when the Storage object does not exist",
+  "object registry rejects paths outside the canonical tenant layout",
+  "asset cannot verify before both required private renditions exist",
+  "same product media link replays without duplicating the gallery row",
+  "cross-tenant media cannot be attached to another organization product",
+  "public storefront object is blocked before product media approval",
+  "operator cannot publish a public storefront derivative",
+  "stale product media approval is rejected without changing gallery state",
+  "other organization owner cannot read private Storage metadata",
+  "audit events do not persist object paths or delivery URLs",
+  "select * from extensions.finish();",
+];
+
+for (const statement of requiredMediaStorageTestStatements) {
+  assert.ok(
+    mediaStorageDatabaseTest.includes(statement),
+    `B2-010 media Storage database test must include: ${statement}`,
+  );
+}
+
+const requiredMediaIngestMigrationStatements = [
+  "create table app_private.media_ingest_requests (",
+  "create trigger messages_enqueue_whatsapp_image_ingest",
+  "insert into app_private.media_ingest_requests (",
+  "create function api.claim_whatsapp_media_ingest(",
+  "create function api.complete_whatsapp_media_ingest(",
+  "create function api.fail_whatsapp_media_ingest(",
+  "create function api.get_whatsapp_media_visual_inputs(",
+  "vault.decrypted_secrets",
+  "revoke all on table app_private.media_ingest_requests",
+  "grant execute on function api.claim_whatsapp_media_ingest(",
+  "grant execute on function api.get_whatsapp_media_visual_inputs(",
+];
+
+for (const statement of requiredMediaIngestMigrationStatements) {
+  assert.ok(
+    mediaIngestMigration.includes(statement),
+    `B3-005 media ingest migration must include: ${statement}`,
+  );
+}
+
+for (const statement of [
+  "create function app_private.route_ready_whatsapp_image_to_vision()",
+  "create trigger agent_runs_route_ready_whatsapp_image_to_vision",
+  "request_value.status = 'succeeded'",
+  "message_value.provider_message_type = 'image'",
+  "revoke all on function app_private.route_ready_whatsapp_image_to_vision()",
+]) {
+  assert.ok(
+    visionModelRoutingMigration.includes(statement),
+    `B3-005 vision model routing migration must include: ${statement}`,
   );
 }
 
@@ -1848,6 +2049,10 @@ const productionDatabaseTests = [
   ["B3-001A", readOnlyAgentToolsDatabaseTest],
   ["B3-001A lint hardening", plpgsqlLintHardeningDatabaseTest],
   ["B3-001A preparation scaling", toolPreparationScalingDatabaseTest],
+  ["B3-002A actor resolution", whatsappActorResolutionDatabaseTest],
+  ["B2-010 media storage", mediaStorageDatabaseTest],
+  ["B3-005 media ingest requests", mediaIngestDatabaseTest],
+  ["B3-005 vision model routing", visionModelRoutingDatabaseTest],
 ];
 
 for (const [name, databaseTest] of productionDatabaseTests) {
@@ -1869,6 +2074,22 @@ const plannedDatabaseAssertions = productionDatabaseTests.reduce((total, [name, 
   assert.ok(Number.isSafeInteger(plannedCount) && plannedCount > 0, `${name} plan must be valid`);
   return total + plannedCount;
 }, 0);
+
+for (const statement of [
+  "select extensions.plan(28);",
+  "an observed account is a contact before explicit member linking",
+  "a role-gated policy binding cannot include contact actors",
+  "identity-link audit metadata does not persist the provider phone subject",
+  "the next message from the linked account claims one member turn",
+  "claiming to be Fer in message text never changes the actor authority",
+  "a suspended member is not silently downgraded into a contact run",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    whatsappActorResolutionDatabaseTest.includes(statement),
+    `B3-002A actor resolution database test must include: ${statement}`,
+  );
+}
 
 for (const statement of [
   "select extensions.plan(10);",
@@ -2012,6 +2233,35 @@ for (const generatedAgentRuntimeContract of [
     `generated database types must include B2-008 contract: ${generatedAgentRuntimeContract}`,
   );
 }
+for (const generatedMediaStorageContract of [
+  "media_asset_objects: {",
+  "product_media: {",
+  "begin_media_asset_ingest: {",
+  "register_media_asset_object: {",
+  "complete_media_asset_ingest: {",
+  "link_product_media: {",
+  "transition_product_media: {",
+  "rendition_kind: string;",
+  "object_path: string;",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedMediaStorageContract),
+    `generated database types must include B2-010 contract: ${generatedMediaStorageContract}`,
+  );
+}
+for (const generatedMediaIngestContract of [
+  "media_ingest_requests: {",
+  "claim_whatsapp_media_ingest: {",
+  "complete_whatsapp_media_ingest: {",
+  "fail_whatsapp_media_ingest: {",
+  "get_whatsapp_media_visual_inputs: {",
+  "declared_sha256_hex: string | null;",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedMediaIngestContract),
+    `generated database types must include B3-005 contract: ${generatedMediaIngestContract}`,
+  );
+}
 for (const generatedMetaVaultContract of [
   "meta_applications: {",
   "meta_credential_versions: {",
@@ -2096,6 +2346,28 @@ assert.equal(
   "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-001a-preparation-database-mutations.mjs",
   "root package must expose controlled B3-001A preparation mutation testing",
 );
+assert.equal(
+  rootManifest.scripts?.["test:database:linked:b3-002a-mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-002a-database-mutations.mjs",
+  "root package must expose controlled B3-002A actor mutation testing",
+);
+assert.equal(
+  rootManifest.scripts?.["test:database:linked:b2-010-mutations"],
+  "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b2-010-database-mutations.mjs",
+  "root package must expose controlled B2-010 media Storage mutation testing",
+);
+for (const generatedContract of [
+  "link_whatsapp_member_identity: {",
+  "target_channel_identity_id: string;",
+  "target_member_user_id: string;",
+  "was_replayed: boolean;",
+  "actor_lane_enforced: boolean;",
+]) {
+  assert.ok(
+    generatedTypes.includes(generatedContract),
+    `generated database types must include B3-002A contract: ${generatedContract}`,
+  );
+}
 assert.equal(
   b4MutationCatalog.split('name: "').length - 1,
   23,
@@ -2289,11 +2561,91 @@ for (const runnerGuard of [
     `linked B3-001A mutation runner must include: ${runnerGuard}`,
   );
 }
+assert.equal(
+  b3002aMutationCatalog.split('name: "').length - 1,
+  10,
+  "B3-002A must preserve ten WhatsApp actor database mutants",
+);
+for (const mutationGuard of [
+  "expose member identity linking to authenticated clients",
+  "expose the private WhatsApp actor resolver to service role",
+  "allow contacts on bindings that require membership roles",
+  "remove tenant scope from WhatsApp actor resolution",
+  "treat a suspended WhatsApp member as active",
+  "downgrade a resolved member claim to contact",
+  "mark verified member input as untrusted external input",
+  "leave the old contact conversation open during linking",
+  "disable identity-link idempotent replay",
+  "leak the provider phone subject into identity-link audit metadata",
+]) {
+  assert.ok(
+    b3002aMutationCatalog.includes(mutationGuard),
+    `B3-002A mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "20260828160000_b3_002a_whatsapp_actor_resolution.sql",
+  "b3_002a_whatsapp_actor_resolution_test.sql",
+  "buildLinkedMigrationPgtapCollector",
+  "must target exactly one migration fragment",
+  "outcomes.every((outcome) => outcome.killed)",
+]) {
+  assert.ok(
+    linkedB3002aMutationRunner.includes(runnerGuard),
+    `linked B3-002A mutation runner must include: ${runnerGuard}`,
+  );
+}
+assert.equal(
+  b2010MutationCatalog.split('name: "').length - 1,
+  16,
+  "B2-010 must preserve sixteen media Storage database mutants",
+);
+for (const mutationGuard of [
+  "expose media ingestion RPCs to authenticated callers",
+  "require a user identity for the trusted media worker",
+  "accept media registry rows without a physical Storage object",
+  "verify media when only one required private rendition exists",
+  "disable media hash idempotent replay",
+  "disable immutable object path idempotent replay",
+  "allow operators to publish storefront derivatives",
+  "publish storefront media before gallery approval",
+  "allow viewers to mutate the product gallery",
+  "allow operators to approve product gallery media",
+  "disable optimistic concurrency for product media transitions",
+  "remove tenant scope from private media object reads",
+  "remove tenant scope from product gallery reads",
+  "remove tenant path scope from private Storage reads",
+  "leak immutable object paths into media audit metadata",
+  "allow deletion of append-only media history",
+]) {
+  assert.ok(
+    b2010MutationCatalog.includes(mutationGuard),
+    `B2-010 mutation catalog must include: ${mutationGuard}`,
+  );
+}
+for (const runnerGuard of [
+  'const expectedProjectRef = "hprdctmblmfcoagugvyp";',
+  'const expectedProjectName = "AgenteFer";',
+  'transactionOutcome: "rolled_back_per_mutant"',
+  "20260828190000_b2_010_media_storage.sql",
+  "b2_010_media_storage_test.sql",
+  "buildLinkedMigrationPgtapCollector",
+  "must target exactly one migration fragment",
+  "outcomes.every((outcome) => outcome.killed)",
+]) {
+  assert.ok(
+    linkedB2010MutationRunner.includes(runnerGuard),
+    `linked B2-010 mutation runner must include: ${runnerGuard}`,
+  );
+}
 assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 94 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 96 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
 );

@@ -85,6 +85,7 @@ export type ClaimedAgentTurn = Readonly<{
   reasoningEffort?: string;
   systemPrompt: string;
   conversationHistory: readonly Readonly<{
+    messageId: string;
     direction: "inbound" | "outbound";
     contentKind: string;
     content: unknown;
@@ -98,6 +99,13 @@ export type ClaimedAgentTurn = Readonly<{
   triggerMessageId: string;
   correlationId: string;
   traceId?: string;
+}>;
+
+export type WhatsAppMediaVisualInput = Readonly<{
+  messageId: string;
+  mediaAssetId: string;
+  analysisSha256Hex: string;
+  mimeType: "image/webp";
 }>;
 
 export type CompletedAgentTurn = Readonly<{
@@ -157,6 +165,14 @@ export type WhatsAppAiRpcClient = Readonly<{
     }> &
       RpcSignal,
   ): Promise<ClaimedAgentTurn | undefined>;
+  getMediaVisualInputs(
+    input: Readonly<{
+      claim: ClaimedAgentTurn;
+      messageIds: readonly string[];
+      workerId: string;
+    }> &
+      RpcSignal,
+  ): Promise<readonly WhatsAppMediaVisualInput[]>;
   completeAgentTurn(
     input: Readonly<{
       claim: ClaimedAgentTurn;
@@ -377,6 +393,7 @@ const readConversation = (
         throw responseContractError("conversation_history.direction");
       }
       const entry: ClaimedAgentTurn["conversationHistory"][number] = Object.freeze({
+        messageId: readUuid(item, "message_id"),
         direction,
         contentKind: readText(item, "content_kind", 80),
         content: item.content,
@@ -384,6 +401,14 @@ const readConversation = (
       return entry;
     }),
   );
+};
+
+const readHex = (row: Readonly<Record<string, unknown>>, field: string, length: number): string => {
+  const value = readText(row, field, length);
+  if (value.length !== length || !Array.from(value).every(isHexadecimalCharacter)) {
+    throw responseContractError(field);
+  }
+  return value.toLowerCase();
 };
 
 const readContinuationParts = (row: Readonly<Record<string, unknown>>): readonly string[] => {
@@ -662,6 +687,52 @@ export function createWhatsAppAiRpcClient(
           toolHistory: readToolHistory(toolRow),
           nextToolRound: readInteger(toolRow, "next_tool_round", 1),
         });
+      });
+    },
+    async getMediaVisualInputs(inputValue) {
+      const operation = "get_whatsapp_media_visual_inputs";
+      const messageIds = inputValue.messageIds.map((messageId) =>
+        readUuid({ message_id: messageId }, "message_id"),
+      );
+      if (messageIds.length > 24) {
+        throw new WhatsAppAiRpcError("invalid", undefined, {
+          operation,
+          phase: "response_contract",
+          field: "message_ids",
+        });
+      }
+      const response = await postRpc(
+        operation,
+        {
+          target_organization_id: inputValue.claim.organizationId,
+          target_job_attempt_id: inputValue.claim.jobAttemptId,
+          target_worker_id: inputValue.workerId,
+          target_lease_token: inputValue.claim.leaseToken,
+          target_message_ids: messageIds,
+        },
+        inputValue.signal,
+      );
+      return validateRpcResponse(operation, () => {
+        if (!Array.isArray(response)) {
+          throw responseContractError("response_rows");
+        }
+        return Object.freeze(
+          response.map((value) => {
+            if (!isRecord(value)) {
+              throw responseContractError("response_row");
+            }
+            const mimeType = readText(value, "mime_type", 64);
+            if (mimeType !== "image/webp") {
+              throw responseContractError("mime_type");
+            }
+            return Object.freeze({
+              messageId: readUuid(value, "message_id"),
+              mediaAssetId: readUuid(value, "media_asset_id"),
+              analysisSha256Hex: readHex(value, "analysis_sha256_hex", 64),
+              mimeType,
+            });
+          }),
+        );
       });
     },
     async completeAgentTurn(inputValue) {

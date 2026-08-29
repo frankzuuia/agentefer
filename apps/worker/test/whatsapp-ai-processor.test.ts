@@ -23,8 +23,10 @@ import {
 import {
   type ClaimedAgentTurn,
   type ClaimedOutboxEvent,
+  type WhatsAppMediaVisualInput,
   type WhatsAppAiRpcClient,
 } from "../src/whatsapp-ai-rpc.js";
+import { type MediaStorageClient } from "../src/media-storage.js";
 import { WhatsAppGraphError, type WhatsAppGraphClient } from "../src/whatsapp-graph.js";
 
 const uuids = {
@@ -38,6 +40,7 @@ const uuids = {
   trigger: "88888888-8888-4888-8888-888888888888",
   outbox: "99999999-9999-4999-8999-999999999999",
   message: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  inboundMessage: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
 } as const;
 
 const agentClaim = (): ClaimedAgentTurn => ({
@@ -52,7 +55,12 @@ const agentClaim = (): ClaimedAgentTurn => ({
   model: "MiniMax-M3",
   systemPrompt: "System prompt",
   conversationHistory: [
-    { direction: "inbound", contentKind: "text", content: { text: { body: "hola" } } },
+    {
+      messageId: uuids.inboundMessage,
+      direction: "inbound",
+      contentKind: "text",
+      content: { text: { body: "hola" } },
+    },
   ],
   continuationParts: [],
   toolDefinitions: [],
@@ -88,6 +96,7 @@ interface RpcEvidence {
   toolExecutions: Readonly<Record<string, unknown>>[];
   agentFailures: Readonly<Record<string, unknown>>[];
   outboxOutcomes: Readonly<Record<string, unknown>>[];
+  mediaVisualInputRequests: string[][];
 }
 
 const createRpcContract = (
@@ -99,6 +108,7 @@ const createRpcContract = (
       organizationsFailed: number;
     }>;
     preparationError?: Error;
+    mediaVisualInputs?: readonly WhatsAppMediaVisualInput[];
   }> = {},
 ): Readonly<{ client: WhatsAppAiRpcClient; evidence: RpcEvidence }> => {
   const turns = [...(input.turns ?? [])];
@@ -112,6 +122,7 @@ const createRpcContract = (
     toolExecutions: [],
     agentFailures: [],
     outboxOutcomes: [],
+    mediaVisualInputRequests: [],
   };
   const client: WhatsAppAiRpcClient = {
     prepareAgentTools: (value) => {
@@ -135,6 +146,10 @@ const createRpcContract = (
       });
     },
     claimAgentTurn: () => Promise.resolve(turns.shift()),
+    getMediaVisualInputs: (value) => {
+      evidence.mediaVisualInputRequests.push([...value.messageIds]);
+      return Promise.resolve(input.mediaVisualInputs ?? []);
+    },
     completeAgentTurn: (value) => {
       evidence.completed.push(value.visibleText);
       return Promise.resolve({
@@ -190,6 +205,7 @@ const createInput = (
     graph?: WhatsAppGraphClient;
     logger?: StructuredLogger;
     metrics?: OperationalMetrics;
+    mediaStorageClient?: MediaStorageClient;
   }>,
 ): CreateWhatsAppAiProcessorInput => ({
   configuration: {
@@ -212,6 +228,14 @@ const createInput = (
       ? new Map()
       : new Map<string, CognitiveProvider>([["minimax", input.provider]]),
   rpcClient: input.rpc,
+  mediaStorageClient:
+    input.mediaStorageClient ??
+    ({
+      uploadObject: () => Promise.reject(new Error("unused in text turn test")),
+      downloadPrivateObject: () => Promise.reject(new Error("unused in text turn test")),
+      createSignedPrivateUrl: () => Promise.resolve(new URL("https://storage.test/unused")),
+      createPublicObjectUrl: () => new URL("https://storage.test/unused"),
+    } satisfies MediaStorageClient),
   graphClient:
     input.graph ??
     ({
@@ -272,6 +296,73 @@ describe("WhatsApp cognitive and outbox processor", () => {
     expect(rpc.evidence.completed).toEqual(["Hola"]);
     expect(rpc.evidence.outboxOutcomes).toMatchObject([
       { outcome: "succeeded", providerMessageId: "wamid.1" },
+    ]);
+  });
+
+  it("attaches a short-lived verified WebP URL to an image turn", async () => {
+    const imageMessageId = uuids.inboundMessage;
+    const mediaAssetId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const imageClaim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      conversationHistory: [
+        {
+          messageId: imageMessageId,
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "meta-media-1" } },
+        },
+      ],
+    };
+    const visualInput: WhatsAppMediaVisualInput = {
+      messageId: imageMessageId,
+      mediaAssetId,
+      analysisSha256Hex: "a".repeat(64),
+      mimeType: "image/webp",
+    };
+    const rpc = createRpcContract({ turns: [imageClaim], mediaVisualInputs: [visualInput] });
+    const signedDescriptors: Readonly<Record<string, unknown>>[] = [];
+    let providerRequest: Parameters<CognitiveProvider["executeTurn"]>[0] | undefined;
+    const provider: CognitiveProvider = {
+      executeTurn: (request) => {
+        providerRequest = request;
+        return Promise.resolve(result("completed"));
+      },
+    };
+    const mediaStorageClient: MediaStorageClient = {
+      uploadObject: () => Promise.reject(new Error("unused")),
+      downloadPrivateObject: () => Promise.reject(new Error("unused")),
+      createSignedPrivateUrl: (descriptor, expiresInSeconds) => {
+        signedDescriptors.push({ descriptor, expiresInSeconds });
+        return Promise.resolve(new URL("https://storage.test/signed-analysis.webp"));
+      },
+      createPublicObjectUrl: () => new URL("https://storage.test/public.webp"),
+    };
+
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider, mediaStorageClient }),
+      new AbortController().signal,
+    );
+
+    expect(rpc.evidence.mediaVisualInputRequests).toEqual([[imageMessageId]]);
+    expect(signedDescriptors).toMatchObject([
+      {
+        expiresInSeconds: 300,
+        descriptor: {
+          organizationId: uuids.organization,
+          mediaAssetId,
+          renditionKind: "analysis_webp",
+          contentSha256Hex: "a".repeat(64),
+          mimeType: "image/webp",
+        },
+      },
+    ]);
+    expect(providerRequest?.conversation).toEqual([
+      {
+        direction: "inbound",
+        contentKind: "media",
+        content: { type: "image", image: { id: "meta-media-1" } },
+        imageInputs: [{ imageUrl: "https://storage.test/signed-analysis.webp", detail: "high" }],
+      },
     ]);
   });
 

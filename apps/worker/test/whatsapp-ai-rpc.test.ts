@@ -70,6 +70,7 @@ const uuids = {
   trigger: "88888888-8888-4888-8888-888888888888",
   outbox: "99999999-9999-4999-8999-999999999999",
   message: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  inboundMessage: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
 } as const;
 
 const turnRow = {
@@ -85,7 +86,12 @@ const turnRow = {
   reasoning_effort: null,
   system_prompt: "System prompt",
   conversation_history: [
-    { direction: "inbound", content_kind: "text", content: { text: { body: "hola" } } },
+    {
+      message_id: uuids.inboundMessage,
+      direction: "inbound",
+      content_kind: "text",
+      content: { text: { body: "hola" } },
+    },
   ],
   continuation_parts: [],
   channel_connection_id: uuids.connection,
@@ -107,7 +113,12 @@ const turnClaim = (): ClaimedAgentTurn => ({
   model: "MiniMax-M3",
   systemPrompt: "System prompt",
   conversationHistory: [
-    { direction: "inbound", contentKind: "text", content: { text: { body: "hola" } } },
+    {
+      messageId: uuids.inboundMessage,
+      direction: "inbound",
+      contentKind: "text",
+      content: { text: { body: "hola" } },
+    },
   ],
   continuationParts: [],
   toolDefinitions: [],
@@ -444,6 +455,49 @@ describe("WhatsApp AI Supabase RPC contract", () => {
       target_organization_id: null,
     });
     expect(result).toEqual(turnClaim());
+  });
+
+  it("loads only verified visual renditions for the active cognitive lease", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const server = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/get_whatsapp_media_visual_inputs");
+      requestBody = await readJson(request);
+      respond(response, [
+        {
+          message_id: uuids.inboundMessage,
+          media_asset_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          analysis_sha256_hex: "a".repeat(64),
+          mime_type: "image/webp",
+        },
+      ]);
+    });
+    const client = createWhatsAppAiRpcClient({
+      supabaseUrl: server.url,
+      secretKey: new SensitiveValue("supabase-secret-test"),
+      timeoutMilliseconds: 1_000,
+    });
+
+    await expect(
+      client.getMediaVisualInputs({
+        claim: turnClaim(),
+        workerId: "worker-1",
+        messageIds: [uuids.inboundMessage],
+      }),
+    ).resolves.toEqual([
+      {
+        messageId: uuids.inboundMessage,
+        mediaAssetId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        analysisSha256Hex: "a".repeat(64),
+        mimeType: "image/webp",
+      },
+    ]);
+    expect(requestBody).toEqual({
+      target_organization_id: uuids.organization,
+      target_job_attempt_id: uuids.attempt,
+      target_worker_id: "worker-1",
+      target_lease_token: uuids.lease,
+      target_message_ids: [uuids.inboundMessage],
+    });
   });
 
   it("returns undefined when no turn or outbox work is available", async () => {

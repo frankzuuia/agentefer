@@ -1879,7 +1879,7 @@ export type Database = {
           {
             foreignKeyName: "conversation_agent_snapshots_conversation_fk";
             columns: ["organization_id", "channel_connection_id", "conversation_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "conversations";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
           },
@@ -3217,6 +3217,74 @@ export type Database = {
           },
         ];
       };
+      media_asset_objects: {
+        Row: {
+          bucket_id: string | null;
+          byte_size: number | null;
+          created_at: string | null;
+          derivation_spec: Json | null;
+          height_pixels: number | null;
+          id: string | null;
+          media_asset_id: string | null;
+          mime_type: string | null;
+          object_path: string | null;
+          organization_id: string | null;
+          published_at: string | null;
+          rendition_kind: string | null;
+          retired_at: string | null;
+          status: string | null;
+          updated_at: string | null;
+          verified_at: string | null;
+          width_pixels: number | null;
+        };
+        Insert: {
+          bucket_id?: string | null;
+          byte_size?: number | null;
+          created_at?: string | null;
+          derivation_spec?: Json | null;
+          height_pixels?: number | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          mime_type?: string | null;
+          object_path?: string | null;
+          organization_id?: string | null;
+          published_at?: string | null;
+          rendition_kind?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          verified_at?: string | null;
+          width_pixels?: number | null;
+        };
+        Update: {
+          bucket_id?: string | null;
+          byte_size?: number | null;
+          created_at?: string | null;
+          derivation_spec?: Json | null;
+          height_pixels?: number | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          mime_type?: string | null;
+          object_path?: string | null;
+          organization_id?: string | null;
+          published_at?: string | null;
+          rendition_kind?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          verified_at?: string | null;
+          width_pixels?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_asset_objects_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       media_assets: {
         Row: {
           analyzed_at: string | null;
@@ -3280,6 +3348,97 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "messages";
             referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      media_ingest_requests: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          channel_connection_id: string;
+          completed_at: string | null;
+          created_at: string;
+          declared_file_size: number | null;
+          declared_mime_type: string | null;
+          declared_sha256_hex: string | null;
+          id: string;
+          last_error_code: string | null;
+          lease_expires_at: string | null;
+          lease_owner: string | null;
+          lease_token: string | null;
+          media_asset_id: string | null;
+          message_id: string;
+          organization_id: string;
+          processing_started_at: string | null;
+          provider_media_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          declared_file_size?: number | null;
+          declared_mime_type?: string | null;
+          declared_sha256_hex?: string | null;
+          id?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
+          media_asset_id?: string | null;
+          message_id: string;
+          organization_id: string;
+          processing_started_at?: string | null;
+          provider_media_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          channel_connection_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          declared_file_size?: number | null;
+          declared_mime_type?: string | null;
+          declared_sha256_hex?: string | null;
+          id?: string;
+          last_error_code?: string | null;
+          lease_expires_at?: string | null;
+          lease_owner?: string | null;
+          lease_token?: string | null;
+          media_asset_id?: string | null;
+          message_id?: string;
+          organization_id?: string;
+          processing_started_at?: string | null;
+          provider_media_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_ingest_requests_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "media_ingest_requests_connection_fk";
+            columns: ["organization_id", "channel_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "channel_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "media_ingest_requests_message_fk";
+            columns: ["organization_id", "channel_connection_id", "message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["organization_id", "channel_connection_id", "id"];
           },
         ];
       };
@@ -4555,6 +4714,86 @@ export type Database = {
             columns: ["organization_id", "unit_id"];
             isOneToOne: false;
             referencedRelation: "catalog_units";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      product_media: {
+        Row: {
+          alt_text: string | null;
+          approved_at: string | null;
+          approved_by_user_id: string | null;
+          created_at: string | null;
+          id: string | null;
+          media_asset_id: string | null;
+          media_role: string | null;
+          ordinal: number | null;
+          organization_id: string | null;
+          product_id: string | null;
+          retired_at: string | null;
+          status: string | null;
+          updated_at: string | null;
+          variant_id: string | null;
+        };
+        Insert: {
+          alt_text?: string | null;
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          media_role?: string | null;
+          ordinal?: number | null;
+          organization_id?: string | null;
+          product_id?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Update: {
+          alt_text?: string | null;
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          media_asset_id?: string | null;
+          media_role?: string | null;
+          ordinal?: number | null;
+          organization_id?: string | null;
+          product_id?: string | null;
+          retired_at?: string | null;
+          status?: string | null;
+          updated_at?: string | null;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_media_approved_by_user_fk";
+            columns: ["organization_id", "approved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "product_media_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "product_media_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "product_media_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -6383,6 +6622,28 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      begin_media_asset_ingest: {
+        Args: {
+          target_actor_kind: string;
+          target_actor_user_id: string | null;
+          target_byte_size: number;
+          target_content_sha256: string;
+          target_correlation_id: string;
+          target_height_pixels: number;
+          target_mime_type: string;
+          target_organization_id: string;
+          target_original_file_name: string | null;
+          target_source_kind: string;
+          target_source_message_id: string | null;
+          target_trace_id?: string;
+          target_width_pixels: number;
+        };
+        Returns: {
+          ingest_status: string;
+          media_asset_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       cancel_publication_batch: {
         Args: {
           target_created_by_user_id?: string;
@@ -6518,6 +6779,32 @@ export type Database = {
           trigger_message_id: string;
         }[];
       };
+      claim_whatsapp_media_ingest: {
+        Args: {
+          target_lease_seconds?: number;
+          target_max_attempts?: number;
+          target_organization_id?: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          access_token: string;
+          api_version: string;
+          attempt_number: number;
+          channel_connection_id: string;
+          correlation_id: string;
+          declared_file_size: number | null;
+          declared_mime_type: string | null;
+          declared_sha256_hex: string | null;
+          lease_expires_at: string;
+          lease_token: string;
+          message_id: string;
+          organization_id: string;
+          phone_number_id: string;
+          provider_media_id: string;
+          request_id: string;
+          trace_id: string | null;
+        }[];
+      };
       claim_whatsapp_outbox_event: {
         Args: {
           target_lease_seconds?: number;
@@ -6540,6 +6827,21 @@ export type Database = {
           phone_number_id: string;
         }[];
       };
+      complete_media_asset_ingest: {
+        Args: {
+          target_actor_kind: string;
+          target_actor_user_id: string | null;
+          target_correlation_id: string;
+          target_media_asset_id: string;
+          target_organization_id: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          ingest_status: string;
+          media_asset_id: string;
+          was_replayed: boolean;
+        }[];
+      };
       complete_whatsapp_agent_turn: {
         Args: {
           target_job_attempt_id: string;
@@ -6554,6 +6856,21 @@ export type Database = {
           agent_run_id: string;
           outbound_message_count: number;
           outbox_event_ids: string[];
+          was_replayed: boolean;
+        }[];
+      };
+      complete_whatsapp_media_ingest: {
+        Args: {
+          target_lease_token: string;
+          target_media_asset_id: string;
+          target_organization_id: string;
+          target_request_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          media_asset_id: string;
+          request_id: string;
+          status: string;
           was_replayed: boolean;
         }[];
       };
@@ -6915,6 +7232,38 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      fail_whatsapp_media_ingest: {
+        Args: {
+          target_error_code: string;
+          target_lease_token: string;
+          target_max_attempts?: number;
+          target_organization_id: string;
+          target_request_id: string;
+          target_retry_delay_seconds?: number;
+          target_retryable: boolean;
+          target_worker_id: string;
+        };
+        Returns: {
+          request_id: string;
+          status: string;
+          was_replayed: boolean;
+        }[];
+      };
+      get_whatsapp_media_visual_inputs: {
+        Args: {
+          target_job_attempt_id: string;
+          target_lease_token: string;
+          target_message_ids: string[];
+          target_organization_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          analysis_sha256_hex: string;
+          media_asset_id: string;
+          message_id: string;
+          mime_type: string;
+        }[];
+      };
       fail_meta_webhook_delivery: {
         Args: {
           target_delivery_id: string;
@@ -6992,6 +7341,41 @@ export type Database = {
           order_id: string;
           replayed: boolean;
           reservation_id: string;
+        }[];
+      };
+      link_product_media: {
+        Args: {
+          target_actor_user_id: string;
+          target_alt_text: string | null;
+          target_correlation_id: string;
+          target_media_asset_id: string;
+          target_media_role: string;
+          target_ordinal: number;
+          target_organization_id: string;
+          target_product_id: string;
+          target_trace_id?: string;
+          target_variant_id: string | null;
+        };
+        Returns: {
+          media_status: string;
+          product_media_id: string;
+          was_replayed: boolean;
+        }[];
+      };
+      link_whatsapp_member_identity: {
+        Args: {
+          target_actor_user_id: string;
+          target_channel_identity_id: string;
+          target_correlation_id: string;
+          target_idempotency_key: string;
+          target_member_user_id: string;
+          target_organization_id: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          channel_identity_id: string;
+          member_user_id: string;
+          was_replayed: boolean;
         }[];
       };
       mark_publication_effect_started: {
@@ -7335,6 +7719,30 @@ export type Database = {
           replayed: boolean;
         }[];
       };
+      register_media_asset_object: {
+        Args: {
+          target_actor_kind: string;
+          target_actor_user_id: string | null;
+          target_bucket_id: string;
+          target_byte_size: number;
+          target_content_sha256: string;
+          target_correlation_id: string;
+          target_derivation_spec: Json;
+          target_height_pixels: number;
+          target_media_asset_id: string;
+          target_mime_type: string;
+          target_object_path: string;
+          target_organization_id: string;
+          target_rendition_kind: string;
+          target_trace_id?: string;
+          target_width_pixels: number;
+        };
+        Returns: {
+          media_asset_object_id: string;
+          object_status: string;
+          was_replayed: boolean;
+        }[];
+      };
       register_meta_application: {
         Args: {
           target_actor_user_id: string;
@@ -7623,6 +8031,23 @@ export type Database = {
           order_id: string;
           order_status: string;
           replayed: boolean;
+        }[];
+      };
+      transition_product_media: {
+        Args: {
+          target_actor_user_id: string;
+          target_correlation_id: string;
+          target_expected_updated_at: string;
+          target_organization_id: string;
+          target_product_media_id: string;
+          target_status: string;
+          target_trace_id?: string;
+        };
+        Returns: {
+          media_status: string;
+          product_media_id: string;
+          updated_at: string;
+          was_replayed: boolean;
         }[];
       };
       transition_publication: {
@@ -9770,6 +10195,8 @@ export type Database = {
       };
       conversation_agent_snapshots: {
         Row: {
+          actor_kind: string;
+          actor_lane_enforced: boolean;
           channel_connection_id: string;
           configuration_snapshot: Json;
           conversation_id: string;
@@ -9779,6 +10206,8 @@ export type Database = {
           policy_version_id: string;
         };
         Insert: {
+          actor_kind: string;
+          actor_lane_enforced: boolean;
           channel_connection_id: string;
           configuration_snapshot: Json;
           conversation_id: string;
@@ -9788,6 +10217,8 @@ export type Database = {
           policy_version_id: string;
         };
         Update: {
+          actor_kind?: string;
+          actor_lane_enforced?: boolean;
           channel_connection_id?: string;
           configuration_snapshot?: Json;
           conversation_id?: string;
@@ -9800,7 +10231,7 @@ export type Database = {
           {
             foreignKeyName: "conversation_agent_snapshots_conversation_fk";
             columns: ["organization_id", "channel_connection_id", "conversation_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "conversations";
             referencedColumns: ["organization_id", "channel_connection_id", "id"];
           },
@@ -11265,6 +11696,77 @@ export type Database = {
             columns: ["organization_id", "source_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      media_asset_objects: {
+        Row: {
+          bucket_id: string;
+          byte_size: number;
+          content_sha256: string;
+          created_at: string;
+          derivation_spec: Json;
+          height_pixels: number;
+          id: string;
+          media_asset_id: string;
+          mime_type: string;
+          object_path: string;
+          organization_id: string;
+          published_at: string | null;
+          rendition_kind: string;
+          retired_at: string | null;
+          status: string;
+          updated_at: string;
+          verified_at: string;
+          width_pixels: number;
+        };
+        Insert: {
+          bucket_id: string;
+          byte_size: number;
+          content_sha256: string;
+          created_at?: string;
+          derivation_spec?: Json;
+          height_pixels: number;
+          id?: string;
+          media_asset_id: string;
+          mime_type: string;
+          object_path: string;
+          organization_id: string;
+          published_at?: string | null;
+          rendition_kind: string;
+          retired_at?: string | null;
+          status: string;
+          updated_at?: string;
+          verified_at?: string;
+          width_pixels: number;
+        };
+        Update: {
+          bucket_id?: string;
+          byte_size?: number;
+          content_sha256?: string;
+          created_at?: string;
+          derivation_spec?: Json;
+          height_pixels?: number;
+          id?: string;
+          media_asset_id?: string;
+          mime_type?: string;
+          object_path?: string;
+          organization_id?: string;
+          published_at?: string | null;
+          rendition_kind?: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          verified_at?: string;
+          width_pixels?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "media_asset_objects_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -12864,6 +13366,96 @@ export type Database = {
             columns: ["organization_id", "product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      product_media: {
+        Row: {
+          alt_text: string | null;
+          approved_at: string | null;
+          approved_by_user_id: string | null;
+          created_at: string;
+          created_by_user_id: string;
+          id: string;
+          media_asset_id: string;
+          media_role: string;
+          ordinal: number;
+          organization_id: string;
+          product_id: string;
+          retired_at: string | null;
+          status: string;
+          updated_at: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          alt_text?: string | null;
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          created_at?: string;
+          created_by_user_id: string;
+          id?: string;
+          media_asset_id: string;
+          media_role?: string;
+          ordinal: number;
+          organization_id: string;
+          product_id: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          alt_text?: string | null;
+          approved_at?: string | null;
+          approved_by_user_id?: string | null;
+          created_at?: string;
+          created_by_user_id?: string;
+          id?: string;
+          media_asset_id?: string;
+          media_role?: string;
+          ordinal?: number;
+          organization_id?: string;
+          product_id?: string;
+          retired_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_media_approved_by_user_fk";
+            columns: ["organization_id", "approved_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "product_media_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "product_media_created_by_user_fk";
+            columns: ["organization_id", "created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "organization_memberships";
+            referencedColumns: ["organization_id", "user_id"];
+          },
+          {
+            foreignKeyName: "product_media_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "product_media_variant_fk";
+            columns: ["organization_id", "variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
             referencedColumns: ["organization_id", "id"];
           },
         ];

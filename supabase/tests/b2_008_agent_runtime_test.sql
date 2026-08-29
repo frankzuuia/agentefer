@@ -460,14 +460,14 @@ select extensions.ok(
 select extensions.lives_ok(
   $$select * from api.register_tool_contract_version(
     '81000000-0000-4000-8000-000000000010', 'tool-catalog-v1',
-    'catalog.upsert_product', 'Upsert catalog product',
-    'Creates or updates one exact universal catalog product.',
+    'sales.submit_request', 'Submit sales request',
+    'Submits one customer-authorized sales request for deterministic backend handling.',
     '{"type":"object","additionalProperties":true}',
     '{"type":"object","additionalProperties":true}',
-    'external_effect', 'catalog.upsert_product', null, 'active',
+    'external_effect', 'sales.submit_request', null, 'active',
     '81000000-0000-4000-8000-000000000001', 'corr-tool-catalog', null
   )$$,
-  'external catalog tool contract is registered'
+  'customer sales request tool contract is registered'
 );
 
 select extensions.lives_ok(
@@ -508,9 +508,9 @@ select extensions.lives_ok(
       jsonb_build_object(
         'tool_contract_version_id',
         (select current_version_id from app_private.tool_contracts
-          where tool_name = 'catalog.upsert_product'),
+          where tool_name = 'sales.submit_request'),
         'allowed_actor_kinds', jsonb_build_array('member', 'contact'),
-        'required_membership_roles', jsonb_build_array('owner', 'admin', 'operator'),
+        'required_membership_roles', jsonb_build_array(),
         'allowed_channels', jsonb_build_array('whatsapp'),
         'authorization_constraints', jsonb_build_object('handler_authorizes_scope', true)
       ),
@@ -531,7 +531,19 @@ select extensions.lives_ok(
 );
 
 select extensions.is(
-  (select count(*)::integer from app_private.agent_policy_tools),
+  (
+    select count(*)::integer
+    from app_private.agent_policy_tools as policy_tool
+    join app_private.agent_policy_versions as policy_version
+      on policy_version.organization_id = policy_tool.organization_id
+     and policy_version.id = policy_tool.policy_version_id
+    join app_private.agent_policies as policy_value
+      on policy_value.organization_id = policy_version.organization_id
+     and policy_value.id = policy_version.policy_id
+    where policy_tool.organization_id = '81000000-0000-4000-8000-000000000010'
+      and policy_value.policy_key = 'sales.default'
+      and policy_value.current_version_id = policy_version.id
+  ),
   2,
   'policy contains exactly the two native tool bindings requested by the LLM contract'
 );
@@ -742,11 +754,11 @@ select extensions.lives_ok(
     '81000000-0000-4000-8000-000000000010',
     (select id from app_private.agent_runs where run_key = 'contact-turn-001'),
     (select id from app_private.job_attempts where worker_id = 'worker-contact'),
-    'catalog.upsert_product', 'provider-call-catalog-001',
+    'sales.submit_request', 'provider-call-catalog-001',
     'execution-catalog-001', 'external-catalog-001', 1,
     '{"sku":"TINACO-X62","price":1700}'
   )$$,
-  'LLM-proposed catalog tool is resolved through the frozen native contract'
+  'LLM-proposed customer sales effect is resolved through the frozen native contract'
 );
 
 select extensions.lives_ok(
@@ -765,7 +777,7 @@ select pg_temp.throws_sqlstate(
     '81000000-0000-4000-8000-000000000010',
     (select id from app_private.agent_runs where run_key = 'contact-turn-001'),
     (select id from app_private.job_attempts where worker_id = 'worker-contact'),
-    'catalog.upsert_product', 'provider-call-catalog-duplicate',
+    'sales.submit_request', 'provider-call-catalog-duplicate',
     'execution-catalog-duplicate', 'external-catalog-001', 1,
     '{"sku":"TINACO-X62","price":1700}'
   )$$,
@@ -779,7 +791,7 @@ select extensions.is(
     (select id from app_private.tool_executions
       where execution_key = 'execution-catalog-001'))),
   'allowed',
-  'contact catalog tool is allowed by actor and WhatsApp channel policy'
+  'contact sales request tool is allowed by actor and WhatsApp channel policy'
 );
 
 select extensions.is(
@@ -797,7 +809,7 @@ select extensions.lives_ok(
     (select id from app_private.tool_executions
       where execution_key = 'execution-catalog-001'), 'tool-worker-contact'
   )$$,
-  'external catalog effect receives a durable pre-call start marker'
+  'external customer sales effect receives a durable pre-call start marker'
 );
 
 select extensions.lives_ok(
@@ -1056,7 +1068,7 @@ select extensions.lives_ok(
     '81000000-0000-4000-8000-000000000010',
     (select id from app_private.agent_runs where run_key = 'contact-turn-recovery'),
     (select id from app_private.job_attempts where worker_id = 'worker-recovery-uncertain'),
-    'catalog.upsert_product', 'provider-call-recovery-001',
+    'sales.submit_request', 'provider-call-recovery-001',
     'execution-recovery-001', 'external-recovery-001', 1,
     '{"sku":"TINACO-362","inventory_delta":2}'
   )$$,

@@ -54,8 +54,8 @@ select extensions.is(
     where namespace.nspname = 'app_private'
       and relation.relkind in ('r', 'p')
   ),
-  94,
-  'the private data model contains the 94 reviewed tables'
+  96,
+  'the private data model contains the 96 reviewed tables'
 );
 select extensions.is(
   (
@@ -66,7 +66,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relrowsecurity
   ),
-  94,
+  96,
   'RLS is enabled on every private table'
 );
 select extensions.is(
@@ -78,12 +78,12 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relforcerowsecurity
   ),
-  94,
+  96,
   'RLS is forced on every private table'
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private'),
-  91,
+  93,
   'the reviewed tenant read-policy set is complete'
 );
 select extensions.is(
@@ -102,7 +102,7 @@ select extensions.is(
 );
 select extensions.is(
   (select count(*)::integer from pg_catalog.pg_policies where schemaname = 'app_private' and cmd = 'SELECT'),
-  91,
+  93,
   'every private policy is read-only'
 );
 select extensions.is(
@@ -112,7 +112,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and roles = array['authenticated']::name[]
   ),
-  91,
+  93,
   'every private policy targets authenticated users only'
 );
 select extensions.is(
@@ -122,7 +122,7 @@ select extensions.is(
     where schemaname = 'app_private'
       and coalesce(qual, '') like '%SELECT auth.uid()%'
   ),
-  91,
+  93,
   'every private policy uses the init-plan auth.uid pattern'
 );
 select extensions.is(
@@ -145,8 +145,8 @@ select extensions.is(
     join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
     where namespace.nspname = 'api' and relation.relkind = 'v'
   ),
-  93,
-  'the explicit API surface contains the 93 reviewed views'
+  95,
+  'the explicit API surface contains the 95 reviewed views'
 );
 select extensions.is(
   (
@@ -158,7 +158,7 @@ select extensions.is(
       and coalesce(relation.reloptions, array[]::text[])
         @> array['security_invoker=true', 'security_barrier=true']::text[]
   ),
-  93,
+  95,
   'every API view invokes caller RLS and acts as a security barrier'
 );
 select extensions.is(
@@ -241,7 +241,7 @@ select extensions.is(
       and relation.relkind = 'v'
       and has_table_privilege('authenticated', relation.oid, 'SELECT')
   ),
-  93,
+  95,
   'authenticated can select every reviewed API view'
 );
 select extensions.is(
@@ -597,8 +597,8 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and has_table_privilege('service_role', relation.oid, 'SELECT')
   ),
-  92,
-  'service_role can fully read 92 reviewed private tables'
+  94,
+  'service_role can fully read 94 reviewed private tables'
 );
 select extensions.ok(
   not has_column_privilege(
@@ -629,8 +629,8 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and has_table_privilege('service_role', relation.oid, 'INSERT')
   ),
-  36,
-  'service_role can insert only into the 36 reviewed entry tables'
+  38,
+  'service_role can insert only into the 38 reviewed entry tables'
 );
 select extensions.is(
   (
@@ -641,8 +641,8 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and has_table_privilege('service_role', relation.oid, 'UPDATE')
   ),
-  29,
-  'service_role can update only the 29 reviewed mutable tables'
+  31,
+  'service_role can update only the 31 reviewed mutable tables'
 );
 select extensions.is(
   (

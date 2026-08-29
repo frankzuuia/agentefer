@@ -91,14 +91,14 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 ## BL-008: Ingesta multimodal con confirmación
 
 **Regla →** Fotografías y texto producen una propuesta de producto; datos críticos ausentes o ambiguos se preguntan antes de publicar.  
-**Dirección técnica →** visión/LLM llama herramientas de borrador con evidencia y confianza; validadores operativos impiden activar variantes incompletas.
+**Dirección técnica →** visión/LLM llama herramientas de borrador con evidencia y confianza; validadores operativos impiden activar variantes incompletas. Los binarios viven en Storage, nunca como Base64/blob en PostgreSQL: se conserva un original privado, un derivado WebP para web/visión y, cuando aplique, un JPEG compatible con WhatsApp; la base sólo guarda rutas, hashes, metadatos y relaciones, y las URLs firmadas se generan con caducidad sin persistirse.
 
 - Actor: Fer y agente.
 - Requisitos: RQ-040, RQ-041, RQ-042, RQ-043, RQ-050, RQ-104.
 - Datos: archivos, hashes, borradores, atributos propuestos, evidencia, medios y preguntas pendientes.
 - Permiso: propietario/administrador; archivos aislados por organización.
 - Auditoría: archivo origen, modelo/versión, propuesta, correcciones y confirmación.
-- Validación: imagen clara, borrosa, maliciosa, duplicada, tipo falso, precio tapado y múltiples productos.
+- Validación: imagen clara, borrosa, maliciosa, duplicada, tipo falso, precio tapado, múltiples productos, cruce de organización, URL firmada vencida y derivado incompatible con el canal.
 
 ## BL-009: Producto, variante y SKU
 

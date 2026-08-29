@@ -18,7 +18,8 @@
   "dependencies": {
     "@agentefer/ai": "*",
     "@agentefer/config": "*",
-    "@agentefer/observability": "*"
+    "@agentefer/observability": "*",
+    "sharp": "0.35.3"
   },
   "devDependencies": {
     "@opentelemetry/sdk-metrics": "2.10.0"

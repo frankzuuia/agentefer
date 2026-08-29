@@ -37,6 +37,10 @@ const directoryContainsCode = async (directoryPath) => {
 };
 
 const rootManifest = await readManifest(path.join(repositoryRoot, "package.json"));
+const mediaStorageMutationConfig = await readFile(
+  path.join(repositoryRoot, "stryker.b2-010.config.mjs"),
+  "utf8",
+);
 const requiredRootScripts = [
   "format:check",
   "lint",
@@ -50,6 +54,7 @@ const requiredRootScripts = [
   "verify:acceptance-contract",
   "test:coverage",
   "test:mutation",
+  "test:mutation:b2-010",
 ];
 
 for (const scriptName of requiredRootScripts) {
@@ -75,6 +80,23 @@ assert.ok(
 assert.ok(
   rootManifest.scripts.test.includes("npm run test:mutation"),
   "the root test pipeline must enforce mutation testing",
+);
+assert.ok(
+  rootManifest.scripts.test.includes("npm run test:mutation:b2-010"),
+  "the root test pipeline must enforce B2-010 media Storage mutation testing",
+);
+assert.equal(
+  rootManifest.scripts["test:mutation:b2-010"],
+  "stryker run stryker.b2-010.config.mjs",
+  "B2-010 mutation testing must use its controlled Stryker configuration",
+);
+assert.ok(
+  mediaStorageMutationConfig.includes('mutate: ["apps/worker/src/media-storage.ts"]'),
+  "B2-010 Stryker configuration must mutate the complete media Storage client",
+);
+assert.ok(
+  mediaStorageMutationConfig.includes('fileName: "reports/mutation/b2-010-media-storage.json"'),
+  "B2-010 Stryker configuration must preserve machine-readable evidence",
 );
 
 const activeWorkspaces = [];

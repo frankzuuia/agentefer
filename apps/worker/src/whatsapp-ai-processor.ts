@@ -13,6 +13,7 @@ import {
   type ClaimedOutboxEvent,
   type WhatsAppAiRpcClient,
 } from "./whatsapp-ai-rpc.js";
+import { type MediaStorageClient } from "./media-storage.js";
 import { WhatsAppGraphError, type WhatsAppGraphClient } from "./whatsapp-graph.js";
 
 export type WhatsAppAiProcessorConfiguration = Readonly<{
@@ -44,11 +45,85 @@ export type CreateWhatsAppAiProcessorInput = Readonly<{
   configuration: WhatsAppAiProcessorConfiguration;
   providers: ReadonlyMap<string, CognitiveProvider>;
   rpcClient: WhatsAppAiRpcClient;
+  mediaStorageClient: MediaStorageClient;
   graphClient: WhatsAppGraphClient;
   logger: StructuredLogger;
   metrics: OperationalMetrics;
   onOperationalStateChange(operational: boolean): void;
 }>;
+
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isImageMedia = (item: ClaimedAgentTurn["conversationHistory"][number]): boolean => {
+  if (item.contentKind !== "media" || !isRecord(item.content)) {
+    return false;
+  }
+  return item.content.type === "image" || isRecord(item.content.image);
+};
+
+const conversationWithVisualInputs = async (
+  input: CreateWhatsAppAiProcessorInput,
+  claim: ClaimedAgentTurn,
+  signal: AbortSignal,
+): Promise<ClaimedAgentTurn["conversationHistory"]> => {
+  const imageMessageIds = claim.conversationHistory
+    .filter(isImageMedia)
+    .map((item) => item.messageId);
+  if (imageMessageIds.length === 0) {
+    return claim.conversationHistory;
+  }
+
+  const visualInputs = await input.rpcClient.getMediaVisualInputs({
+    claim,
+    messageIds: imageMessageIds,
+    workerId: input.configuration.workerId,
+    signal,
+  });
+  const visualByMessageId = new Map(
+    visualInputs.map((visualInput) => [visualInput.messageId, visualInput]),
+  );
+  if (
+    visualByMessageId.size !== imageMessageIds.length ||
+    imageMessageIds.some((id) => !visualByMessageId.has(id))
+  ) {
+    throw new CognitiveProviderError({
+      code: "media_visual_input_missing",
+      retryable: false,
+    });
+  }
+
+  const signedUrls = new Map<string, string>();
+  for (const visualInput of visualInputs) {
+    const signedUrl = await input.mediaStorageClient.createSignedPrivateUrl(
+      {
+        organizationId: claim.organizationId,
+        mediaAssetId: visualInput.mediaAssetId,
+        renditionKind: "analysis_webp",
+        contentSha256Hex: visualInput.analysisSha256Hex,
+        mimeType: visualInput.mimeType,
+      },
+      300,
+      signal,
+    );
+    signedUrls.set(visualInput.messageId, signedUrl.toString());
+  }
+
+  return Object.freeze(
+    claim.conversationHistory.map((item) => {
+      const signedUrl = signedUrls.get(item.messageId);
+      return Object.freeze({
+        messageId: item.messageId,
+        direction: item.direction,
+        contentKind: item.contentKind,
+        content: item.content,
+        ...(signedUrl === undefined
+          ? {}
+          : { imageInputs: Object.freeze([{ imageUrl: signedUrl, detail: "high" as const }]) }),
+      });
+    }),
+  );
+};
 
 const elapsedMilliseconds = (startedAt: number): number =>
   Math.max(0, performance.now() - startedAt);
@@ -247,10 +322,15 @@ const processAgentTurn = async (
   const timeoutSignal = AbortSignal.timeout(input.configuration.turnTimeoutMilliseconds);
   const turnSignal = AbortSignal.any([processorSignal, timeoutSignal]);
   try {
+    const conversation = await conversationWithVisualInputs(input, claim, turnSignal);
     const result = await provider.executeTurn({
       model: claim.model,
       systemPrompt: claim.systemPrompt,
-      conversation: claim.conversationHistory,
+      conversation: conversation.map((item) => {
+        const { messageId, ...withoutMessageId } = item;
+        void messageId;
+        return withoutMessageId;
+      }),
       continuationParts: claim.continuationParts,
       ...(claim.reasoningEffort === undefined ? {} : { reasoningEffort: claim.reasoningEffort }),
       tools: claim.toolDefinitions,

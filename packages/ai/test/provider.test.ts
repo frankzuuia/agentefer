@@ -152,6 +152,110 @@ describe("OpenAI Responses adapter", () => {
         usage: { input_tokens: 12, output_tokens: 8, total_tokens: 20 },
       },
     });
+    expect(Object.hasOwn(result, "toolContinuationState")).toBe(false);
+  });
+
+  it("concatenates only Responses output_text parts without injecting separators", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_multiple_text_parts",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              { type: "input_text", text: "contenido interno" },
+              { type: "output_text", text: "Parte " },
+              { type: "output_text", text: "final" },
+            ],
+          },
+        ],
+      });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-future",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe("Parte final");
+  });
+
+  it("ignores non-message output records and malformed output entries", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "resp_output_filter",
+        status: "completed",
+        output: [
+          null,
+          { type: "internal_event", content: [{ type: "output_text", text: "no visible" }] },
+          { type: "message", content: [{ type: "output_text", text: "visible" }] },
+        ],
+      });
+    });
+
+    const result = await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-future",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.visibleText).toBe("visible");
+  });
+
+  it("rejects malformed Responses envelopes with their exact error taxonomy", async () => {
+    for (const [body, code] of [
+      [[], "openai_response_invalid"],
+      [{ output: [] }, "openai_response_id_invalid"],
+    ] as const) {
+      const server = await startServer((_request, response) => {
+        respondJson(response, 200, body);
+      });
+      await expect(
+        createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+          model: "gpt-future",
+          systemPrompt: "Atiende.",
+          conversation,
+          continuationParts: [],
+        }),
+      ).rejects.toMatchObject({ code, retryable: false });
+    }
+  });
+
+  it("rejects each malformed native function-call field with its exact code", async () => {
+    for (const [functionCall, code] of [
+      [
+        { type: "function_call", call_id: "", name: "catalog_search", arguments: "{}" },
+        "openai_tool_call_id_invalid",
+      ],
+      [
+        { type: "function_call", call_id: "call_1", name: "", arguments: "{}" },
+        "openai_tool_name_invalid",
+      ],
+      [
+        { type: "function_call", call_id: "call_1", name: "catalog_search", arguments: "" },
+        "openai_tool_arguments_invalid",
+      ],
+    ] as const) {
+      const server = await startServer((_request, response) => {
+        respondJson(response, 200, {
+          id: "resp_invalid_tool",
+          status: "completed",
+          output: [functionCall],
+        });
+      });
+      await expect(
+        createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+          model: "gpt-future",
+          systemPrompt: "Atiende.",
+          conversation,
+          continuationParts: [],
+        }),
+      ).rejects.toMatchObject({ code, retryable: false });
+    }
   });
 
   it("normalizes native function calls without parsing their arguments", async () => {
@@ -553,7 +657,14 @@ describe("MiniMax OpenAI-compatible adapter", () => {
     const result = await provider.executeTurn({
       model: "MiniMax-M2.7-highspeed",
       systemPrompt: "Atiende.",
-      conversation,
+      conversation: [
+        ...conversation,
+        {
+          direction: "outbound",
+          contentKind: "text",
+          content: { text: { body: "Respuesta previa" } },
+        },
+      ],
       continuationParts: ["Respuesta parcial"],
       tools: [],
     });
@@ -566,6 +677,10 @@ describe("MiniMax OpenAI-compatible adapter", () => {
           role: "user",
           content: "Hola",
         },
+        {
+          role: "assistant",
+          content: "Respuesta previa",
+        },
         { role: "assistant", content: "Respuesta parcial" },
         {
           role: "user",
@@ -577,6 +692,7 @@ describe("MiniMax OpenAI-compatible adapter", () => {
     expect(capturedBody).not.toHaveProperty("max_tokens");
     expect(result.visibleText).toBe("Qué tal, ¿qué buscas?");
     expect(result.terminationReason).toBe("completed");
+    expect(Object.hasOwn(result, "toolContinuationState")).toBe(false);
   });
 
   it.each([
@@ -1013,6 +1129,76 @@ describe("MiniMax OpenAI-compatible adapter", () => {
 });
 
 describe("provider-neutral conversation serialization", () => {
+  it("sends trusted image inputs as Responses API input_image parts", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "openai_image_input",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: "Ya vi el producto." }],
+          },
+        ],
+      });
+    });
+
+    await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-5.5",
+      systemPrompt: "Analiza.",
+      conversation: [
+        {
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "meta-media" } },
+          imageInputs: [{ imageUrl: "https://storage.example/signed.webp", detail: "high" }],
+        },
+      ],
+      continuationParts: [],
+    });
+
+    expect(capturedBody).toMatchObject({
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text" },
+            {
+              type: "input_image",
+              image_url: "https://storage.example/signed.webp",
+              detail: "high",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("fails closed when MiniMax receives an image input", async () => {
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: "https://api.minimax.example/" }).executeTurn({
+        model: "MiniMax-M2.7",
+        systemPrompt: "Analiza.",
+        conversation: [
+          {
+            direction: "inbound",
+            contentKind: "text",
+            content: { text: { body: "Primero este contexto" } },
+          },
+          {
+            direction: "inbound",
+            contentKind: "media",
+            content: { type: "image" },
+            imageInputs: [{ imageUrl: "https://storage.example/signed.webp" }],
+          },
+        ],
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({ code: "minimax_image_input_unsupported", retryable: false });
+  });
+
   it("preserves the structured envelope for non-text channel content", async () => {
     let capturedBody: unknown;
     const server = await startServer(async (request, response) => {

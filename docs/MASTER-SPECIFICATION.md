@@ -154,6 +154,17 @@ Borrador conserva evidencia; transacción completa o nada; historial de precio p
 
 Fixtures reales autorizados de las cinco imágenes; llanta/rin con opciones y tiers 1–4; escenarios de tinaco, tambor y artículo genérico con definiciones distintas; categoría nueva sin migración/despliegue; cantidad superior a cuatro; unidades distintas; extracción con incertidumbre, candidatos, resolución diferida y aislamiento Storage. Los escenarios no visuales validan contratos sin crear productos comerciales falsos.
 
+### B2-010 Storage y galería
+
+- `media_assets` continúa siendo la identidad/procedencia del contenido y no recibe binarios, Base64 ni URLs.
+- `media_asset_objects` registra objetos inmutables por organización, asset y rendition: original privado, WebP privado para análisis, WebP publicado para tienda y JPEG privado compatible con WhatsApp.
+- PostgreSQL conserva únicamente bucket, path tenant-scoped, SHA-256, MIME, tamaño, dimensiones, estado y parámetros de derivación. Una URL firmada es una credencial efímera y nunca una columna.
+- `product_media` vincula assets verificados con producto y variante opcional, rol, orden, texto alternativo y aprobación explícita; no publica automáticamente una observación del modelo.
+- Los buckets limitan MIME/tamaño y las políticas de `storage.objects` sólo permiten lectura privada a membresías activas de la misma organización. Escritura, sustitución y retiro se ejecutan desde backend autorizado y auditado.
+- El original queda privado. WebP sirve a web/QR; JPEG/PNG sirve a WhatsApp porque el canal no admite WebP como imagen comercial. Un derivado público sólo existe después de aprobación.
+- La ingesta usa hash e idempotencia. Un fallo entre Storage y PostgreSQL queda recuperable mediante estado explícito y reconciliación; no se acepta una fila “verificada” sin objeto verificable.
+- B2-010 no descarga todavía el medio de Meta, no llama visión y no crea productos reales: entrega la base durable requerida por `media.ingest` y `catalog.create_draft` en B3-005.
+
 ### Open Risks
 
 Gobierno/versionado de definiciones de categoría y unidad, proveedor de voz/visión, moneda y reglas comerciales de publicación automática.
