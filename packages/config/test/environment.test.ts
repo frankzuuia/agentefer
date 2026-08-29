@@ -210,6 +210,14 @@ describe("worker environment", () => {
       retryDelaySeconds: 5,
       batchSize: 25,
     });
+    expect(configuration.facebookPublication).toEqual({
+      enabled: false,
+      rpcTimeoutMilliseconds: 5_000,
+      pollIntervalMilliseconds: 1_000,
+      leaseSeconds: 120,
+      retryDelaySeconds: 5,
+      batchSize: 25,
+    });
     expect(configuration.ai.model.canonical).toBe("openai:gpt-5.6-luna");
     expect(configuration.ai.visionModel.canonical).toBe("minimax:MiniMax-M3");
     expect(configuration.ai.fallbackModels[0]?.canonical).toBe("minimax:MiniMax-M2.7-highspeed");

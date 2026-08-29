@@ -6,6 +6,8 @@ import {
   type StructuredLogger,
 } from "@agentefer/observability";
 
+import { type AdminCatalogGateway } from "./admin-catalog-gateway.js";
+import { registerAdminCatalogRoutes } from "./admin-catalog-routes.js";
 import { type AdminMetaGateway } from "./admin-meta-gateway.js";
 import { registerAdminMetaRoutes } from "./admin-meta-routes.js";
 import { registerHealthRoutes } from "./health.js";
@@ -17,6 +19,7 @@ export interface BuildApiInput {
   readonly readiness: ReadinessState;
   readonly logger: StructuredLogger;
   readonly metrics: OperationalMetrics;
+  readonly adminCatalogGateway: AdminCatalogGateway;
   readonly adminMetaGateway: AdminMetaGateway;
   readonly metaGraphGateway: MetaGraphGateway;
   readonly apiPublicUrl: string;
@@ -39,6 +42,14 @@ export function buildApi(input: BuildApiInput): FastifyInstance {
   });
 
   registerHealthRoutes(application, input.readiness);
+  registerAdminCatalogRoutes(application, {
+    catalogGateway: input.adminCatalogGateway,
+    identityGateway: input.adminMetaGateway,
+    logger: input.logger,
+    metrics: input.metrics,
+    supabaseUrl: input.supabaseUrl,
+    supabasePublishableKey: input.supabasePublishableKey,
+  });
   registerAdminMetaRoutes(application, {
     gateway: input.adminMetaGateway,
     metaGraphGateway: input.metaGraphGateway,

@@ -47,7 +47,7 @@ type AdminMetaRouteInput = Readonly<{
   supabasePublishableKey: string;
 }>;
 
-class AdminMetaHttpError extends OperationalError {
+export class AdminMetaHttpError extends OperationalError {
   readonly statusCode: number;
 
   constructor(

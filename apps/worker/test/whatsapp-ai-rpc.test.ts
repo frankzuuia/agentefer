@@ -526,7 +526,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
   it("prepares tenant tool registries through the bounded service-role RPC", async () => {
     let requestBody: Record<string, unknown> | undefined;
     const server = await startServer(async (request, response) => {
-      expect(request.url).toBe("/rest/v1/rpc/prepare_customer_assistant_read_tools");
+      expect(request.url).toBe("/rest/v1/rpc/prepare_customer_assistant_tools");
       requestBody = await readJson(request);
       respond(response, [{ organizations_prepared: 2, organizations_failed: 0 }]);
     });
@@ -780,7 +780,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
   it("sends an exact tool execution envelope and validates the atomic outcome", async () => {
     let requestBody: Record<string, unknown> | undefined;
     const server = await startServer(async (request, response) => {
-      expect(request.url).toBe("/rest/v1/rpc/execute_whatsapp_read_only_tool_call");
+      expect(request.url).toBe("/rest/v1/rpc/execute_whatsapp_tool_call");
       requestBody = await readJson(request);
       respond(response, [
         {
@@ -801,7 +801,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
     const providerState = { role: "assistant", tool_calls: [] };
 
     await expect(
-      client.executeReadOnlyToolCall({
+      client.executeToolCall({
         claim: turnClaim(),
         workerId: "worker-1",
         providerRequestId: "provider-request-1",
@@ -849,7 +849,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
     });
 
     await expect(
-      client.executeReadOnlyToolCall({
+      client.executeToolCall({
         claim: turnClaim(),
         workerId: "worker-1",
         providerRequestId: "provider-request-1",
@@ -860,7 +860,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
         responseMetadataSafe: {},
       }),
     ).rejects.toMatchObject({
-      operation: "execute_whatsapp_read_only_tool_call",
+      operation: "execute_whatsapp_tool_call",
       phase: "response_contract",
       field: "tool_result",
     } satisfies Partial<WhatsAppAiRpcError>);

@@ -4,7 +4,10 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildLinkedMigrationPgtapCollector } from "../packages/database/dist/linked-pgtap.js";
+import {
+  buildLinkedMigrationPgtapCollector,
+  splitSqlStatements,
+} from "../packages/database/dist/linked-pgtap.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
@@ -55,7 +58,7 @@ assert.equal(linkedProjects[0]?.name, expectedProjectName, "linked project must 
 const temporaryDirectory = path.join(repositoryRoot, "tmp");
 await mkdir(temporaryDirectory, { recursive: true });
 
-const selectPendingMigration = async () => {
+const selectPendingMigrations = async () => {
   const historyFile = path.join(temporaryDirectory, `linked-migration-history-${process.pid}.sql`);
   await writeFile(
     historyFile,
@@ -102,40 +105,53 @@ const selectPendingMigration = async () => {
     (fileName) => !remoteVersions.has(fileName.slice(0, 14)),
   );
 
-  assert.equal(
-    pendingFiles.length,
-    1,
-    "automatic linked rehearsal requires exactly one pending local migration",
-  );
-  const migrationFile = pendingFiles[0];
-  assert.ok(migrationFile, "pending migration filename must exist");
-  const testFile = `${migrationFile.slice(15, -4)}_test.sql`;
+  assert.ok(pendingFiles.length > 0, "automatic linked rehearsal requires pending migrations");
+  const terminalMigrationFile = pendingFiles.at(-1);
+  assert.ok(terminalMigrationFile, "terminal pending migration filename must exist");
+  const testFile = `${terminalMigrationFile.slice(15, -4)}_test.sql`;
 
   return Object.freeze({
-    migration: path.join("supabase", "migrations", migrationFile),
+    migrations: pendingFiles.map((migrationFile) =>
+      path.join("supabase", "migrations", migrationFile),
+    ),
     test: path.join("supabase", "tests", testFile),
   });
 };
 
 const selected =
   explicitMigration === undefined
-    ? await selectPendingMigration()
-    : Object.freeze({ migration: explicitMigration, test: explicitTest });
-const migrationPath = path.resolve(repositoryRoot, selected.migration);
+    ? await selectPendingMigrations()
+    : Object.freeze({ migrations: [explicitMigration], test: explicitTest });
+const migrationPaths = selected.migrations.map((migration) =>
+  path.resolve(repositoryRoot, migration),
+);
 const testPath = path.resolve(repositoryRoot, selected.test);
 
-assert.ok(
-  migrationPath.startsWith(migrationRoot),
-  "migration must stay inside supabase/migrations",
-);
+for (const migrationPath of migrationPaths) {
+  assert.ok(
+    migrationPath.startsWith(migrationRoot),
+    "migration must stay inside supabase/migrations",
+  );
+  assert.ok(migrationPath.endsWith(".sql"), "migration must use the .sql extension");
+}
 assert.ok(testPath.startsWith(testRoot), "pgTAP test must stay inside supabase/tests");
-assert.ok(migrationPath.endsWith(".sql"), "migration must use the .sql extension");
 assert.ok(testPath.endsWith(".sql"), "pgTAP test must use the .sql extension");
 
-const [migrationSource, testSource] = await Promise.all([
-  readFile(migrationPath, "utf8"),
+const [migrationSources, testSource] = await Promise.all([
+  Promise.all(migrationPaths.map((migrationPath) => readFile(migrationPath, "utf8"))),
   readFile(testPath, "utf8"),
 ]);
+const migrationBodies = migrationSources.flatMap((migrationSource) => {
+  const statements = splitSqlStatements(migrationSource);
+  assert.equal(statements[0]?.toLowerCase(), "begin", "pending migration must start with BEGIN");
+  assert.equal(
+    statements.at(-1)?.toLowerCase(),
+    "commit",
+    "pending migration must end with COMMIT",
+  );
+  return statements.slice(1, -1);
+});
+const migrationSource = `begin;\n\n${migrationBodies.join(";\n\n")};\n\ncommit;\n`;
 const collectedSql = buildLinkedMigrationPgtapCollector(migrationSource, testSource);
 const temporaryFile = path.join(
   temporaryDirectory,
@@ -197,7 +213,9 @@ await writeFile(
       generatedAt: new Date().toISOString(),
       projectName: expectedProjectName,
       projectRef: expectedProjectRef,
-      migration: path.relative(repositoryRoot, migrationPath).replaceAll(path.sep, "/"),
+      migrations: migrationPaths.map((migrationPath) =>
+        path.relative(repositoryRoot, migrationPath).replaceAll(path.sep, "/"),
+      ),
       test: path.relative(repositoryRoot, testPath).replaceAll(path.sep, "/"),
       transactionOutcome: "rolled_back",
       plannedTests,

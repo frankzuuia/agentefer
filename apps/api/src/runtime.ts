@@ -5,6 +5,7 @@ import {
   createStructuredLogger,
 } from "@agentefer/observability";
 
+import { createAdminCatalogGateway } from "./admin-catalog-gateway.js";
 import { createAdminMetaGateway } from "./admin-meta-gateway.js";
 import { buildApi } from "./app.js";
 import { createMetaGraphGateway } from "./meta-graph-gateway.js";
@@ -31,6 +32,11 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     secretKey: configuration.supabase.secretKey,
     timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
   });
+  const adminCatalogGateway = createAdminCatalogGateway({
+    supabaseUrl: configuration.supabase.url,
+    secretKey: configuration.supabase.secretKey,
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
   const metaWebhookRpcClient = createMetaWebhookRpcClient({
     supabaseUrl: configuration.supabase.url,
     secretKey: configuration.supabase.secretKey,
@@ -44,6 +50,7 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     readiness,
     logger,
     metrics,
+    adminCatalogGateway,
     adminMetaGateway,
     metaGraphGateway,
     apiPublicUrl: configuration.server.publicUrl,

@@ -49,8 +49,11 @@ assert.deepEqual(
     "20260828190000_b2_010_media_storage.sql",
     "20260828200000_b3_005_media_ingest_requests.sql",
     "20260828203000_b3_005_vision_model_routing.sql",
+    "20260829120000_b4_005_b4_006_publication_orchestration.sql",
+    "20260829130000_b4_005_b4_006_owner_publication_tools.sql",
+    "20260829140000_b4_005_b4_006_admin_catalog_panel.sql",
   ],
-  "B2-001 through B3-002A actor resolution must remain ordered production migrations",
+  "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
 
 const foundationMigration = await readFile(
@@ -175,6 +178,18 @@ const visionModelRoutingMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[31]),
   "utf8",
 );
+const publicationOrchestrationMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[32]),
+  "utf8",
+);
+const ownerPublicationToolsMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[33]),
+  "utf8",
+);
+const adminCatalogPanelMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[34]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -261,6 +276,14 @@ const mediaIngestDatabaseTest = await readFile(
 );
 const visionModelRoutingDatabaseTest = await readFile(
   path.join(testDirectory, "b3_005_vision_model_routing_test.sql"),
+  "utf8",
+);
+const ownerPublicationToolsDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_005_b4_006_owner_publication_tools_test.sql"),
+  "utf8",
+);
+const adminCatalogPanelDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_005_b4_006_admin_catalog_panel_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -379,6 +402,9 @@ for (const [name, migration] of [
   ["B2-010 media storage", mediaStorageMigration],
   ["B3-005 media ingest requests", mediaIngestMigration],
   ["B3-005 vision model routing", visionModelRoutingMigration],
+  ["B4-005/B4-006 publication orchestration", publicationOrchestrationMigration],
+  ["B4-005/B4-006 owner publication tools", ownerPublicationToolsMigration],
+  ["B4-005/B4-006 admin catalog panel", adminCatalogPanelMigration],
 ]) {
   assert.ok(migration.startsWith("begin;\n"), `${name} migration must be atomic`);
   assert.ok(migration.trimEnd().endsWith("commit;"), `${name} migration must commit atomically`);
@@ -2030,6 +2056,137 @@ assert.equal(
   "B4-004A cannot compare a decrypted Vault credential as pgTAP plaintext",
 );
 
+for (const statement of [
+  "create table app_private.social_publication_dispatch_states (",
+  "create table app_private.social_rate_limit_observations (",
+  "create table app_private.publication_batch_subscriptions (",
+  "create index publication_jobs_expired_publication_worker_idx",
+  "create index publication_batch_subscriptions_claim_idx",
+  "create function api.claim_facebook_publication_job(",
+  "create function api.recover_expired_facebook_publication_jobs(",
+  "create function api.retry_publication_job(",
+  "create function api.subscribe_publication_batch(",
+  "create function api.claim_publication_batch_notification(",
+  "create function api.complete_publication_batch_notification(",
+  "create view api.facebook_catalog_admin",
+  "uncertain_value := uncertain_value + case when recovered_job.status = 'uncertain'",
+  "when job_value.status = 'uncertain' then array['reconcile']::text[]",
+  "dispatch_policy,minimum_spacing_seconds",
+  "minimum_spacing_seconds')::numeric > 0",
+  "to service_role;",
+]) {
+  assert.ok(
+    publicationOrchestrationMigration.includes(statement),
+    `B4-005/B4-006 publication orchestration migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  publicationOrchestrationMigration.split("force row level security;").length - 1,
+  3,
+  "all three new publication orchestration tables must force RLS",
+);
+assert.equal(
+  publicationOrchestrationMigration.split("create policy ").length - 1,
+  3,
+  "all three new publication orchestration tables must define tenant read policies",
+);
+
+for (const statement of [
+  "create function app_private.facebook_dispatch_policy_for_agent(",
+  "create function app_private.catalog_recent_for_owner_agent(",
+  "create function app_private.catalog_set_offer_status_for_owner_agent(",
+  "create function app_private.publication_publish_for_owner_agent(",
+  "create function app_private.publication_enqueue_catalog_for_owner_agent(",
+  "create function app_private.publication_retry_for_owner_agent(",
+  "create function api.prepare_customer_assistant_tools(",
+  "create function api.execute_whatsapp_tool_call(",
+  "'catalog_resolve_recent'",
+  "'publication_enqueue_catalog'",
+  "'publication_retry'",
+  "array['member']::text[]",
+  "array['owner', 'admin']::text[]",
+  "array['whatsapp']::text[]",
+  "from jsonb_object_keys(tool_versions) as tool_key(tool_name)",
+]) {
+  assert.ok(
+    ownerPublicationToolsMigration.includes(statement),
+    `B4-005/B4-006 owner publication tools migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  ownerPublicationToolsMigration.includes("allowed_actor_kinds = array['contact']::text[]"),
+  false,
+  "owner publication mutations cannot be bound to customer contacts",
+);
+
+for (const statement of [
+  "create table app_private.admin_catalog_commands (",
+  "alter table app_private.admin_catalog_commands force row level security;",
+  "create function app_private.claim_admin_catalog_command(",
+  "create function api.get_facebook_catalog_admin_page(",
+  "create function api.admin_set_catalog_offer_status(",
+  "create function api.admin_enqueue_facebook_publication(",
+  "create function api.admin_enqueue_facebook_catalog(",
+  "create function api.admin_retry_facebook_publication(",
+  "create function api.admin_set_facebook_batch_state(",
+  "target_page_size not between 1 and 24",
+  "target_cursor_updated_at",
+  "rendition_kind = 'storefront_webp'",
+  "object_value.status = 'published'",
+  "array['owner', 'admin']::text[]",
+  ") to service_role;",
+]) {
+  assert.ok(
+    adminCatalogPanelMigration.includes(statement),
+    `B4-005/B4-006 admin catalog panel migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  adminCatalogPanelMigration.includes("to authenticated;"),
+  false,
+  "admin catalog RPCs cannot be executed directly by browser roles",
+);
+assert.equal(
+  adminCatalogPanelMigration.split("force row level security;").length - 1,
+  1,
+  "the admin catalog command ledger must force RLS",
+);
+
+for (const statement of [
+  "select extensions.plan(26);",
+  "RLS is enabled and forced on all new durable tables",
+  "browser roles cannot operate worker publication RPCs",
+  "private handlers cannot bypass the atomic WhatsApp executor",
+  "all publication mutations are restricted to WhatsApp owners and admins",
+  "tool effect classes distinguish reads, mutations and external Meta effects",
+  "customer contacts cannot receive owner mutation tools",
+  "terminal notification claims have a bounded worker index",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    ownerPublicationToolsDatabaseTest.includes(statement),
+    `B4-005/B4-006 publication database test must include: ${statement}`,
+  );
+}
+
+for (const statement of [
+  "select extensions.plan(23);",
+  "the admin catalog command ledger has RLS enabled and forced",
+  "browser roles cannot execute privileged admin catalog panel RPCs",
+  "a user outside the organization cannot read its admin catalog",
+  "the mobile page size cannot exceed the bounded maximum",
+  "the explicit cursor returns the next variant without duplication",
+  "the final page terminates instead of creating an infinite scroll",
+  "repeating the same panel command replays its durable result",
+  "reusing an idempotency key with another request is rejected",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    adminCatalogPanelDatabaseTest.includes(statement),
+    `B4-005/B4-006 admin catalog panel database test must include: ${statement}`,
+  );
+}
+
 const productionDatabaseTests = [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -2053,6 +2210,8 @@ const productionDatabaseTests = [
   ["B2-010 media storage", mediaStorageDatabaseTest],
   ["B3-005 media ingest requests", mediaIngestDatabaseTest],
   ["B3-005 vision model routing", visionModelRoutingDatabaseTest],
+  ["B4-005/B4-006 publication orchestration", ownerPublicationToolsDatabaseTest],
+  ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
 ];
 
 for (const [name, databaseTest] of productionDatabaseTests) {
@@ -2647,5 +2806,5 @@ assert.ok(
 );
 
 console.log(
-  `Database contract verified: ${migrationEntries.length} ordered production migrations, 96 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
+  `Database contract verified: ${migrationEntries.length} ordered production migrations, 97 forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,
 );

@@ -204,7 +204,7 @@ export type WhatsAppAiRpcClient = Readonly<{
     }> &
       RpcSignal,
   ): Promise<void>;
-  executeReadOnlyToolCall(
+  executeToolCall(
     input: Readonly<{
       claim: ClaimedAgentTurn;
       workerId: string;
@@ -586,7 +586,7 @@ export function createWhatsAppAiRpcClient(
 
   return Object.freeze({
     async prepareAgentTools(inputValue) {
-      const operation = "prepare_customer_assistant_read_tools";
+      const operation = "prepare_customer_assistant_tools";
       const response = await postRpc(operation, { target_limit: 100 }, inputValue.signal);
       return validateRpcResponse(operation, () => {
         const row = readSingleRow(response);
@@ -804,8 +804,8 @@ export function createWhatsAppAiRpcClient(
       );
       validateRpcResponse(operation, () => readSingleRow(response));
     },
-    async executeReadOnlyToolCall(inputValue) {
-      const operation = "execute_whatsapp_read_only_tool_call";
+    async executeToolCall(inputValue) {
+      const operation = "execute_whatsapp_tool_call";
       const response = await postRpc(
         operation,
         {

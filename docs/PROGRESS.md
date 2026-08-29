@@ -58,34 +58,34 @@ No se instala ni implementa integración antes de completar B1-001 y B1-002.
 
 ## Bloque 3 — Herramientas deterministas y workflows del dominio
 
-| ID     | Fuente                                 | Entregable real                                                               | Validación requerida                                                                                                                      | Estado |
-| ------ | -------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| B3-001 | BL-019, SC-029–SC-030                  | registro de tools con contratos, permisos, idempotencia y auditoría           | tool desconocida/argumento inválido/rol incorrecto falla cerrado                                                                          | [ ]    |
-| B3-002 | BL-002, BL-020, SC-002–SC-003          | resolución de identidad propietario/cliente                                   | matriz de canales/roles y spoofing                                                                                                        | [ ]    |
-| B3-003 | BL-004, BL-005, SC-001, SC-004         | recuperación de contexto publicación-conversación-oferta                      | origen válido/roto/múltiple                                                                                                               | [ ]    |
-| B3-004 | BL-005, BL-009, BL-014, SC-020, RQ-110 | búsqueda universal de catálogo, candidatos y alternativas                     | distintos rubros, sólo activos/stock real y certeza explícita                                                                             | [ ]    |
+| ID     | Fuente                                 | Entregable real                                                               | Validación requerida                                                                                                                            | Estado |
+| ------ | -------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| B3-001 | BL-019, SC-029–SC-030                  | registro de tools con contratos, permisos, idempotencia y auditoría           | tool desconocida/argumento inválido/rol incorrecto falla cerrado                                                                                | [ ]    |
+| B3-002 | BL-002, BL-020, SC-002–SC-003          | resolución de identidad propietario/cliente                                   | matriz de canales/roles y spoofing                                                                                                              | [ ]    |
+| B3-003 | BL-004, BL-005, SC-001, SC-004         | recuperación de contexto publicación-conversación-oferta                      | origen válido/roto/múltiple                                                                                                                     | [ ]    |
+| B3-004 | BL-005, BL-009, BL-014, SC-020, RQ-110 | búsqueda universal de catálogo, candidatos y alternativas                     | distintos rubros, sólo activos/stock real y certeza explícita                                                                                   | [ ]    |
 | B3-005 | BL-008, SC-007, SC-008, SC-009, RQ-110 | ingesta segura y borrador multimodal con categoría/atributos propuestos       | pipeline local Meta→Storage→WebP→OpenAI; 46 pruebas focalizadas y contratos verdes; mutation crítico 91.35%, borrador/5 imágenes/E2E pendientes | [ ]    |
-| B3-006 | BL-009, BL-010, SC-007–SC-010, RQ-110  | alta/actualización universal de categoría-producto-variante-unidad-SKU-precio | categoría nueva sin código, transacción, conflicto SKU y rollback                                                                         | [ ]    |
-| B3-007 | BL-006, BL-010, SC-011, SC-012, SC-013 | precio pendiente, desambiguación y resolución diferida                        | una/múltiples pendientes y fallo de envío                                                                                                 | [ ]    |
-| B3-008 | BL-011, SC-014, SC-018–SC-019          | adjust/reserve/release/sale/receive                                           | concurrencia, retries y ledger                                                                                                            | [ ]    |
-| B3-009 | BL-012, BL-013, SC-015–SC-017          | cálculo servidor, pedido, reserva y notificación                              | canales, consentimiento, duplicado y cambio de precio                                                                                     | [ ]    |
-| B3-010 | BL-007, SC-011–SC-013                  | calificación, handoff y reanudación                                           | ambos modos y responsable correcto                                                                                                        | [ ]    |
-| B3-011 | BL-017, BL-018, SC-027–SC-028          | reportes y configuración versionada                                           | zona horaria, definiciones, rollback y permisos                                                                                           | [ ]    |
+| B3-006 | BL-009, BL-010, SC-007–SC-010, RQ-110  | alta/actualización universal de categoría-producto-variante-unidad-SKU-precio | categoría nueva sin código, transacción, conflicto SKU y rollback                                                                               | [ ]    |
+| B3-007 | BL-006, BL-010, SC-011, SC-012, SC-013 | precio pendiente, desambiguación y resolución diferida                        | una/múltiples pendientes y fallo de envío                                                                                                       | [ ]    |
+| B3-008 | BL-011, SC-014, SC-018–SC-019          | adjust/reserve/release/sale/receive                                           | concurrencia, retries y ledger                                                                                                                  | [ ]    |
+| B3-009 | BL-012, BL-013, SC-015–SC-017          | cálculo servidor, pedido, reserva y notificación                              | canales, consentimiento, duplicado y cambio de precio                                                                                           | [ ]    |
+| B3-010 | BL-007, SC-011–SC-013                  | calificación, handoff y reanudación                                           | ambos modos y responsable correcto                                                                                                              | [ ]    |
+| B3-011 | BL-017, BL-018, SC-027–SC-028          | reportes y configuración versionada                                           | zona horaria, definiciones, rollback y permisos                                                                                                 | [ ]    |
 
 ## Bloque 4 — Meta, cola, scheduler e infraestructura staging
 
-| ID     | Fuente                                         | Entregable real                                                              | Validación requerida                                    | Estado   |
-| ------ | ---------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------- | -------- |
-| B4-001 | BL-003, BL-015, SC-021–SC-026                  | capability matrix de cuenta/App/Página/número reales de AgenteFer            | permisos probados; no inferidos                         | [ ]      |
-| B4-002 | BL-003, BL-020, SC-005                         | webhook Meta con firma raw, challenge, replay e idempotencia                 | fixtures oficiales/eventos reales staging               | [ ]      |
-| B4-003 | BL-004, SC-001                                 | adaptadores entrantes WhatsApp/Messenger y contexto de publicación           | IDs reales, adjuntos y conversación                     | [ ]      |
-| B4-004 | BL-003, SC-006, SC-031                         | salida, ventana/consentimiento/plantillas, estados y retries                 | dentro/fuera ventana, token vencido y dedupe            | [ ]      |
-| B4-005 | BL-015, SC-021, SC-024, SC-025, SC-026         | publicación de Página conforme a capacidades verificadas                     | Página staging real, precio vigente y errores           | [ ]      |
-| B4-006 | BL-016, BL-022, SC-022, SC-023, SC-024, SC-037 | cola durable, scheduler, leases, dead-letter y conciliación                  | 14:00/18:00, crash after effect y cancelación           | [ ]      |
-| B4-007 | BL-023, SC-034                                 | servicios `api` y `worker` en EasyPanel `agente-fer` desde este repo/develop | source exacta, health, límites y cero recursos externos | [ ]      |
-| B4-008 | BL-023                                         | Cloudflare/Vercel staging de AgenteFer cuando dominio y web existan          | DNS/TLS/headers/orígenes y rollback                     | [ ]      |
-| B4-009 | BL-003–BL-016                                  | E2E Meta→API→worker→LLM/tools→DB→respuesta                                   | conversación real staging y trazas completas            | [ ]      |
-| B4-010 | RQ-070, SC-026                                 | Marketplace                                                                  | `NO-BUILD` hasta API/permisos oficiales reales          | NO-BUILD |
+| ID     | Fuente                                               | Entregable real                                                              | Validación requerida                                      | Estado   |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- | -------- |
+| B4-001 | BL-003, BL-015, SC-021–SC-026                        | capability matrix de cuenta/App/Página/número reales de AgenteFer            | permisos probados; no inferidos                           | [ ]      |
+| B4-002 | BL-003, BL-020, SC-005                               | webhook Meta con firma raw, challenge, replay e idempotencia                 | fixtures oficiales/eventos reales staging                 | [ ]      |
+| B4-003 | BL-004, SC-001                                       | adaptadores entrantes WhatsApp/Messenger y contexto de publicación           | IDs reales, adjuntos y conversación                       | [ ]      |
+| B4-004 | BL-003, SC-006, SC-031                               | salida, ventana/consentimiento/plantillas, estados y retries                 | dentro/fuera ventana, token vencido y dedupe              | [ ]      |
+| B4-005 | BL-015, SC-021, SC-024–SC-026, SC-038–SC-040, SC-043 | publicación de Página y tools de propietario sobre ofertas independientes    | Página staging real, sin precio, pausa y retry seguro     | [ ]      |
+| B4-006 | BL-016, BL-022, SC-022–SC-024, SC-037, SC-041–SC-044 | cola durable, ritmo adaptativo, leases, conciliación y resumen asíncrono     | rate limit real, conversación concurrente y resumen único | [ ]      |
+| B4-007 | BL-023, SC-034                                       | servicios `api` y `worker` en EasyPanel `agente-fer` desde este repo/develop | source exacta, health, límites y cero recursos externos   | [ ]      |
+| B4-008 | BL-023                                               | Cloudflare/Vercel staging de AgenteFer cuando dominio y web existan          | DNS/TLS/headers/orígenes y rollback                       | [ ]      |
+| B4-009 | BL-003–BL-016                                        | E2E Meta→API→worker→LLM/tools→DB→respuesta                                   | conversación real staging y trazas completas              | [ ]      |
+| B4-010 | RQ-070, SC-026                                       | Marketplace                                                                  | `NO-BUILD` hasta API/permisos oficiales reales            | NO-BUILD |
 
 Avance habilitante B4-001/B4-002: credenciales Meta multi-tenant cifradas en
 Supabase Vault, rotación sin redespliegue, challenge/HMAC sobre bytes crudos,
@@ -110,17 +110,17 @@ App/Página/WABA/número/permisos.
 
 ## Bloque 6 — Catálogo/QR y experiencia administrativa accesible
 
-| ID     | Fuente                         | Entregable real                                                             | Validación requerida                                                  | Estado |
-| ------ | ------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------ |
-| B6-001 | BL-012, SC-017                 | sistema visual responsive/accesible y estados UX                            | móvil/tablet/desktop, teclado, contraste y lector                     | [ ]    |
-| B6-002 | BL-012, SC-017, SC-020, RQ-110 | catálogo público universal/filtrable con empty/loading/error                | categoría nueva visible sin deploy, datos reales y RLS pública mínima | [ ]    |
-| B6-003 | BL-012, SC-017, RQ-110         | detalle/galería, opciones, unidad, cantidad y precio dinámico               | rubros distintos, cantidad >4, unidades/atributos dinámicos y agotado | [ ]    |
-| B6-004 | BL-013, SC-015–SC-016          | checkout de solicitud con contacto/consentimiento                           | WhatsApp/Messenger, validación y antiabuso                            | [ ]    |
-| B6-005 | BL-012, SC-017                 | “consultar precio” con texto/SKU prellenado                                 | URL segura y producto correcto                                        | [ ]    |
-| B6-006 | BL-012                         | QR estable y descargable del catálogo                                       | escaneo real y routing                                                | [ ]    |
-| B6-007 | BL-017, BL-018, SC-027–SC-028  | panel propietario para catálogo, stock, precios, pendientes y configuración | roles, estados y accesibilidad                                        | [ ]    |
-| B6-008 | BL-017                         | reportes interesados/ventas/inventario                                      | definiciones/rangos y exportación autorizada                          | [ ]    |
-| B6-009 | BL-025                         | verificación navegador y performance                                        | consola/red, Core Web Vitals objetivo, a11y smoke                     | [ ]    |
+| ID     | Fuente                                | Entregable real                                                                   | Validación requerida                                                  | Estado |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------ |
+| B6-001 | BL-012, SC-017, SC-045                | sistema visual móvil primero, responsive/accesible y estados UX                   | 360–1440 px, cero overflow, paginación acotada, teclado y lector      | [ ]    |
+| B6-002 | BL-012, SC-017, SC-020, RQ-110        | catálogo público universal/filtrable con empty/loading/error                      | categoría nueva visible sin deploy, datos reales y RLS pública mínima | [ ]    |
+| B6-003 | BL-012, SC-017, RQ-110                | detalle/galería, opciones, unidad, cantidad y precio dinámico                     | rubros distintos, cantidad >4, unidades/atributos dinámicos y agotado | [ ]    |
+| B6-004 | BL-013, SC-015–SC-016                 | checkout de solicitud con contacto/consentimiento                                 | WhatsApp/Messenger, validación y antiabuso                            | [ ]    |
+| B6-005 | BL-012, SC-017                        | “consultar precio” con texto/SKU prellenado                                       | URL segura y producto correcto                                        | [ ]    |
+| B6-006 | BL-012                                | QR estable y descargable del catálogo                                             | escaneo real y routing                                                | [ ]    |
+| B6-007 | BL-017, BL-018, SC-027–SC-028, SC-045 | panel propietario móvil para catálogo, stock, precios, pendientes y configuración | roles, acciones contextuales y uso táctil sin scroll infinito         | [ ]    |
+| B6-008 | BL-017                                | reportes interesados/ventas/inventario                                            | definiciones/rangos y exportación autorizada                          | [ ]    |
+| B6-009 | BL-025                                | verificación navegador y performance                                              | consola/red, Core Web Vitals objetivo, a11y smoke                     | [ ]    |
 
 ## Bloque 7 — Gobierno de uso; pagos fuera de alcance actual
 
@@ -147,7 +147,7 @@ App/Página/WABA/número/permisos.
 
 | ID     | Fuente         | Entregable real                                                          | Validación requerida                               | Estado |
 | ------ | -------------- | ------------------------------------------------------------------------ | -------------------------------------------------- | ------ |
-| B9-001 | BL-001–BL-025  | E2E de todos los escenarios aplicables                                   | SC-001–SC-037 con evidencia o NO-BUILD justificado | [ ]    |
+| B9-001 | BL-001–BL-025  | E2E de todos los escenarios aplicables                                   | SC-001–SC-045 con evidencia o NO-BUILD justificado | [ ]    |
 | B9-002 | BL-021–BL-023  | observabilidad, alertas, on-call y runbooks                              | simulacro de incidente y trazas                    | [ ]    |
 | B9-003 | BL-022, BL-024 | backup/restore, migración y rollback                                     | restauración y rollback reales                     | [ ]    |
 | B9-004 | BL-025         | QA funcional, performance, carga, accesibilidad y seguridad              | gates 0–6 completos                                | [ ]    |
@@ -377,3 +377,31 @@ App/Página/WABA/número/permisos.
 - Estado: **fundación y calidad local certificadas; aplicación remota, carga de imágenes reales,
   envío al cliente y E2E QR pendientes**. La descarga Meta y visión ya están implementadas en el
   bloque B3-005 local, pero B2-010 continúa `[ ]` hasta completar sus puertas remotas.
+
+## Avance local de B4-005/B4-006 — Facebook Page y panel móvil
+
+- Migraciones pendientes: `20260829120000_b4_005_b4_006_publication_orchestration.sql`,
+  `20260829130000_b4_005_b4_006_owner_publication_tools.sql` y
+  `20260829140000_b4_005_b4_006_admin_catalog_panel.sql`; ninguna fue aplicada remotamente.
+- Worker Facebook, pacing observado, retry seguro, conciliación incierta y resumen durable de
+  WhatsApp implementados localmente; tools nativas de owner/admin registradas por organización.
+- Panel real servido por API en `/admin/catalog`: bearer Supabase, RPC service-only con segunda
+  autorización en PostgreSQL, cursor explícito, 6 ofertas por página móvil, único bottom sheet,
+  navegación inferior y `safe-area`; no existe infinite scroll.
+- Imágenes del panel: sólo URL de `storefront_webp` publicado; la respuesta no expone bucket/path,
+  original privado, base64 ni clave de servicio. Montos/quantities viajan como decimal textual exacto.
+- QA DB: contrato estático 35 migraciones, 97 tablas RLS forzado, 1,214 pgTAP; ensayo enlazado
+  23/23 y rollback sobre `AgenteFer` `hprdctmblmfcoagugvyp`.
+- QA API focal: 87/87 pruebas y typecheck verde. QA visual del shell: 360/375/390/412/768/1024/1440,
+  cero overflow horizontal y cero objetivos visibles menores a 44 px.
+- QA acumulado: format/lint/typecheck/build/runtime verdes; 945/945 pruebas, 91.74% statements,
+  86.78% ramas, 94.34% funciones y 91.72% líneas; auditoría con 0 vulnerabilidades.
+- Mutation testing: perfil global 90.58%, B2-010 92.84%, worker Facebook 98.48% y panel
+  administrativo 95.89%; los dos perfiles B4 quedaron incorporados al gate `npm test`.
+- Contrato TCP del worker: 10/10 pruebas sobre los once RPC privilegiados, sus encabezados,
+  payloads, respuestas, cancelación, timeout y clasificación de fallos.
+- Pendiente antes de declarar B4-005/B4-006 completos: aplicar migraciones, regenerar tipos,
+  E2E autenticado con datos/Página reales, efecto real autorizado en Facebook y CI remoto.
+- Edición de descripción/precio/foto principal y eliminación/despublicación en cascada no se exponen
+  todavía; requieren el siguiente bloque de RPC/tools y pruebas, sin botones falsos.
+- Estado: **calidad local certificada; no hubo despliegue de base ni publicación externa**.

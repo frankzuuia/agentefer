@@ -167,7 +167,7 @@ const createRpcContract = (
       evidence.agentFailures.push(value);
       return Promise.resolve();
     },
-    executeReadOnlyToolCall: (value) => {
+    executeToolCall: (value) => {
       evidence.toolExecutions.push(value);
       return Promise.resolve();
     },

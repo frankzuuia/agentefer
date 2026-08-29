@@ -175,7 +175,7 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 ## BL-015: Publicaciones oficiales de Meta
 
 **Regla →** Solo se publica o sincroniza en superficies y cuentas autorizadas mediante APIs oficiales; Marketplace no se presume disponible.  
-**Dirección técnica →** adaptador de Meta con capacidades detectadas, permisos verificados, ID externo, estado y errores; comandos no soportados quedan bloqueados con explicación.
+**Dirección técnica →** adaptador de Meta con capacidades detectadas, permisos verificados, ID externo, estado y errores; comandos no soportados quedan bloqueados con explicación. Panel y WhatsApp invocan los mismos contratos autorizados, nunca dos implementaciones comerciales distintas.
 
 - Actor: Fer, agente y Meta.
 - Requisitos: RQ-062, RQ-063, RQ-067, RQ-068, RQ-069, RQ-070, RQ-071.
@@ -183,18 +183,24 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 - Permiso: identidad propietaria y autorización de publicación según política.
 - Auditoría: payload redactado, aprobador, ID externo y respuesta de Meta.
 - Validación: permiso ausente, token vencido, publicación rechazada, producto agotado y superficie no soportada.
+- Oferta publicable: combo, llanta, rin, pieza o juego son variantes/unidades vendibles independientes. Fer puede activar o pausar cada oferta sin alterar las demás; una composición no obliga a publicar sus componentes.
+- Precio: cada versión elige un tier vigente de la variante/unidad o queda `on_request`. Publicar sin precio es válido; inventar o copiar un monto de otra presentación no lo es.
+- Selección conversacional: “el último producto que subimos” se resuelve desde la última alta confirmada de catálogo de la organización, no desde el último mensaje ni desde memoria libre. Si hay empate o ambigüedad, el LLM pregunta antes de mutar.
+- Reintento: un fallo sólo puede generar un efecto nuevo cuando la certeza previa es `not_started` o `confirmed_not_applied`; un resultado `unknown` exige conciliación para impedir duplicados.
 
 ## BL-016: Programación responsable
 
 **Regla →** Publicar catálogo completo u horarios repetidos genera trabajos espaciados, deduplicados y limitados; frescura no justifica abuso.  
-**Dirección técnica →** scheduler y cola durable con políticas de frecuencia, ventanas, presupuesto, idempotencia y cancelación.
+**Dirección técnica →** scheduler y cola durable con políticas versionadas de frecuencia, ventanas, presupuesto, idempotencia, pausa, reanudación y cancelación. El ritmo efectivo se adapta a capacidades observadas y señales de Meta; no existe una cantidad fija hardcodeada de publicaciones por tanda.
 
 - Actor: Fer, scheduler y worker.
 - Requisitos: RQ-064, RQ-065, RQ-066, RQ-071.
-- Datos: calendarios, políticas, trabajos, intentos y publicaciones.
+- Datos: calendarios, políticas, lotes, trabajos, intentos, observaciones de límite y suscripciones de notificación.
 - Permiso: calendario aprobado por propietario.
 - Auditoría: quién programó, expansión por producto, ejecución, omisión y razón.
-- Validación: 14:00/18:00, catálogo grande, cambio de precio en cola, pausa global, rate limit y reanudación.
+- Validación: catálogo grande, cambio de precio en cola, pausa global, rate limit, `Retry-After`, reanudación, conversación concurrente y resumen terminal único.
+- Continuidad: el tool de WhatsApp acepta el comando y devuelve `batch_id`/cantidad elegible de inmediato. Los jobs continúan fuera del turno cognitivo, aunque Fer siga conversando o el proceso se reinicie.
+- Resumen: al terminar el último job, el sistema emite exactamente una notificación durable con totales de publicados, omitidos, fallidos, inciertos y pendientes de acción; los fallos conservan un reintento selectivo visible en panel y ejecutable por tool.
 
 ## BL-017: Reportes verificables
 

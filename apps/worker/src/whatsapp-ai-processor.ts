@@ -225,7 +225,7 @@ const persistTurnResult = async (
       );
       return;
     }
-    await input.rpcClient.executeReadOnlyToolCall({
+    await input.rpcClient.executeToolCall({
       claim,
       workerId: input.configuration.workerId,
       providerRequestId: result.providerRequestId,

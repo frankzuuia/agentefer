@@ -1,6 +1,7 @@
 import { SensitiveValue } from "@agentefer/config";
 import { createOperationalMetrics, createStructuredLogger } from "@agentefer/observability";
 
+import { createAdminCatalogGateway } from "../src/admin-catalog-gateway.js";
 import { createAdminMetaGateway } from "../src/admin-meta-gateway.js";
 import { type BuildApiInput } from "../src/app.js";
 import { createMetaGraphGateway } from "../src/meta-graph-gateway.js";
@@ -14,6 +15,11 @@ export const buildApiTestInput = (readiness: BuildApiInput["readiness"]): BuildA
   readiness,
   logger: createStructuredLogger({ component: "api", environment: "test", level: "fatal" }),
   metrics: createOperationalMetrics({ component: "api-test" }),
+  adminCatalogGateway: createAdminCatalogGateway({
+    supabaseUrl: supabaseTestUrl,
+    secretKey: supabaseTestSecret,
+    timeoutMilliseconds: 50,
+  }),
   adminMetaGateway: createAdminMetaGateway({
     supabaseUrl: supabaseTestUrl,
     publishableKey: supabaseTestPublishableKey,

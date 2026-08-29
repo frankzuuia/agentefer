@@ -101,15 +101,15 @@ RQ-019–RQ-024, RQ-040–RQ-054, RQ-076, RQ-104 y RQ-110.
 
 ### Scenario Matrix
 
-| ID     | Actor / precondición / trigger                  | Comportamiento y datos                                                                | Herramientas / externos                                          | Auditoría y efecto                   | Validación                           | Fallback                               |
-| ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------ | ------------------------------------ | -------------------------------------- |
-| SC-007 | Fer; foto de mercancía + precio/stock           | proponer/reutilizar categoría y atributos; crear evidencia, borrador y candidatos; confirmar invariantes; alta producto/variante | visión LLM, `media.ingest`, `catalog.upsert_offer` | hash, extracción, categoría, confirmación e IDs | producto de cualquier rubro consultable con SKU único | si faltan campos/definición, queda borrador |
-| SC-008 | Fer; foto con marca tapada                      | marcar campo desconocido y preguntar; no publicar                                     | `catalog.create_draft`, `pending_question.create`                | evidencia y campo dudoso             | marca no se fabrica                  | Fer completa o conserva borrador       |
-| SC-009 | Fer; posible producto existente                 | mostrar candidatos/diferencias y pedir ID                                             | `catalog.find_candidates`                                        | candidatos y selección               | no duplica silenciosamente           | crear solo tras elección explícita     |
-| SC-010 | Fer define opciones, unidad y tarifas           | resolver variantes/opciones y escalones explícitos; llanta con/sin rin y 1/4 piezas es un fixture, no el contrato | `pricing.set_tiers` | anterior/nuevo, unidad y vigencia | cualquier cantidad permitida devuelve tarifa exacta | preguntar opción/cantidad/unidad faltante |
-| SC-011 | Cliente; oferta sin precio                      | recopilar variante/cantidad; crear pendiente y avisar                                 | `pending_request.create`, outbox                                 | pendiente ligada a conversación      | una notificación idempotente         | seguir calificando sin prometer precio |
-| SC-012 | Fer; “dile que cuesta X”; varias pendientes     | LLM presenta candidatos identificables; no muta                                       | `pending_request.search`                                         | ambigüedad y opción elegida          | respuesta va al cliente correcto     | esperar selección                      |
-| SC-013 | Fer resuelve pendiente única                    | fijar precio solo si ordenado y responder conversación                                | `pending_request.resolve`, `pricing.set_tiers`, `messaging.send` | resolución y efectos separados       | puede responder sin cambiar catálogo | si envío falla, outbox reintenta       |
+| ID     | Actor / precondición / trigger              | Comportamiento y datos                                                                                                           | Herramientas / externos                                          | Auditoría y efecto                              | Validación                                            | Fallback                                    |
+| ------ | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
+| SC-007 | Fer; foto de mercancía + precio/stock       | proponer/reutilizar categoría y atributos; crear evidencia, borrador y candidatos; confirmar invariantes; alta producto/variante | visión LLM, `media.ingest`, `catalog.upsert_offer`               | hash, extracción, categoría, confirmación e IDs | producto de cualquier rubro consultable con SKU único | si faltan campos/definición, queda borrador |
+| SC-008 | Fer; foto con marca tapada                  | marcar campo desconocido y preguntar; no publicar                                                                                | `catalog.create_draft`, `pending_question.create`                | evidencia y campo dudoso                        | marca no se fabrica                                   | Fer completa o conserva borrador            |
+| SC-009 | Fer; posible producto existente             | mostrar candidatos/diferencias y pedir ID                                                                                        | `catalog.find_candidates`                                        | candidatos y selección                          | no duplica silenciosamente                            | crear solo tras elección explícita          |
+| SC-010 | Fer define opciones, unidad y tarifas       | resolver variantes/opciones y escalones explícitos; llanta con/sin rin y 1/4 piezas es un fixture, no el contrato                | `pricing.set_tiers`                                              | anterior/nuevo, unidad y vigencia               | cualquier cantidad permitida devuelve tarifa exacta   | preguntar opción/cantidad/unidad faltante   |
+| SC-011 | Cliente; oferta sin precio                  | recopilar variante/cantidad; crear pendiente y avisar                                                                            | `pending_request.create`, outbox                                 | pendiente ligada a conversación                 | una notificación idempotente                          | seguir calificando sin prometer precio      |
+| SC-012 | Fer; “dile que cuesta X”; varias pendientes | LLM presenta candidatos identificables; no muta                                                                                  | `pending_request.search`                                         | ambigüedad y opción elegida                     | respuesta va al cliente correcto                      | esperar selección                           |
+| SC-013 | Fer resuelve pendiente única                | fijar precio solo si ordenado y responder conversación                                                                           | `pending_request.resolve`, `pricing.set_tiers`, `messaging.send` | resolución y efectos separados                  | puede responder sin cambiar catálogo                  | si envío falla, outbox reintenta            |
 
 ### Data Flow
 
@@ -247,29 +247,37 @@ RQ-005, RQ-012, RQ-062–RQ-079.
 
 ### Scenario Matrix
 
-| ID     | Actor / precondición / trigger                | Comportamiento y datos                                               | Herramientas / externos                  | Auditoría y efecto                        | Validación                                 | Fallback                                    |
-| ------ | --------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------- | ------------------------------------------ | ------------------------------------------- |
-| SC-021 | Fer; Página autorizada; publica variante      | revalidar oferta, generar contenido y publicar                       | `publication.create`, Graph API validada | aprobación, payload redactado, ID externo | publicación enlaza variante                | error queda retry/terminal claro            |
-| SC-022 | Fer; “publica todo”                           | mostrar/usar política, expandir catálogo elegible en jobs espaciados | `publication.enqueue_catalog`            | lote, cantidad, calendario                | dedupe/frecuencia respetados               | cancelar/pausar lote                        |
-| SC-023 | Scheduler 14:00/18:00                         | seleccionar trabajos vencidos y revalidar al ejecutar                | scheduler/queue, `publication.execute`   | run/skip/razón                            | zona horaria y no duplicación              | próximo run/reconciliación                  |
-| SC-024 | Precio cambia mientras job espera             | job usa versión/lee vigencia al ejecutar                             | `catalog.get_offer`                      | versión publicada                         | nunca publica precio viejo silenciosamente | regenerar contenido o cancelar              |
-| SC-025 | Token/permiso Meta ausente                    | bloquear publicación sin afectar catálogo                            | Meta adapter                             | error clasificado/alerta                  | no declara éxito                           | solicitar reconexión autorizada             |
-| SC-026 | Fer pide Marketplace sin capacidad comprobada | informar límite y no simular                                         | capability registry                      | comando bloqueado                         | cero efectos externos                      | ofrecer publicación de Página si autorizada |
-| SC-027 | Fer pide interesados/ventas semana            | consultar definiciones y zona; devolver cifras + detalle             | `reports.*`                              | filtros/rango                             | pedido/venta distinguidos                  | indicar datos parciales                     |
-| SC-028 | Fer cambia saludo/ubicación                   | validar, versionar y aplicar                                         | `business_config.update`                 | anterior/nuevo                            | conversaciones nuevas usan versión vigente | rollback a versión anterior                 |
+| ID     | Actor / precondición / trigger                | Comportamiento y datos                                               | Herramientas / externos                         | Auditoría y efecto                        | Validación                                    | Fallback                                    |
+| ------ | --------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------- | --------------------------------------------- | ------------------------------------------- |
+| SC-021 | Fer; Página autorizada; publica variante      | revalidar oferta, generar contenido y publicar                       | `publication.create`, Graph API validada        | aprobación, payload redactado, ID externo | publicación enlaza variante                   | error queda retry/terminal claro            |
+| SC-022 | Fer; “publica todo”                           | mostrar/usar política, expandir catálogo elegible en jobs espaciados | `publication.enqueue_catalog`                   | lote, cantidad, calendario                | dedupe/frecuencia respetados                  | cancelar/pausar lote                        |
+| SC-023 | Scheduler 14:00/18:00                         | seleccionar trabajos vencidos y revalidar al ejecutar                | scheduler/queue, `publication.execute`          | run/skip/razón                            | zona horaria y no duplicación                 | próximo run/reconciliación                  |
+| SC-024 | Precio cambia mientras job espera             | job usa versión/lee vigencia al ejecutar                             | `catalog.get_offer`                             | versión publicada                         | nunca publica precio viejo silenciosamente    | regenerar contenido o cancelar              |
+| SC-025 | Token/permiso Meta ausente                    | bloquear publicación sin afectar catálogo                            | Meta adapter                                    | error clasificado/alerta                  | no declara éxito                              | solicitar reconexión autorizada             |
+| SC-026 | Fer pide Marketplace sin capacidad comprobada | informar límite y no simular                                         | capability registry                             | comando bloqueado                         | cero efectos externos                         | ofrecer publicación de Página si autorizada |
+| SC-038 | Fer pide publicar el último producto          | resolver la última alta confirmada del tenant y mostrar candidato    | `catalog.resolve_recent`, `publication.publish` | selección, actor y versión                | no usa último mensaje como identidad          | preguntar si existe empate o ambigüedad     |
+| SC-039 | Fer pausa combo o componente                  | cambiar sólo la variante/publicación indicada                        | `catalog.set_offer_status`, `publication.pause` | estado anterior/nuevo                     | combo, llanta y rin permanecen independientes | desambiguar presentación                    |
+| SC-040 | Fer publica una presentación sin precio       | crear versión `on_request` sin monto ni moneda                       | `publication.preview/create`                    | versión y procedencia                     | ningún precio se inventa                      | pedir precio sólo si Fer lo exige           |
+| SC-041 | Fer ordena publicar todo el catálogo          | aceptar rápido y despachar con ritmo adaptativo versionado           | `publication.enqueue_catalog/status`            | lote, policy snapshot y observaciones     | sin cantidad fija hardcodeada                 | pausar por límite y reanudar                |
+| SC-042 | Fer conversa mientras corre un lote           | procesar cada turno normalmente mientras la cola avanza              | agent runtime + publication worker              | trazas separadas por run/batch            | el chat no posee el lease del lote            | consultar estado sin cancelar               |
+| SC-043 | Fer reintenta una publicación fallida         | crear retry selectivo sólo con efecto confirmado no aplicado         | `publication.retry`                             | origen, nueva effect key y resultado      | `unknown` exige conciliación                  | bloquear duplicado inseguro                 |
+| SC-044 | Termina la última publicación del lote        | emitir una sola notificación con resumen completo                    | batch reconciler + WhatsApp outbox              | contadores, fallos y delivery             | dedupe de notificación terminal               | reintento de outbox sin repetir efecto Meta |
+| SC-045 | Fer administra desde un teléfono              | catálogo paginado, tarjetas compactas y acciones contextuales        | panel Fastify responsive + cursor API           | viewport, filtros y acción ejecutada      | 375 px sin overflow ni lista infinita         | panel inferior y navegación persistente     |
+| SC-027 | Fer pide interesados/ventas semana            | consultar definiciones y zona; devolver cifras + detalle             | `reports.*`                                     | filtros/rango                             | pedido/venta distinguidos                     | indicar datos parciales                     |
+| SC-028 | Fer cambia saludo/ubicación                   | validar, versionar y aplicar                                         | `business_config.update`                        | anterior/nuevo                            | conversaciones nuevas usan versión vigente    | rollback a versión anterior                 |
 
 ### Data Flow
 
-Comando/política → selección elegible → jobs durables → revalidación → adaptador Meta → publicación externa → estado/auditoría → sincronizaciones posteriores.
+Comando/política → selección elegible → aceptación inmediata → jobs durables espaciados → revalidación tardía → adaptador Meta → publicación externa → conciliación → notificación terminal independiente → sincronizaciones posteriores.
 
 ### Tables / APIs / Tools
 
 Entidades planeadas:
 
 - `social_connections`, `social_capabilities`, `publications`, `publication_media`;
-- `publication_batches`, `publication_jobs`, `schedules`;
+- `publication_batches`, `publication_jobs`, `publication_batch_subscriptions`, `social_rate_limit_observations`, `schedules`;
 - `business_profiles`, `business_locations`, `business_policies`, `config_versions`;
-- herramientas `publication.preview/create/enqueue_catalog/cancel/sync`, `reports.interested/sales/inventory`, `business_config.update/rollback`.
+- herramientas `catalog.resolve_recent/set_offer_status`, `publication.preview/publish/enqueue_catalog/status/retry/pause/cancel/sync`, `reports.interested/sales/inventory`, `business_config.update/rollback`.
 
 ### Permissions / Tenant Boundaries
 
@@ -279,8 +287,8 @@ Entidades planeadas:
 
 ### Integrations / Costs / Limits
 
-- Capacidades, límites y políticas exactas de Graph API pendientes de documentación/prueba.
-- Límites internos más estrictos que máximos del proveedor.
+- Capacidades y permisos exactos de Graph API se observan y versionan contra la Página real autorizada.
+- El despacho usa la política aprobada como techo y reduce/aumenta ritmo con respuestas, `Retry-After` y señales de uso del proveedor; ninguna cifra comercial de lote queda compilada en el worker.
 
 ### Security / RLS / Secrets
 
@@ -290,15 +298,15 @@ Entidades planeadas:
 
 ### Failure Modes
 
-Permiso revocado, token vencido, rate limit, medio rechazado, publicación parcialmente creada, lote cancelado, zona horaria y reporte con datos tardíos.
+Permiso revocado, token vencido, rate limit, medio rechazado, publicación parcialmente creada, resultado incierto, lote pausado/cancelado, notificación duplicada, conversación concurrente y reporte con datos tardíos.
 
 ### Recovery / Rollback
 
-Reintento selectivo, conciliación por ID externo, cancelación de jobs, actualización/ocultación si API lo permite y rollback de configuración.
+Reintento selectivo sólo cuando no hubo efecto, conciliación por ID externo, pausa/reanudación/cancelación de jobs, reintento idempotente del outbox, actualización/ocultación si API lo permite y rollback de configuración.
 
 ### Validation
 
-Sandbox/test Page real autorizado, límites, lotes, cancelación, precios cambiantes, reportes temporales y config versionada.
+Página de staging real autorizada, límites observados, lotes adaptativos, conversación concurrente, resumen terminal único, reintento seguro, cancelación, precios cambiantes y configuración versionada.
 
 ### Open Risks
 
@@ -379,7 +387,7 @@ Modelo exacto de cada entorno, presupuesto, observabilidad backend, retención, 
 
 ### Coherence failure
 
-No detectada: los requisitos RQ-001–RQ-110 se enlazan a BL-001–BL-025 y escenarios SC-001–SC-037.
+No detectada: los requisitos RQ-001–RQ-110 se enlazan a BL-001–BL-025 y escenarios SC-001–SC-045.
 
 ### Technical hallucination
 
