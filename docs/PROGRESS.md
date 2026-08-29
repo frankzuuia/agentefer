@@ -421,3 +421,9 @@ App/Página/WABA/número/permisos.
   del lint PL/pgSQL: B3-002A había redeclarado después del hardening una captura
   `selected_contract_id` sin uso. La corrección elimina sólo esa captura y añade una guardia
   estática para impedir que una migración posterior la reintroduzca; nueva certificación pendiente.
+- CI candidato `33275529416`: `Verify`, contenedor, 35 migraciones desde cero, 1,215/1,215 pgTAP,
+  concurrencia y mutation testing SQL aprobaron. El linter posterior encontró ocho referencias
+  PL/pgSQL ambiguas y cuatro advertencias en las nuevas rutas de ingesta, orquestación y panel.
+  La reparación candidata califica tablas/columnas, descarta resultados no usados con `PERFORM`,
+  retira `STABLE` de la consulta que autoriza al actor y añade guardias estáticas; falta certificarla
+  en un nuevo run. La base enlazada, `main` y Meta permanecen sin cambios.

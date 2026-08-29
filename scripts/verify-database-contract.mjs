@@ -1879,6 +1879,22 @@ for (const statement of requiredMediaIngestMigrationStatements) {
     `B3-005 media ingest migration must include: ${statement}`,
   );
 }
+for (const statement of [
+  "update app_private.media_ingest_requests as request_update",
+  "attempt_count = request_update.attempt_count + 1",
+  "update app_private.messages as message_update",
+  "perform 1\n  from app_private.job_attempts as attempt_value",
+]) {
+  assert.ok(
+    mediaIngestMigration.includes(statement),
+    `B3-005 media ingest PL/pgSQL must remain unambiguous: ${statement}`,
+  );
+}
+assert.equal(
+  mediaIngestMigration.includes("attempt_record app_private.job_attempts%rowtype;"),
+  false,
+  "B3-005 media visual input authorization cannot retain an unused row capture",
+);
 
 for (const statement of [
   "create function app_private.route_ready_whatsapp_image_to_vision()",
@@ -2074,6 +2090,9 @@ for (const statement of [
   "dispatch_policy,minimum_spacing_seconds",
   "minimum_spacing_seconds')::numeric > 0",
   "to service_role;",
+  "update app_private.social_publication_dispatch_states as dispatch_state",
+  "update app_private.publication_jobs as job_update",
+  "update app_private.publication_batch_subscriptions as subscription_update",
 ]) {
   assert.ok(
     publicationOrchestrationMigration.includes(statement),
@@ -2118,6 +2137,22 @@ assert.equal(
   false,
   "owner publication mutations cannot be bound to customer contacts",
 );
+for (const statement of [
+  "perform api.append_agent_message(",
+  "perform api.record_agent_attempt_result(",
+]) {
+  assert.ok(
+    ownerPublicationToolsMigration.includes(statement),
+    `owner publication executor must discard unused function results explicitly: ${statement}`,
+  );
+}
+for (const forbiddenIdentifier of ["result_message_record", "attempt_result_record"]) {
+  assert.equal(
+    ownerPublicationToolsMigration.includes(forbiddenIdentifier),
+    false,
+    `owner publication executor cannot retain unused result capture: ${forbiddenIdentifier}`,
+  );
+}
 
 for (const statement of [
   "create table app_private.admin_catalog_commands (",
@@ -2145,6 +2180,11 @@ assert.equal(
   adminCatalogPanelMigration.includes("to authenticated;"),
   false,
   "admin catalog RPCs cannot be executed directly by browser roles",
+);
+assert.equal(
+  adminCatalogPanelMigration.includes("language plpgsql\nstable\nsecurity definer"),
+  false,
+  "admin catalog authorization RPC cannot claim STABLE while enforcing volatile authorization",
 );
 assert.equal(
   adminCatalogPanelMigration.split("force row level security;").length - 1,

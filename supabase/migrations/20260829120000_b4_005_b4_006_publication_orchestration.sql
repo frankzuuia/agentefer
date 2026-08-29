@@ -403,11 +403,11 @@ begin
     coalesce(target_blocked_until, target_observed_at)
   );
 
-  update app_private.social_publication_dispatch_states
-  set next_dispatch_at = greatest(next_dispatch_at, target_next_dispatch_at)
-  where organization_id = target_organization_id
-    and social_connection_id = target_connection_id
-  returning app_private.social_publication_dispatch_states.next_dispatch_at
+  update app_private.social_publication_dispatch_states as dispatch_state
+  set next_dispatch_at = greatest(dispatch_state.next_dispatch_at, target_next_dispatch_at)
+  where dispatch_state.organization_id = target_organization_id
+    and dispatch_state.social_connection_id = target_connection_id
+  returning dispatch_state.next_dispatch_at
   into target_next_dispatch_at;
 
   update app_private.publication_jobs as pending_job
@@ -839,11 +839,11 @@ begin
       raise exception using errcode = '23514', message = 'only a paused publication batch can resume';
     end if;
     target_status := 'queued';
-    update app_private.publication_jobs
-    set available_at = greatest(available_at, target_resume_at)
-    where organization_id = target_organization_id
-      and batch_id = target_publication_batch_id
-      and status in ('pending', 'retryable');
+    update app_private.publication_jobs as job_update
+    set available_at = greatest(job_update.available_at, target_resume_at)
+    where job_update.organization_id = target_organization_id
+      and job_update.batch_id = target_publication_batch_id
+      and job_update.status in ('pending', 'retryable');
   end if;
 
   update app_private.publication_batches
@@ -951,11 +951,11 @@ begin
     target_created_by_user_id
   );
 
-  update app_private.publication_jobs
+  update app_private.publication_jobs as job_update
   set retry_of_job_id = target_publication_job_id
-  where organization_id = target_organization_id
-    and id = enqueued.publication_job_id
-    and retry_of_job_id is null;
+  where job_update.organization_id = target_organization_id
+    and job_update.id = enqueued.publication_job_id
+    and job_update.retry_of_job_id is null;
 
   publication_job_id := enqueued.publication_job_id;
   retry_of_job_id := target_publication_job_id;
@@ -1173,14 +1173,14 @@ begin
       target_publication_batch_id
     );
 
-    update app_private.publication_batch_subscriptions
+    update app_private.publication_batch_subscriptions as subscription_update
     set status = 'ready',
         summary_payload = summary_value,
         available_at = target_now,
         last_error_code = null
-    where organization_id = target_organization_id
-      and publication_batch_id = target_publication_batch_id
-      and status = 'pending';
+    where subscription_update.organization_id = target_organization_id
+      and subscription_update.publication_batch_id = target_publication_batch_id
+      and subscription_update.status = 'pending';
     get diagnostics target_notifications_ready = row_count;
   end if;
 
@@ -1278,15 +1278,15 @@ begin
   where policy_version.organization_id = run_record.organization_id
     and policy_version.id = run_record.policy_version_id;
 
-  update app_private.publication_batch_subscriptions
+  update app_private.publication_batch_subscriptions as subscription_update
   set status = 'processing',
-      attempt_count = attempt_count + 1,
+      attempt_count = subscription_update.attempt_count + 1,
       lease_token = generated_lease_token,
       lease_expires_at = statement_timestamp() + make_interval(secs => target_lease_seconds),
       provider_request_id = null,
       last_error_code = null
-  where app_private.publication_batch_subscriptions.organization_id = subscription_record.organization_id
-    and app_private.publication_batch_subscriptions.id = subscription_record.id;
+  where subscription_update.organization_id = subscription_record.organization_id
+    and subscription_update.id = subscription_record.id;
 
   return query select
     subscription_record.organization_id,

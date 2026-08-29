@@ -1014,8 +1014,6 @@ declare
   authorization_record record;
   contract_record record;
   call_message_record record;
-  result_message_record record;
-  attempt_result_record record;
   resumed_record record;
   call_content jsonb;
   result_content jsonb;
@@ -1186,8 +1184,7 @@ begin
     'status', resolved_status,
     'result', resolved_result
   );
-  select * into result_message_record
-  from api.append_agent_message(
+  perform api.append_agent_message(
     target_organization_id,
     target_run_id,
     'tool-result:' || target_provider_tool_call_id,
@@ -1198,8 +1195,7 @@ begin
     'result:' || target_provider_tool_call_id,
     result_content
   );
-  select * into attempt_result_record
-  from api.record_agent_attempt_result(
+  perform api.record_agent_attempt_result(
     target_organization_id,
     target_job_attempt_id,
     target_worker_id,

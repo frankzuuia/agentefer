@@ -319,11 +319,12 @@ begin
     and connection_value.status = 'active';
 
   if not found then
-    update app_private.media_ingest_requests
+    update app_private.media_ingest_requests as request_update
     set status = 'dead_letter',
         last_error_code = 'active_whatsapp_connection_not_found',
         updated_at = statement_timestamp()
-    where organization_id = request_record.organization_id and id = request_record.id;
+    where request_update.organization_id = request_record.organization_id
+      and request_update.id = request_record.id;
     return;
   end if;
 
@@ -341,12 +342,13 @@ begin
   limit 1;
 
   if access_token_value is null then
-    update app_private.media_ingest_requests
+    update app_private.media_ingest_requests as request_update
     set status = 'retryable',
         last_error_code = 'current_whatsapp_credential_not_found',
         available_at = statement_timestamp() + interval '30 seconds',
         updated_at = statement_timestamp()
-    where organization_id = request_record.organization_id and id = request_record.id;
+    where request_update.organization_id = request_record.organization_id
+      and request_update.id = request_record.id;
     return;
   end if;
 
@@ -364,16 +366,17 @@ begin
   claimed_lease_token := extensions.gen_random_uuid();
   claimed_lease_expires_at := statement_timestamp() + pg_catalog.make_interval(secs => target_lease_seconds);
 
-  update app_private.media_ingest_requests
+  update app_private.media_ingest_requests as request_update
   set status = 'processing',
-      attempt_count = attempt_count + 1,
+      attempt_count = request_update.attempt_count + 1,
       processing_started_at = statement_timestamp(),
       lease_owner = target_worker_id,
       lease_token = claimed_lease_token,
       lease_expires_at = claimed_lease_expires_at,
       last_error_code = null,
       updated_at = statement_timestamp()
-  where organization_id = request_record.organization_id and id = request_record.id;
+  where request_update.organization_id = request_record.organization_id
+    and request_update.id = request_record.id;
 
   perform app_private.insert_agent_audit_event(
     request_record.organization_id,
@@ -436,9 +439,10 @@ begin
     raise exception using errcode = '22023', message = 'media ingest completion arguments are invalid';
   end if;
 
-  select * into request_record
-  from app_private.media_ingest_requests
-  where organization_id = target_organization_id and id = target_request_id
+  select request_value.* into request_record
+  from app_private.media_ingest_requests as request_value
+  where request_value.organization_id = target_organization_id
+    and request_value.id = target_request_id
   for update;
   if not found then
     raise exception using errcode = 'P0002', message = 'media ingest request was not found';
@@ -455,15 +459,16 @@ begin
     or request_record.lease_expires_at <= statement_timestamp() then
     raise exception using errcode = '42501', message = 'media ingest request lease is invalid';
   else
-    select * into asset_record
-    from app_private.media_assets
-    where organization_id = target_organization_id and id = target_media_asset_id;
+    select asset_value.* into asset_record
+    from app_private.media_assets as asset_value
+    where asset_value.organization_id = target_organization_id
+      and asset_value.id = target_media_asset_id;
     if not found or asset_record.source_message_id is distinct from request_record.message_id
       or asset_record.ingest_status <> 'verified' then
       raise exception using errcode = '23514', message = 'verified media asset is required';
     end if;
 
-    update app_private.media_ingest_requests
+    update app_private.media_ingest_requests as request_update
     set status = 'succeeded',
         media_asset_id = target_media_asset_id,
         completed_at = statement_timestamp(),
@@ -473,16 +478,17 @@ begin
         lease_expires_at = null,
         last_error_code = null,
         updated_at = statement_timestamp()
-    where organization_id = target_organization_id and id = target_request_id;
+    where request_update.organization_id = target_organization_id
+      and request_update.id = target_request_id;
 
-    update app_private.messages
+    update app_private.messages as message_update
     set status = 'received',
         processed_at = null,
         updated_at = statement_timestamp()
-    where organization_id = target_organization_id
-      and channel_connection_id = request_record.channel_connection_id
-      and id = request_record.message_id
-      and status = 'processed';
+    where message_update.organization_id = target_organization_id
+      and message_update.channel_connection_id = request_record.channel_connection_id
+      and message_update.id = request_record.message_id
+      and message_update.status = 'processed';
 
     perform app_private.insert_agent_audit_event(
       target_organization_id,
@@ -535,9 +541,10 @@ begin
     raise exception using errcode = '22023', message = 'media ingest failure arguments are invalid';
   end if;
 
-  select * into request_record
-  from app_private.media_ingest_requests
-  where organization_id = target_organization_id and id = target_request_id
+  select request_value.* into request_record
+  from app_private.media_ingest_requests as request_value
+  where request_value.organization_id = target_organization_id
+    and request_value.id = target_request_id
   for update;
   if not found then
     raise exception using errcode = 'P0002', message = 'media ingest request was not found';
@@ -559,11 +566,11 @@ begin
 
   next_status := case when target_retryable and request_record.attempt_count < target_max_attempts
     then 'retryable' else case when target_retryable then 'dead_letter' else 'rejected' end end;
-  update app_private.media_ingest_requests
+  update app_private.media_ingest_requests as request_update
   set status = next_status,
       available_at = case when next_status = 'retryable'
         then statement_timestamp() + pg_catalog.make_interval(secs => target_retry_delay_seconds)
-        else available_at end,
+        else request_update.available_at end,
       processing_started_at = null,
       lease_owner = null,
       lease_token = null,
@@ -571,17 +578,18 @@ begin
       last_error_code = btrim(target_error_code),
       completed_at = case when next_status in ('rejected', 'dead_letter') then statement_timestamp() else null end,
       updated_at = statement_timestamp()
-  where organization_id = target_organization_id and id = target_request_id;
+  where request_update.organization_id = target_organization_id
+    and request_update.id = target_request_id;
 
   if next_status in ('rejected', 'dead_letter') then
-    update app_private.messages
+    update app_private.messages as message_update
     set status = 'received',
         processed_at = null,
         updated_at = statement_timestamp()
-    where organization_id = target_organization_id
-      and channel_connection_id = request_record.channel_connection_id
-      and id = request_record.message_id
-      and status = 'processed';
+    where message_update.organization_id = target_organization_id
+      and message_update.channel_connection_id = request_record.channel_connection_id
+      and message_update.id = request_record.message_id
+      and message_update.status = 'processed';
   end if;
 
   perform app_private.insert_agent_audit_event(
@@ -623,8 +631,6 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare
-  attempt_record app_private.job_attempts%rowtype;
 begin
   if target_organization_id is null
     or target_job_attempt_id is null
@@ -636,7 +642,7 @@ begin
     raise exception using errcode = '22023', message = 'media visual input arguments are invalid';
   end if;
 
-  select * into attempt_record
+  perform 1
   from app_private.job_attempts as attempt_value
   where attempt_value.organization_id = target_organization_id
     and attempt_value.id = target_job_attempt_id

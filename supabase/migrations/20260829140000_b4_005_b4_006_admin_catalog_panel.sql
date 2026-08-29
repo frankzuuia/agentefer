@@ -202,7 +202,6 @@ create function api.get_facebook_catalog_admin_page(
 )
 returns jsonb
 language plpgsql
-stable
 security definer
 set search_path = ''
 as $$
