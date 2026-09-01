@@ -1,20 +1,22 @@
 begin;
 
+create extension if not exists pgtap with schema extensions;
+
 select extensions.plan(5);
 
-select has_function(
+select extensions.has_function(
   'app_private',
   'route_ready_whatsapp_image_to_vision',
   ARRAY[]::text[],
   'vision routing trigger function exists'
 );
-select has_trigger(
+select extensions.has_trigger(
   'app_private',
   'agent_runs',
   'agent_runs_route_ready_whatsapp_image_to_vision',
   'ready WhatsApp image runs use the vision model before job creation'
 );
-select function_privs_are(
+select extensions.function_privs_are(
   'app_private',
   'route_ready_whatsapp_image_to_vision',
   ARRAY[]::text[],
@@ -38,5 +40,5 @@ select extensions.ok(
   'routing is restricted to WhatsApp image messages'
 );
 
-select * from finish();
+select * from extensions.finish();
 rollback;

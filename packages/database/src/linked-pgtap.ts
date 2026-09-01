@@ -179,6 +179,8 @@ const isTapStatement = (statement: string): boolean => {
   return (
     normalized.startsWith("select extensions.plan(") ||
     normalized.startsWith("select extensions.has_") ||
+    normalized.startsWith("select extensions.col_") ||
+    normalized.startsWith("select extensions.function_") ||
     normalized.startsWith("select extensions.is(") ||
     normalized.startsWith("select extensions.ok(") ||
     normalized.startsWith("select extensions.lives_ok(") ||

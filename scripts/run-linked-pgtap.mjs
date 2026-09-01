@@ -112,7 +112,7 @@ for (const [testIndex, testPath] of testPaths.entries()) {
   const plannedTests = Number.parseInt(planLine?.slice(3) ?? "", 10);
   const passedTests = tapLines.filter((line) => line.startsWith("ok ")).length;
 
-  if (failedLines.length > 0) {
+  if (failedLines.length > 0 || passedTests !== plannedTests) {
     process.stderr.write(`${tapLines.join("\n")}\n`);
   }
 

@@ -2254,18 +2254,41 @@ const productionDatabaseTests = [
   ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
 ];
 
+const pgtapExtensionBootstrap = "create extension if not exists pgtap with schema extensions;";
+const forbiddenUnqualifiedPgtapPrefixes = [
+  "select has_",
+  "select col_",
+  "select function_",
+  "select * from finish()",
+];
+
 for (const [name, databaseTest] of productionDatabaseTests) {
   assert.ok(databaseTest.startsWith("begin;\n"), `${name} database tests must be transactional`);
   assert.ok(
     databaseTest.trimEnd().endsWith("rollback;"),
     `${name} database fixtures must roll back`,
   );
+  assert.ok(
+    databaseTest.includes(pgtapExtensionBootstrap),
+    `${name} database test must bootstrap pgTAP inside its transaction`,
+  );
+  for (const prefix of forbiddenUnqualifiedPgtapPrefixes) {
+    assert.equal(
+      databaseTest.includes(prefix),
+      false,
+      `${name} database test must schema-qualify pgTAP statement: ${prefix}`,
+    );
+  }
 }
 
 const plannedDatabaseAssertions = productionDatabaseTests.reduce((total, [name, databaseTest]) => {
   const planPrefix = "select extensions.plan(";
   const planStart = databaseTest.indexOf(planPrefix);
   assert.notEqual(planStart, -1, `${name} database test must declare its pgTAP plan`);
+  assert.ok(
+    databaseTest.indexOf(pgtapExtensionBootstrap) < planStart,
+    `${name} database test must bootstrap pgTAP before declaring its plan`,
+  );
   const countStart = planStart + planPrefix.length;
   const countEnd = databaseTest.indexOf(");", countStart);
   assert.notEqual(countEnd, -1, `${name} database test plan must be closed`);

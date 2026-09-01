@@ -44,9 +44,18 @@ describe("linked pgTAP collector", () => {
     const transformed = buildLinkedPgtapCollector(`
       begin;
       create extension if not exists pgtap with schema extensions;
-      select extensions.plan(2);
+      select extensions.plan(4);
       -- assertion with leading context
       select extensions.ok(true, 'passes');
+      select extensions.col_not_null('public', 'example', 'id', 'id is required');
+      select extensions.function_privs_are(
+        'public',
+        'example',
+        ARRAY[]::text[],
+        'public',
+        ARRAY[]::text[],
+        'example is not public'
+      );
       select set_config('request.jwt.claim.sub', 'subject', true);
       select pg_temp.throws_sqlstate('select 1', '00000', 'diagnostic');
       select * from extensions.finish();
@@ -63,6 +72,12 @@ describe("linked pgTAP collector", () => {
     );
     expect(transformed).toContain(
       "insert into pg_temp.linked_tap_results (result) select pg_temp.throws_sqlstate",
+    );
+    expect(transformed).toContain(
+      "insert into pg_temp.linked_tap_results (result) select extensions.col_not_null",
+    );
+    expect(transformed).toContain(
+      "insert into pg_temp.linked_tap_results (result) select extensions.function_privs_are",
     );
     expect(transformed).toContain("select set_config");
     expect(transformed).toContain(
