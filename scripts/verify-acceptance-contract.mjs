@@ -104,6 +104,15 @@ for (const featureEntry of featureEntries) {
     );
   }
 
+  if (featureEntry === "b4_007_facebook_page_oauth.feature") {
+    const rules = document.feature.children.filter((child) => child.rule !== undefined);
+    assert.ok(rules.length >= 4, "B4-007 must preserve its four Facebook OAuth rules");
+    assert.ok(
+      pickles.length >= 9,
+      "B4-007 must preserve owner, secret-isolation, mobile and compatibility scenarios",
+    );
+  }
+
   totalPickles += pickles.length;
 }
 

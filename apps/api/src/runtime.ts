@@ -8,6 +8,8 @@ import {
 import { createAdminCatalogGateway } from "./admin-catalog-gateway.js";
 import { createAdminMetaGateway } from "./admin-meta-gateway.js";
 import { buildApi } from "./app.js";
+import { createFacebookOAuthGraph } from "./facebook-oauth-graph.js";
+import { createFacebookOAuthRpc } from "./facebook-oauth-rpc.js";
 import { createMetaGraphGateway } from "./meta-graph-gateway.js";
 import { createMetaWebhookRpcClient } from "./meta-webhook-rpc.js";
 
@@ -46,6 +48,16 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     baseUrl: "https://graph.facebook.com",
     timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
   });
+  const facebookOAuthGraph = createFacebookOAuthGraph({
+    graphBaseUrl: "https://graph.facebook.com",
+    dialogBaseUrl: "https://www.facebook.com",
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
+  const facebookOAuthRpc = createFacebookOAuthRpc({
+    supabaseUrl: configuration.supabase.url,
+    secretKey: configuration.supabase.secretKey,
+    timeoutMilliseconds: configuration.metaWebhook.rpcTimeoutMilliseconds,
+  });
   const application = buildApi({
     readiness,
     logger,
@@ -53,6 +65,8 @@ export async function startApi(environment: RawEnvironment): Promise<ApiRuntime>
     adminCatalogGateway,
     adminMetaGateway,
     metaGraphGateway,
+    facebookOAuthGraph,
+    facebookOAuthRpc,
     apiPublicUrl: configuration.server.publicUrl,
     supabaseUrl: configuration.supabase.url,
     supabasePublishableKey: configuration.supabase.publishableKey,

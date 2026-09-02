@@ -6887,6 +6887,19 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      begin_facebook_page_oauth: {
+        Args: {
+          target_actor_user_id: string;
+          target_organization_id: string;
+          target_redirect_uri: string;
+          target_state: string;
+        };
+        Returns: {
+          api_version: string;
+          external_app_id: string;
+          oauth_session_id: string;
+        }[];
+      };
       begin_media_asset_ingest: {
         Args: {
           target_actor_kind: string;
@@ -6954,6 +6967,18 @@ export type Database = {
           lease_expires_at: string;
           lease_token: string;
           payload_safe: Json;
+        }[];
+      };
+      claim_facebook_page_oauth_exchange: {
+        Args: { target_actor_user_id: string; target_state: string };
+        Returns: {
+          api_version: string;
+          app_secret: string;
+          exchange_lease_token: string;
+          external_app_id: string;
+          oauth_session_id: string;
+          organization_id: string;
+          redirect_uri: string;
         }[];
       };
       claim_facebook_publication_job: {
@@ -7142,6 +7167,17 @@ export type Database = {
           outbox_event_id: string;
           payload: Json;
           phone_number_id: string;
+        }[];
+      };
+      complete_facebook_page_oauth: {
+        Args: {
+          target_actor_user_id: string;
+          target_oauth_session_id: string;
+          target_page_id: string;
+        };
+        Returns: {
+          page_name: string;
+          social_connection_id: string;
         }[];
       };
       complete_media_asset_ingest: {
@@ -7588,6 +7624,14 @@ export type Database = {
           tool_status: string;
           was_replayed: boolean;
         }[];
+      };
+      fail_facebook_page_oauth: {
+        Args: {
+          target_actor_user_id: string;
+          target_exchange_lease_token: string;
+          target_oauth_session_id: string;
+        };
+        Returns: undefined;
       };
       fail_meta_webhook_delivery: {
         Args: {
@@ -8431,6 +8475,16 @@ export type Database = {
           inserted_event_count: number;
           replayed_event_count: number;
         }[];
+      };
+      stage_facebook_page_oauth_pages: {
+        Args: {
+          target_actor_user_id: string;
+          target_exchange_lease_token: string;
+          target_oauth_session_id: string;
+          target_page_candidates: Json;
+          target_token_bundle: string;
+        };
+        Returns: undefined;
       };
       start_agent_job_attempt: {
         Args: {
@@ -11090,6 +11144,138 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "tool_executions";
             referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      facebook_page_credentials: {
+        Row: {
+          activated_at: string;
+          created_at: string;
+          created_by_user_id: string | null;
+          data_access_expires_at: string | null;
+          id: string;
+          meta_application_id: string;
+          organization_id: string;
+          revoked_at: string | null;
+          social_connection_id: string;
+          status: string;
+          token_expires_at: string | null;
+          vault_secret_id: string;
+          version_number: number;
+        };
+        Insert: {
+          activated_at?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          data_access_expires_at?: string | null;
+          id?: string;
+          meta_application_id: string;
+          organization_id: string;
+          revoked_at?: string | null;
+          social_connection_id: string;
+          status?: string;
+          token_expires_at?: string | null;
+          vault_secret_id: string;
+          version_number?: number;
+        };
+        Update: {
+          activated_at?: string;
+          created_at?: string;
+          created_by_user_id?: string | null;
+          data_access_expires_at?: string | null;
+          id?: string;
+          meta_application_id?: string;
+          organization_id?: string;
+          revoked_at?: string | null;
+          social_connection_id?: string;
+          status?: string;
+          token_expires_at?: string | null;
+          vault_secret_id?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "facebook_page_credentials_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "facebook_page_credentials_connection_fk";
+            columns: ["organization_id", "social_connection_id"];
+            isOneToOne: false;
+            referencedRelation: "social_connections";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      facebook_page_oauth_sessions: {
+        Row: {
+          actor_user_id: string;
+          completed_at: string | null;
+          created_at: string;
+          exchange_lease_expires_at: string | null;
+          exchange_lease_token: string | null;
+          expires_at: string;
+          id: string;
+          meta_application_id: string;
+          organization_id: string;
+          page_candidates: Json;
+          redirect_uri: string;
+          state_sha256: string;
+          status: string;
+          token_bundle_vault_secret_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          actor_user_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          exchange_lease_expires_at?: string | null;
+          exchange_lease_token?: string | null;
+          expires_at: string;
+          id?: string;
+          meta_application_id: string;
+          organization_id: string;
+          page_candidates?: Json;
+          redirect_uri: string;
+          state_sha256: string;
+          status?: string;
+          token_bundle_vault_secret_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          actor_user_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          exchange_lease_expires_at?: string | null;
+          exchange_lease_token?: string | null;
+          expires_at?: string;
+          id?: string;
+          meta_application_id?: string;
+          organization_id?: string;
+          page_candidates?: Json;
+          redirect_uri?: string;
+          state_sha256?: string;
+          status?: string;
+          token_bundle_vault_secret_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "facebook_page_oauth_sessions_application_fk";
+            columns: ["organization_id", "meta_application_id"];
+            isOneToOne: false;
+            referencedRelation: "meta_applications";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "facebook_page_oauth_sessions_organization_fk";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -16125,6 +16311,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      assert_facebook_oauth_owner: {
+        Args: { target_actor_user_id: string; target_organization_id: string };
+        Returns: undefined;
+      };
       assert_inventory_actor: {
         Args: { target_organization_id: string; target_user_id: string };
         Returns: undefined;
@@ -16323,6 +16513,7 @@ export type Database = {
         Args: { target_organization_id: string };
         Returns: string;
       };
+      expire_facebook_page_oauth_sessions: { Args: never; Returns: number };
       facebook_dispatch_policy_for_agent: {
         Args: {
           target_organization_id: string;

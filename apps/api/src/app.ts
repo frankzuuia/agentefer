@@ -10,6 +10,9 @@ import { type AdminCatalogGateway } from "./admin-catalog-gateway.js";
 import { registerAdminCatalogRoutes } from "./admin-catalog-routes.js";
 import { type AdminMetaGateway } from "./admin-meta-gateway.js";
 import { registerAdminMetaRoutes } from "./admin-meta-routes.js";
+import { type FacebookOAuthGraph } from "./facebook-oauth-graph.js";
+import { registerFacebookOAuthRoutes } from "./facebook-oauth-routes.js";
+import { type FacebookOAuthRpc } from "./facebook-oauth-rpc.js";
 import { registerHealthRoutes } from "./health.js";
 import { type MetaGraphGateway } from "./meta-graph-gateway.js";
 import { registerMetaWebhookRoutes } from "./meta-webhook-routes.js";
@@ -22,6 +25,8 @@ export interface BuildApiInput {
   readonly adminCatalogGateway: AdminCatalogGateway;
   readonly adminMetaGateway: AdminMetaGateway;
   readonly metaGraphGateway: MetaGraphGateway;
+  readonly facebookOAuthGraph: FacebookOAuthGraph;
+  readonly facebookOAuthRpc: FacebookOAuthRpc;
   readonly apiPublicUrl: string;
   readonly supabaseUrl: string;
   readonly supabasePublishableKey: string;
@@ -58,6 +63,14 @@ export function buildApi(input: BuildApiInput): FastifyInstance {
     apiPublicUrl: input.apiPublicUrl,
     supabaseUrl: input.supabaseUrl,
     supabasePublishableKey: input.supabasePublishableKey,
+  });
+  registerFacebookOAuthRoutes(application, {
+    identityGateway: input.adminMetaGateway,
+    oauthRpc: input.facebookOAuthRpc,
+    oauthGraph: input.facebookOAuthGraph,
+    logger: input.logger,
+    metrics: input.metrics,
+    apiPublicUrl: input.apiPublicUrl,
   });
   registerMetaWebhookRoutes(application, {
     rpcClient: input.metaWebhookRpcClient,

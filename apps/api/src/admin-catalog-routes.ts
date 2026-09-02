@@ -201,7 +201,7 @@ export function registerAdminCatalogRoutes(
     scope.addHook("onSend", (_request, reply, payload, hookDone) => {
       reply.header("cache-control", "no-store, max-age=0");
       reply.header("content-security-policy", contentSecurityPolicy);
-      reply.header("cross-origin-opener-policy", "same-origin");
+      reply.header("cross-origin-opener-policy", "same-origin-allow-popups");
       reply.header("cross-origin-resource-policy", "same-site");
       reply.header("origin-agent-cluster", "?1");
       reply.header("permissions-policy", "camera=(), microphone=(), geolocation=()");

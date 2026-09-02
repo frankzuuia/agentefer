@@ -50,12 +50,19 @@ export const ADMIN_CATALOG_HTML = `<!doctype html>
             <span>Negocio</span>
             <select id="organization-select"></select>
           </label>
-          <label class="select-field" for="connection-select">
-            <span>Página de Facebook</span>
-            <select id="connection-select">
-              <option value="">Sin página seleccionada</option>
-            </select>
-          </label>
+          <div class="select-field facebook-field">
+            <span id="facebook-field-label">Página de Facebook</span>
+            <div class="facebook-control">
+              <svg class="facebook-logo" viewBox="0 0 24 24" role="img" aria-label="Facebook">
+                <path fill="currentColor" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.438H7.078v-3.489h3.047V9.413c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.974h-1.513c-1.49 0-1.956.931-1.956 1.887v2.26h3.328l-.532 3.489h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+              </svg>
+              <span id="facebook-empty-text" class="facebook-empty-text">Sin página conectada</span>
+              <select id="connection-select" aria-labelledby="facebook-field-label" hidden></select>
+              <button id="connect-facebook-button" class="facebook-connect-button" type="button">
+                <span id="connect-facebook-label">Conectar Facebook</span>
+              </button>
+            </div>
+          </div>
         </section>
 
         <section id="catalog-section" class="section-panel active" data-section="catalog" aria-labelledby="catalog-title">
@@ -148,6 +155,19 @@ export const ADMIN_CATALOG_HTML = `<!doctype html>
     </form>
     <div id="sheet-content" class="sheet-content"></div>
     <div id="sheet-actions" class="sheet-actions"></div>
+  </dialog>
+
+  <dialog id="facebook-page-dialog" class="facebook-page-dialog" aria-labelledby="facebook-dialog-title">
+    <form method="dialog" class="facebook-dialog-header">
+      <div>
+        <p class="eyebrow">Facebook</p>
+        <h2 id="facebook-dialog-title">Elige la página</h2>
+      </div>
+      <button class="sheet-close" value="close" aria-label="Cerrar selección">×</button>
+    </form>
+    <p class="facebook-dialog-copy">Solo se muestran páginas donde tu autorización permite administrar contenido.</p>
+    <div id="facebook-page-options" class="facebook-page-options"></div>
+    <p id="facebook-dialog-message" class="message" role="status" aria-live="polite"></p>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
@@ -305,6 +325,34 @@ input:focus, select:focus, button:focus-visible {
 }
 .select-field { display: grid; gap: 4px; }
 .select-field span { color: var(--muted); font-size: 11px; }
+.facebook-control {
+  min-width: 0;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #d0d5dd;
+  border-radius: 11px;
+  padding: 6px 7px 6px 11px;
+  background: white;
+}
+.facebook-logo { width: 24px; height: 24px; color: #1877f2; }
+.facebook-empty-text { min-width: 0; color: var(--ink) !important; font-size: 13px !important; font-weight: 750; }
+.facebook-control select { min-width: 0; min-height: 44px; border: 0; padding-inline: 4px; box-shadow: none; }
+.facebook-connect-button {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 13px;
+  color: white;
+  background: #1877f2;
+  font-weight: 800;
+}
+.facebook-connect-button:hover { background: #0f66d0; }
+.facebook-connect-button:disabled { cursor: not-allowed; opacity: 0.55; }
+.facebook-connect-button span { color: white; font-size: 13px; }
 
 .section-panel { padding: 16px; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -427,6 +475,49 @@ input:focus, select:focus, button:focus-visible {
   box-shadow: var(--shadow);
 }
 .product-sheet::backdrop { background: rgba(16, 24, 40, 0.58); }
+.facebook-page-dialog {
+  width: min(100% - 24px, 520px);
+  max-height: min(78dvh, 620px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  color: var(--ink);
+  background: white;
+  box-shadow: var(--shadow);
+}
+.facebook-page-dialog::backdrop { background: rgba(16, 24, 40, 0.62); }
+.facebook-dialog-header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 56px 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: white;
+}
+.facebook-dialog-copy { margin: 14px 18px 10px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.facebook-page-options { max-height: min(48dvh, 380px); overflow-y: auto; overscroll-behavior: contain; padding: 4px 18px 14px; }
+.facebook-page-option {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: white;
+  font-weight: 750;
+  text-align: left;
+}
+.facebook-page-option:hover { border-color: #84adff; background: var(--blue-soft); }
+.facebook-page-option .facebook-logo { flex: 0 0 24px; }
+#facebook-dialog-message { margin: 0 18px 16px; }
 .sheet-handle-row { position: sticky; z-index: 2; top: 0; display: flex; justify-content: center; min-height: 42px; background: white; }
 .sheet-handle { width: 42px; height: 5px; margin-top: 9px; border-radius: 999px; background: #d0d5dd; }
 .sheet-close { position: absolute; right: 8px; top: 4px; width: 44px; padding: 0; border: 0; color: #475467; background: transparent; font-size: 28px; }
@@ -477,6 +568,8 @@ input:focus, select:focus, button:focus-visible {
 
 @media (min-width: 520px) {
   .context-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facebook-control { grid-template-columns: 24px minmax(0, 1fr) auto; }
+  .facebook-connect-button { grid-column: auto; min-width: 142px; }
   .filters { grid-template-columns: minmax(0, 1fr) 132px auto; }
   .filters .button { grid-column: auto; }
   .catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -530,6 +623,10 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     selectedItem: null,
     loading: false,
     toastTimer: null,
+    facebookPopup: null,
+    facebookOAuthSessionId: null,
+    facebookOAuthPages: [],
+    facebookOAuthBusy: false,
   };
 
   const authView = byId("auth-view");
@@ -539,6 +636,12 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
   const loginMessage = byId("login-message");
   const organizationSelect = byId("organization-select");
   const connectionSelect = byId("connection-select");
+  const facebookEmptyText = byId("facebook-empty-text");
+  const connectFacebookButton = byId("connect-facebook-button");
+  const connectFacebookLabel = byId("connect-facebook-label");
+  const facebookPageDialog = byId("facebook-page-dialog");
+  const facebookPageOptions = byId("facebook-page-options");
+  const facebookDialogMessage = byId("facebook-dialog-message");
   const catalogList = byId("catalog-list");
   const catalogMessage = byId("catalog-message");
   const emptyCatalog = byId("empty-catalog");
@@ -822,6 +925,143 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     pageLabel.textContent = "Página " + String(state.pageNumber);
   };
 
+  const setFacebookOAuthBusy = (busy) => {
+    state.facebookOAuthBusy = Boolean(busy);
+    connectFacebookButton.disabled = state.facebookOAuthBusy || !state.organizationId;
+    connectFacebookLabel.textContent = state.facebookOAuthBusy
+      ? "Conectando…"
+      : state.page && state.page.connections.length
+        ? "Conectar otra"
+        : "Conectar Facebook";
+    facebookPageOptions.querySelectorAll("button").forEach((button) => {
+      button.disabled = state.facebookOAuthBusy;
+    });
+  };
+
+  const closeFacebookPopup = () => {
+    if (state.facebookPopup && !state.facebookPopup.closed) state.facebookPopup.close();
+    state.facebookPopup = null;
+  };
+
+  const completeFacebookOAuth = async (pageId) => {
+    if (!state.facebookOAuthSessionId || state.facebookOAuthBusy) return;
+    setFacebookOAuthBusy(true);
+    setMessage(facebookDialogMessage, "Guardando la conexión segura…", true);
+    try {
+      const result = await apiFetch("/admin/catalog/facebook/oauth/complete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          oauthSessionId: state.facebookOAuthSessionId,
+          pageId: pageId,
+        }),
+      });
+      state.connectionId = result.socialConnectionId;
+      state.facebookOAuthSessionId = null;
+      state.facebookOAuthPages = [];
+      if (facebookPageDialog.open) facebookPageDialog.close();
+      resetPagination();
+      await loadPage();
+      showToast("Página “" + result.pageName + "” conectada.", false);
+    } catch (error) {
+      setMessage(
+        facebookDialogMessage,
+        error.message || "No se pudo guardar esta página.",
+        false,
+      );
+      showToast(error.message || "No se pudo conectar la página.", true);
+    } finally {
+      setFacebookOAuthBusy(false);
+    }
+  };
+
+  const renderFacebookPageChoices = () => {
+    facebookPageOptions.replaceChildren();
+    state.facebookOAuthPages.forEach((page) => {
+      const button = create("button", "facebook-page-option");
+      button.type = "button";
+      const logo = document.querySelector(".facebook-logo").cloneNode(true);
+      logo.setAttribute("aria-hidden", "true");
+      logo.removeAttribute("aria-label");
+      const label = create("span", "", page.name);
+      button.append(logo, label);
+      button.addEventListener("click", () => completeFacebookOAuth(page.id));
+      facebookPageOptions.append(button);
+    });
+    setMessage(facebookDialogMessage, "", false);
+    if (!facebookPageDialog.open) facebookPageDialog.showModal();
+  };
+
+  const exchangeFacebookAuthorization = async (payload) => {
+    if (state.facebookOAuthBusy) return;
+    closeFacebookPopup();
+    if (payload.error) {
+      showToast("Facebook no autorizó la conexión.", true);
+      return;
+    }
+    if (typeof payload.code !== "string" || typeof payload.state !== "string") {
+      showToast("La respuesta de Facebook no es válida.", true);
+      return;
+    }
+    setFacebookOAuthBusy(true);
+    try {
+      const result = await apiFetch("/admin/catalog/facebook/oauth/exchange", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: payload.code, state: payload.state }),
+      });
+      state.facebookOAuthSessionId = result.oauthSessionId;
+      state.facebookOAuthPages = Array.isArray(result.pages) ? result.pages : [];
+      if (state.facebookOAuthPages.length === 1) {
+        setFacebookOAuthBusy(false);
+        await completeFacebookOAuth(state.facebookOAuthPages[0].id);
+        return;
+      }
+      if (!state.facebookOAuthPages.length) throw new Error("No hay páginas administrables.");
+      renderFacebookPageChoices();
+    } catch (error) {
+      showToast(error.message || "No se pudo validar Facebook.", true);
+    } finally {
+      setFacebookOAuthBusy(false);
+    }
+  };
+
+  const startFacebookOAuth = async () => {
+    if (!state.organizationId || state.facebookOAuthBusy) return;
+    closeFacebookPopup();
+    const popup = window.open(
+      "about:blank",
+      "agentefer-facebook-oauth",
+      "popup=yes,width=560,height=720,resizable=yes,scrollbars=yes",
+    );
+    if (!popup) {
+      showToast("Permite ventanas emergentes para conectar Facebook.", true);
+      return;
+    }
+    state.facebookPopup = popup;
+    setFacebookOAuthBusy(true);
+    try {
+      const result = await apiFetch("/admin/catalog/facebook/oauth/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ organizationId: state.organizationId }),
+      });
+      const authorizationUrl = new URL(result.authorizationUrl);
+      if (
+        authorizationUrl.protocol !== "https:" ||
+        authorizationUrl.hostname !== "www.facebook.com"
+      ) {
+        throw new Error("Facebook devolvió una dirección no válida.");
+      }
+      popup.location.replace(authorizationUrl.toString());
+    } catch (error) {
+      closeFacebookPopup();
+      showToast(error.message || "No se pudo iniciar la conexión.", true);
+    } finally {
+      setFacebookOAuthBusy(false);
+    }
+  };
+
   const renderConnections = () => {
     const previous = state.connectionId;
     connectionSelect.replaceChildren();
@@ -835,6 +1075,10 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     });
     state.connectionId = state.page.selectedConnectionId || previous || null;
     connectionSelect.value = state.connectionId || "";
+    const hasConnections = state.page.connections.length > 0;
+    connectionSelect.hidden = !hasConnections;
+    facebookEmptyText.hidden = hasConnections;
+    setFacebookOAuthBusy(state.facebookOAuthBusy);
     byId("publish-all-button").disabled = !state.connectionId || state.loading;
   };
 
@@ -960,6 +1204,8 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
   };
 
   const logout = (message) => {
+    closeFacebookPopup();
+    if (facebookPageDialog.open) facebookPageDialog.close();
     state.accessToken = null;
     state.organizationId = null;
     state.connectionId = null;
@@ -1012,6 +1258,10 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
 
   byId("logout-button").addEventListener("click", () => logout("Sesión cerrada."));
   organizationSelect.addEventListener("change", async () => {
+    closeFacebookPopup();
+    if (facebookPageDialog.open) facebookPageDialog.close();
+    state.facebookOAuthSessionId = null;
+    state.facebookOAuthPages = [];
     state.organizationId = organizationSelect.value;
     state.connectionId = null;
     resetPagination();
@@ -1022,6 +1272,23 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     resetPagination();
     await loadPage();
   });
+  connectFacebookButton.addEventListener("click", startFacebookOAuth);
+  window.addEventListener("message", (event) => {
+    if (
+      event.origin !== window.location.origin ||
+      event.source !== state.facebookPopup ||
+      !event.data ||
+      event.data.type !== "agentefer.facebook-oauth"
+    ) return;
+    exchangeFacebookAuthorization(event.data);
+  });
+  if ("BroadcastChannel" in window) {
+    const facebookOAuthChannel = new BroadcastChannel("agentefer-facebook-oauth");
+    facebookOAuthChannel.addEventListener("message", (event) => {
+      if (!event.data || event.data.type !== "agentefer.facebook-oauth") return;
+      exchangeFacebookAuthorization(event.data);
+    });
+  }
   byId("filters-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     resetPagination();

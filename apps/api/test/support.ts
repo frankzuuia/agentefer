@@ -4,6 +4,8 @@ import { createOperationalMetrics, createStructuredLogger } from "@agentefer/obs
 import { createAdminCatalogGateway } from "../src/admin-catalog-gateway.js";
 import { createAdminMetaGateway } from "../src/admin-meta-gateway.js";
 import { type BuildApiInput } from "../src/app.js";
+import { createFacebookOAuthGraph } from "../src/facebook-oauth-graph.js";
+import { createFacebookOAuthRpc } from "../src/facebook-oauth-rpc.js";
 import { createMetaGraphGateway } from "../src/meta-graph-gateway.js";
 import { createMetaWebhookRpcClient } from "../src/meta-webhook-rpc.js";
 
@@ -28,6 +30,16 @@ export const buildApiTestInput = (readiness: BuildApiInput["readiness"]): BuildA
   }),
   metaGraphGateway: createMetaGraphGateway({
     baseUrl: supabaseTestUrl,
+    timeoutMilliseconds: 50,
+  }),
+  facebookOAuthGraph: createFacebookOAuthGraph({
+    graphBaseUrl: supabaseTestUrl,
+    dialogBaseUrl: supabaseTestUrl,
+    timeoutMilliseconds: 50,
+  }),
+  facebookOAuthRpc: createFacebookOAuthRpc({
+    supabaseUrl: supabaseTestUrl,
+    secretKey: supabaseTestSecret,
     timeoutMilliseconds: 50,
   }),
   apiPublicUrl: "https://agentefer.example.test",

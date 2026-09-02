@@ -52,6 +52,7 @@ assert.deepEqual(
     "20260829120000_b4_005_b4_006_publication_orchestration.sql",
     "20260829130000_b4_005_b4_006_owner_publication_tools.sql",
     "20260829140000_b4_005_b4_006_admin_catalog_panel.sql",
+    "20260901090000_b4_007_facebook_page_oauth.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -190,6 +191,10 @@ const adminCatalogPanelMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[34]),
   "utf8",
 );
+const facebookPageOauthMigration = await readFile(
+  path.join(migrationDirectory, migrationEntries[35]),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -284,6 +289,10 @@ const ownerPublicationToolsDatabaseTest = await readFile(
 );
 const adminCatalogPanelDatabaseTest = await readFile(
   path.join(testDirectory, "b4_005_b4_006_admin_catalog_panel_test.sql"),
+  "utf8",
+);
+const facebookPageOauthDatabaseTest = await readFile(
+  path.join(testDirectory, "b4_007_facebook_page_oauth_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -2227,6 +2236,49 @@ for (const statement of [
   );
 }
 
+for (const statement of [
+  "create table app_private.facebook_page_credentials (",
+  "create table app_private.facebook_page_oauth_sessions (",
+  "alter table app_private.facebook_page_credentials force row level security;",
+  "alter table app_private.facebook_page_oauth_sessions force row level security;",
+  "create function api.begin_facebook_page_oauth(",
+  "create function api.claim_facebook_page_oauth_exchange(",
+  "create function api.stage_facebook_page_oauth_pages(",
+  "create function api.complete_facebook_page_oauth(",
+  "credential_reference =",
+  "'facebook-page-credential://' || credential_record.id::text",
+  "from app_private.facebook_page_credentials as credential_record",
+  "credential_record.credential_kind = 'system_user_access_token'",
+  "grant execute on function api.begin_facebook_page_oauth(uuid, uuid, text, text)",
+]) {
+  assert.ok(
+    facebookPageOauthMigration.includes(statement),
+    `B4-007 Facebook Page OAuth migration must include: ${statement}`,
+  );
+}
+assert.equal(
+  facebookPageOauthMigration.includes("to authenticated;"),
+  false,
+  "Facebook Page OAuth RPCs cannot be executed directly by browser roles",
+);
+
+for (const statement of [
+  "select extensions.plan(28);",
+  "an organization admin cannot start the owner-only Facebook OAuth flow",
+  "raw OAuth state and provider credentials are absent from session columns",
+  "the same OAuth state cannot be claimed twice",
+  "safe Page candidates never contain their access tokens",
+  "the temporary multi-Page token bundle is destroyed after selection",
+  "the worker resolves connection-specific Page tokens with legacy fallback compatibility",
+  "a completed OAuth selection cannot be replayed",
+  "select * from extensions.finish();",
+]) {
+  assert.ok(
+    facebookPageOauthDatabaseTest.includes(statement),
+    `B4-007 Facebook Page OAuth database test must include: ${statement}`,
+  );
+}
+
 const productionDatabaseTests = [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -2252,6 +2304,7 @@ const productionDatabaseTests = [
   ["B3-005 vision model routing", visionModelRoutingDatabaseTest],
   ["B4-005/B4-006 publication orchestration", ownerPublicationToolsDatabaseTest],
   ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
+  ["B4-007 Facebook Page OAuth", facebookPageOauthDatabaseTest],
 ];
 
 const pgtapExtensionBootstrap = "create extension if not exists pgtap with schema extensions;";
@@ -2310,7 +2363,7 @@ for (const migrationEntry of migrationEntries) {
     forcedRlsTableNames.add(match[1]);
   }
 }
-assert.equal(privateTableNames.size, 101, "the private table inventory must remain reviewed");
+assert.equal(privateTableNames.size, 103, "the private table inventory must remain reviewed");
 assert.deepEqual(
   [...forcedRlsTableNames].sort(),
   [...privateTableNames].sort(),
