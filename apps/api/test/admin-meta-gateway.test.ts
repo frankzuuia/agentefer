@@ -24,6 +24,7 @@ const channelConnectionId = "b4032000-0000-4000-8000-000000000006";
 const appSecret = "real-meta-app-secret-contract-value";
 const verifyToken = "real-meta-verify-token-contract-value";
 const channelAccessToken = "real-meta-channel-access-token-contract-value";
+const facebookBusinessLoginConfigurationId = "123456789012345";
 
 const errorContracts = {
   invalid: {
@@ -156,6 +157,15 @@ const whatsappRegistrationInput = () => ({
   actorUserId: userId,
   requestId: "request-admin-meta-whatsapp-contract",
   traceId: "fedcba9876543210fedcba9876543210",
+});
+
+const facebookBusinessLoginConfigurationInput = () => ({
+  organizationId,
+  metaApplicationId,
+  configurationId: facebookBusinessLoginConfigurationId,
+  actorUserId: userId,
+  requestId: "request-admin-meta-facebook-business-login-contract",
+  traceId: "abcdef0123456789abcdef0123456789",
 });
 
 describe("admin Meta Supabase gateway over real TCP", () => {
@@ -394,6 +404,49 @@ describe("admin Meta Supabase gateway over real TCP", () => {
       target_correlation_id: "request-admin-meta-whatsapp-contract",
       target_trace_id: "fedcba9876543210fedcba9876543210",
     });
+  });
+
+  it.each([200, 204])(
+    "configures the exact tenant-scoped Facebook Login RPC with status %s",
+    async (status) => {
+      let rpcBody: Readonly<Record<string, unknown>> | undefined;
+      const baseUrl = await startServer(async (request, response) => {
+        expect(request.url).toBe("/rest/v1/rpc/configure_facebook_business_login");
+        expect(request.method).toBe("POST");
+        expect(request.headers.apikey).toBe(serviceSecret);
+        expect(request.headers["accept-profile"]).toBe("api");
+        expect(request.headers["content-profile"]).toBe("api");
+        expect(request.headers["content-type"]).toBe("application/json");
+        rpcBody = await readJsonBody(request);
+        writeJson(response, status, null);
+      });
+
+      await expect(
+        createGateway(baseUrl).configureFacebookBusinessLogin(
+          facebookBusinessLoginConfigurationInput(),
+        ),
+      ).resolves.toBeUndefined();
+      expect(rpcBody).toEqual({
+        target_organization_id: organizationId,
+        target_meta_application_id: metaApplicationId,
+        target_configuration_id: facebookBusinessLoginConfigurationId,
+        target_actor_user_id: userId,
+        target_correlation_id: "request-admin-meta-facebook-business-login-contract",
+        target_trace_id: "abcdef0123456789abcdef0123456789",
+      });
+    },
+  );
+
+  it("rejects malformed nonempty configuration success responses", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end("{");
+    });
+    await expect(
+      createGateway(baseUrl).configureFacebookBusinessLogin(
+        facebookBusinessLoginConfigurationInput(),
+      ),
+    ).rejects.toMatchObject({ kind: "dependency" });
   });
 
   it.each([

@@ -45,6 +45,7 @@ const channelConnectionId = "b4033000-0000-4000-8000-000000000006";
 const appSecret = "meta-app-secret-routes-contract-value";
 const verifyToken = "meta-verify-token-routes-contract-value";
 const channelAccessToken = "meta-channel-access-token-routes-contract-value";
+const facebookBusinessLoginConfigurationId = "123456789012345";
 
 const writeJson = (response: ServerResponse, status: number, body: unknown): void => {
   const payload = JSON.stringify(body);
@@ -155,7 +156,81 @@ const whatsappRegistrationBody = () => ({
   accessToken: channelAccessToken,
 });
 
+const facebookBusinessLoginConfigurationBody = () => ({
+  organizationId,
+  metaApplicationId,
+  configurationId: facebookBusinessLoginConfigurationId,
+});
+
 describe("admin Meta routes", () => {
+  it("authenticates and configures Facebook Login for Business for the selected organization", async () => {
+    const requests: Readonly<Record<string, unknown>>[] = [];
+    const dependencyUrl = await startDependencyServer(async (request, response) => {
+      if (request.url === "/auth/v1/user") {
+        expect(request.headers.apikey).toBe(publishableKey);
+        expect(request.headers.authorization).toBe(`Bearer ${accessToken}`);
+        writeJson(response, 200, { id: userId });
+        return;
+      }
+      if (request.url === "/rest/v1/rpc/configure_facebook_business_login") {
+        expect(request.method).toBe("POST");
+        expect(request.headers.apikey).toBe(serviceSecret);
+        requests.push(await readJsonBody(request));
+        writeJson(response, 204, null);
+        return;
+      }
+      writeJson(response, 404, {});
+    });
+    const application = createApplication(dependencyUrl);
+
+    const response = await application.inject({
+      method: "POST",
+      url: "/admin/meta/facebook-business-login",
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: facebookBusinessLoginConfigurationBody(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: "configured" });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      target_organization_id: organizationId,
+      target_meta_application_id: metaApplicationId,
+      target_configuration_id: facebookBusinessLoginConfigurationId,
+      target_actor_user_id: userId,
+    });
+    expect(typeof requests[0]?.target_correlation_id).toBe("string");
+    expect(typeof requests[0]?.target_trace_id).toBe("string");
+  });
+
+  it("rejects an invalid Facebook Login for Business envelope before dependencies", async () => {
+    const application = createApplication("http://127.0.0.1:9");
+    const response = await application.inject({
+      method: "POST",
+      url: "/admin/meta/facebook-business-login",
+      headers: { authorization: `Bearer ${accessToken}` },
+      payload: {
+        ...facebookBusinessLoginConfigurationBody(),
+        organizationOverride: "forbidden",
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ status: "invalid" });
+  });
+
+  it("requires an authenticated owner session before configuring Facebook Business Login", async () => {
+    const application = createApplication("http://127.0.0.1:9");
+    const response = await application.inject({
+      method: "POST",
+      url: "/admin/meta/facebook-business-login",
+      payload: facebookBusinessLoginConfigurationBody(),
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({ status: "unauthenticated" });
+  });
+
   it.each([
     { kind: "invalid", expectedStatus: 400 },
     { kind: "unauthenticated", expectedStatus: 401 },

@@ -179,10 +179,29 @@ update app_private.meta_applications
 set status = 'active'
 where organization_id = 'b4077100-0000-4000-8000-000000000001';
 
+set local role service_role;
+
+select api.configure_facebook_business_login(
+  'b4077100-0000-4000-8000-000000000001',
+  (
+    select id
+    from api.meta_applications
+    where organization_id = 'b4077100-0000-4000-8000-000000000001'
+  ),
+  '407788888888001',
+  'b4077000-0000-4000-8000-000000000001',
+  'b407-facebook-business-login-config',
+  'b407-facebook-business-login-trace'
+);
+
+reset role;
+set local role postgres;
+
 create temporary table pg_temp.facebook_oauth_begin (
   oauth_session_id uuid,
   external_app_id text,
-  api_version text
+  api_version text,
+  configuration_id text
 ) on commit drop;
 
 create temporary table pg_temp.facebook_oauth_claim (
@@ -242,8 +261,11 @@ reset role;
 set local role postgres;
 
 select extensions.is(
-  (select external_app_id || ':' || api_version from pg_temp.facebook_oauth_begin),
-  '407700000000001:v26.0',
+  (
+    select external_app_id || ':' || api_version || ':' || configuration_id
+    from pg_temp.facebook_oauth_begin
+  ),
+  '407700000000001:v26.0:407788888888001',
   'an owner receives only the safe Meta application identity needed for OAuth'
 );
 select extensions.ok(
@@ -301,10 +323,11 @@ select api.stage_facebook_page_oauth_pages(
     'name', 'Página Fer Pruebas',
     'tasks', jsonb_build_array('PROFILE_PLUS_CREATE_CONTENT', 'PROFILE_PLUS_MANAGE')
   )),
-  jsonb_build_array(jsonb_build_object(
-    'id', '407799999999001',
-    'access_token', 'page-access-token-0123456789abcdef'
-  ))::text
+  jsonb_build_object(
+    'token_type', 'business_integration_system_user',
+    'access_token', 'page-access-token-0123456789abcdef',
+    'page_ids', jsonb_build_array('407799999999001')
+  )::text
 );
 
 reset role;

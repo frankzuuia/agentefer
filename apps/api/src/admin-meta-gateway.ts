@@ -148,6 +148,15 @@ export type RegisteredAdminMetaWhatsAppConnection = Readonly<{
   status: "active";
 }>;
 
+export type ConfigureAdminFacebookBusinessLoginInput = Readonly<{
+  organizationId: string;
+  metaApplicationId: string;
+  configurationId: string;
+  actorUserId: string;
+  requestId: string;
+  traceId: string;
+}>;
+
 export type AdminMetaGateway = Readonly<{
   authenticate(accessToken: SensitiveValue): Promise<AdminIdentity>;
   listOrganizations(accessToken: SensitiveValue): Promise<readonly AdminOrganization[]>;
@@ -165,6 +174,7 @@ export type AdminMetaGateway = Readonly<{
   registerMetaWhatsAppConnection(
     input: RegisterAdminMetaWhatsAppConnectionInput,
   ): Promise<RegisteredAdminMetaWhatsAppConnection>;
+  configureFacebookBusinessLogin(input: ConfigureAdminFacebookBusinessLoginInput): Promise<void>;
 }>;
 
 export type CreateAdminMetaGatewayInput = Readonly<{
@@ -180,7 +190,8 @@ type RequestOperation =
   | "applications"
   | "whatsapp-connections"
   | "register"
-  | "register-whatsapp";
+  | "register-whatsapp"
+  | "configure-facebook-business-login";
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -261,7 +272,12 @@ const failureKindForResponse = (
     return "unauthorized";
   }
 
-  if ((operation === "register" || operation === "register-whatsapp") && status === 409) {
+  if (
+    (operation === "register" ||
+      operation === "register-whatsapp" ||
+      operation === "configure-facebook-business-login") &&
+    status === 409
+  ) {
     return "conflict";
   }
 
@@ -306,6 +322,11 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
     if (!response.ok) {
       await response.body?.cancel();
       throw new AdminMetaGatewayError(failureKindForResponse(operation, response.status));
+    }
+
+    if (operation === "configure-facebook-business-login" && response.status === 204) {
+      await response.body?.cancel();
+      return undefined;
     }
 
     return decodeJsonResponse(response);
@@ -544,6 +565,29 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
         displayPhoneNumber: readText(row, "display_phone_number", 64),
         verifiedName: readText(row, "verified_name", 160),
         status: "active" as const,
+      });
+    },
+    async configureFacebookBusinessLogin(inputValue) {
+      const url = new URL(baseUrl);
+      url.pathname = "/rest/v1/rpc/configure_facebook_business_login";
+
+      await execute("configure-facebook-business-login", url, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "accept-profile": "api",
+          apikey: input.secretKey.reveal(),
+          "content-profile": "api",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          target_organization_id: inputValue.organizationId,
+          target_meta_application_id: inputValue.metaApplicationId,
+          target_configuration_id: inputValue.configurationId,
+          target_actor_user_id: inputValue.actorUserId,
+          target_correlation_id: inputValue.requestId,
+          target_trace_id: inputValue.traceId,
+        }),
       });
     },
   });

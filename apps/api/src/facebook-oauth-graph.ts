@@ -6,12 +6,9 @@ import { type FacebookPageCandidate } from "./facebook-oauth-rpc.js";
 const MAXIMUM_RESPONSE_BYTES = 262_144;
 const MAXIMUM_PAGE_COUNT = 100;
 const MAXIMUM_PAGE_TASKS = 100;
-const REQUIRED_SCOPES = Object.freeze([
-  "pages_show_list",
-  "pages_read_engagement",
-  "pages_manage_posts",
-]);
 const CONTENT_TASKS = Object.freeze([
+  "CREATE_CONTENT",
+  "MANAGE",
   "PROFILE_PLUS_CREATE_CONTENT",
   "PROFILE_PLUS_FULL_CONTROL",
   "PROFILE_PLUS_MANAGE",
@@ -26,6 +23,7 @@ export type FacebookOAuthGraph = Readonly<{
   createAuthorizationUrl(input: {
     apiVersion: string;
     externalAppId: string;
+    configurationId: string;
     redirectUri: string;
     state: string;
   }): string;
@@ -87,10 +85,13 @@ const isGraphApiVersion = (value: string): boolean => {
   return decimalPointSeen && digitAfterDecimal;
 };
 
-const readAsciiDecimalIdentifier = (value: unknown): string => {
+const readAsciiDecimalIdentifier = (
+  value: unknown,
+  failureKind: "invalid" | "dependency" = "dependency",
+): string => {
   const identifier = readText(value, 64);
   for (const character of identifier) {
-    if (character < "0" || character > "9") throw new AdminMetaGatewayError("dependency");
+    if (character < "0" || character > "9") throw new AdminMetaGatewayError(failureKind);
   }
   return identifier;
 };
@@ -177,43 +178,46 @@ export function createFacebookOAuthGraph(input: CreateFacebookOAuthGraphInput): 
     createAuthorizationUrl(authorizeInput) {
       const url = createVersionedUrl(dialogBaseUrl, authorizeInput.apiVersion, "dialog/oauth");
       url.searchParams.set("client_id", authorizeInput.externalAppId);
+      url.searchParams.set(
+        "config_id",
+        readAsciiDecimalIdentifier(authorizeInput.configurationId, "invalid"),
+      );
       url.searchParams.set("redirect_uri", authorizeInput.redirectUri);
       url.searchParams.set("state", authorizeInput.state);
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("scope", REQUIRED_SCOPES.join(","));
+      url.searchParams.set("override_default_response_type", "true");
       return url.toString();
     },
     async exchangeCodeAndListPages(exchangeInput) {
-      const shortLivedToken = await exchangeToken(exchangeInput.apiVersion, {
+      const systemUserToken = await exchangeToken(exchangeInput.apiVersion, {
         client_id: exchangeInput.externalAppId,
         client_secret: exchangeInput.appSecret.reveal(),
         redirect_uri: exchangeInput.redirectUri,
         code: exchangeInput.code,
       });
-      const longLivedToken = await exchangeToken(exchangeInput.apiVersion, {
-        grant_type: "fb_exchange_token",
-        client_id: exchangeInput.externalAppId,
-        client_secret: exchangeInput.appSecret.reveal(),
-        fb_exchange_token: shortLivedToken.reveal(),
-      });
-      const pagesUrl = createVersionedUrl(graphBaseUrl, exchangeInput.apiVersion, "me/accounts");
-      pagesUrl.searchParams.set("fields", "id,name,access_token,tasks");
-      pagesUrl.searchParams.set("limit", String(MAXIMUM_PAGE_COUNT));
+      const pagesUrl = createVersionedUrl(graphBaseUrl, exchangeInput.apiVersion, "me");
+      pagesUrl.searchParams.set(
+        "fields",
+        `id,assigned_pages.limit(${String(MAXIMUM_PAGE_COUNT)}){id,name,tasks}`,
+      );
       const pagesValue = await execute(pagesUrl, {
         method: "GET",
-        headers: { authorization: `Bearer ${longLivedToken.reveal()}` },
+        headers: { authorization: `Bearer ${systemUserToken.reveal()}` },
       });
-      if (!isRecord(pagesValue) || !Array.isArray(pagesValue.data)) {
+      if (
+        !isRecord(pagesValue) ||
+        !isRecord(pagesValue.assigned_pages) ||
+        !Array.isArray(pagesValue.assigned_pages.data)
+      ) {
         throw new AdminMetaGatewayError("dependency");
       }
-      if (pagesValue.data.length > MAXIMUM_PAGE_COUNT) {
+      if (pagesValue.assigned_pages.data.length > MAXIMUM_PAGE_COUNT) {
         throw new AdminMetaGatewayError("unauthorized");
       }
 
       const candidates: FacebookPageCandidate[] = [];
-      const tokenBundle: { id: string; access_token: string }[] = [];
       const seenIds = new Set<string>();
-      for (const pageValue of pagesValue.data) {
+      for (const pageValue of pagesValue.assigned_pages.data) {
         if (!isRecord(pageValue) || !Array.isArray(pageValue.tasks)) {
           throw new AdminMetaGatewayError("dependency");
         }
@@ -222,7 +226,6 @@ export function createFacebookOAuthGraph(input: CreateFacebookOAuthGraphInput): 
         }
         const id = readAsciiDecimalIdentifier(pageValue.id);
         const name = readText(pageValue.name, 160);
-        const accessToken = readText(pageValue.access_token, 65_536);
         const tasks = Object.freeze(
           [...new Set(pageValue.tasks.map((task) => readText(task, 160)))].sort(),
         );
@@ -230,12 +233,17 @@ export function createFacebookOAuthGraph(input: CreateFacebookOAuthGraphInput): 
         seenIds.add(id);
         if (!CONTENT_TASKS.some((task) => tasks.includes(task))) continue;
         candidates.push(Object.freeze({ id, name, tasks }));
-        tokenBundle.push({ id, access_token: accessToken });
       }
       if (candidates.length < 1) throw new AdminMetaGatewayError("unauthorized");
       return Object.freeze({
         candidates: Object.freeze(candidates),
-        tokenBundle: new SensitiveValue(JSON.stringify(tokenBundle)),
+        tokenBundle: new SensitiveValue(
+          JSON.stringify({
+            token_type: "business_integration_system_user",
+            access_token: systemUserToken.reveal(),
+            page_ids: candidates.map((candidate) => candidate.id),
+          }),
+        ),
       });
     },
   });

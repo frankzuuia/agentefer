@@ -22,6 +22,7 @@ import {
   ADMIN_META_JAVASCRIPT,
 } from "./admin-meta-page.js";
 import {
+  parseAdminFacebookBusinessLoginConfigurationBody,
   parseAdminMetaRegistrationBody,
   parseAdminMetaWhatsAppRegistrationBody,
   parseAdminOrganizationQuery,
@@ -35,6 +36,7 @@ const APPLICATIONS_OPERATION = "admin.meta.applications";
 const WHATSAPP_CONNECTIONS_OPERATION = "admin.meta.whatsapp_connections";
 const REGISTER_OPERATION = "admin.meta.register";
 const REGISTER_WHATSAPP_OPERATION = "admin.meta.whatsapp_register";
+const CONFIGURE_FACEBOOK_BUSINESS_LOGIN_OPERATION = "admin.meta.facebook_business_login.configure";
 const MAXIMUM_ADMIN_BODY_BYTES = 140_000;
 
 type AdminMetaRouteInput = Readonly<{
@@ -488,6 +490,58 @@ const handleWhatsAppRegistration = async (
   });
 };
 
+const handleFacebookBusinessLoginConfiguration = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminMetaRouteInput,
+): Promise<void> => {
+  const configuration = parseAdminFacebookBusinessLoginConfigurationBody(request.body);
+  const scope = createCorrelationScope({ organizationId: configuration?.organizationId });
+
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(CONFIGURE_FACEBOOK_BUSINESS_LOGIN_OPERATION);
+
+    try {
+      requireJsonContentType(request);
+      if (configuration === undefined) {
+        throw new AdminMetaHttpError(
+          "ADMIN_META_FACEBOOK_BUSINESS_LOGIN_INVALID",
+          "validation",
+          400,
+        );
+      }
+
+      const accessToken = requireAccessToken(request);
+      const identity = await input.gateway.authenticate(accessToken);
+      await input.gateway.configureFacebookBusinessLogin({
+        organizationId: configuration.organizationId,
+        metaApplicationId: configuration.metaApplicationId,
+        configurationId: configuration.configurationId,
+        actorUserId: identity.userId,
+        requestId: scope.identifiers.requestId,
+        traceId: scope.identifiers.traceId,
+      });
+
+      input.metrics.recordCompleted({
+        operation: CONFIGURE_FACEBOOK_BUSINESS_LOGIN_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      input.logger.info("admin.meta.facebook_business_login.configured", "succeeded", {
+        organization_id: configuration.organizationId,
+        actor_user_id: identity.userId,
+        meta_application_id: configuration.metaApplicationId,
+      });
+      reply.code(200).send({ status: "configured" });
+    } catch (error) {
+      const failure = classifyAdminMetaFailure(error);
+      recordFailure(input, CONFIGURE_FACEBOOK_BUSINESS_LOGIN_OPERATION, startedAt, failure);
+      sendFailure(reply, failure);
+    }
+  });
+};
+
 const createContentSecurityPolicy = (supabaseUrl: string): string => {
   const supabaseOrigin = new URL(supabaseUrl).origin;
   return [
@@ -568,6 +622,11 @@ export function registerAdminMetaRoutes(
       "/admin/meta/whatsapp-connections",
       { bodyLimit: MAXIMUM_ADMIN_BODY_BYTES },
       (request, reply) => handleWhatsAppRegistration(request, reply, input),
+    );
+    scope.post(
+      "/admin/meta/facebook-business-login",
+      { bodyLimit: MAXIMUM_ADMIN_BODY_BYTES },
+      (request, reply) => handleFacebookBusinessLoginConfiguration(request, reply, input),
     );
     done();
   };

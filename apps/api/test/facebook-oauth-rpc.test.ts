@@ -90,6 +90,7 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
             oauth_session_id: oauthSessionId,
             external_app_id: "216409300082702",
             api_version: "v26.0",
+            configuration_id: "765432109876543",
           },
         ]);
       } else if (path.endsWith("/claim_facebook_page_oauth_exchange")) {
@@ -127,11 +128,13 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
       oauthSessionId,
       actorUserId,
       exchangeLeaseToken: leaseToken,
-      candidates: [
-        { id: "123456789", name: "Llantas Fer", tasks: ["PROFILE_PLUS_CREATE_CONTENT"] },
-      ],
+      candidates: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
       tokenBundle: new SensitiveValue(
-        JSON.stringify([{ id: "123456789", access_token: pageToken }]),
+        JSON.stringify({
+          token_type: "business_integration_system_user",
+          access_token: pageToken,
+          page_ids: ["123456789"],
+        }),
       ),
     });
     await rpc.failExchange({ oauthSessionId, actorUserId, exchangeLeaseToken: leaseToken });
@@ -141,6 +144,7 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
       oauthSessionId,
       externalAppId: "216409300082702",
       apiVersion: "v26.0",
+      configurationId: "765432109876543",
     });
     expect(claimed.appSecret.reveal()).toBe(appSecret);
     expect(JSON.stringify(claimed)).not.toContain(appSecret);
@@ -150,7 +154,11 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
       target_oauth_session_id: oauthSessionId,
       target_actor_user_id: actorUserId,
       target_exchange_lease_token: leaseToken,
-      target_token_bundle: JSON.stringify([{ id: "123456789", access_token: pageToken }]),
+      target_token_bundle: JSON.stringify({
+        token_type: "business_integration_system_user",
+        access_token: pageToken,
+        page_ids: ["123456789"],
+      }),
     });
     expect(requests[4]?.body).toMatchObject({ target_page_id: "123456789" });
   });
@@ -201,8 +209,26 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
   });
 
   it.each([
-    [[{ oauth_session_id: "invalid", external_app_id: "123", api_version: "v26.0" }]],
-    [[{ oauth_session_id: oauthSessionId, external_app_id: "", api_version: "v26.0" }]],
+    [
+      [
+        {
+          oauth_session_id: "invalid",
+          external_app_id: "123",
+          api_version: "v26.0",
+          configuration_id: "765432109876543",
+        },
+      ],
+    ],
+    [
+      [
+        {
+          oauth_session_id: oauthSessionId,
+          external_app_id: "",
+          api_version: "v26.0",
+          configuration_id: "765432109876543",
+        },
+      ],
+    ],
     [{ unexpected: true }],
   ])("rejects malformed RPC success contract %#", async (body) => {
     const url = await startServer((_request, response) => {

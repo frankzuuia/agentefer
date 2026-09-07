@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  parseAdminFacebookBusinessLoginConfigurationBody,
   parseAdminMetaWhatsAppRegistrationBody,
   parseAdminMetaRegistrationBody,
   parseAdminOrganizationQuery,
@@ -145,6 +146,55 @@ describe("admin Meta protocol", () => {
     expect(parseAdminOrganizationQuery({ organizationId, extra: "blocked" })).toBeUndefined();
     expect(parseAdminOrganizationQuery({ organizationId: "not-a-uuid" })).toBeUndefined();
     expect(parseAdminOrganizationQuery(undefined)).toBeUndefined();
+  });
+
+  it("normalizes an exact Facebook Login for Business configuration", () => {
+    expect(
+      parseAdminFacebookBusinessLoginConfigurationBody({
+        organizationId,
+        metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+        configurationId: " 123456789012345 ",
+      }),
+    ).toEqual({
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      configurationId: "123456789012345",
+    });
+  });
+
+  it.each([
+    undefined,
+    null,
+    [],
+    {},
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      configurationId: "123456789012345",
+      extra: "blocked",
+    },
+    {
+      organizationId: "not-a-uuid",
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      configurationId: "123456789012345",
+    },
+    {
+      organizationId,
+      metaApplicationId: "not-a-uuid",
+      configurationId: "123456789012345",
+    },
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      configurationId: "config-123",
+    },
+    {
+      organizationId,
+      metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+      configurationId: "9".repeat(65),
+    },
+  ])("rejects an invalid Facebook Login for Business configuration", (configuration) => {
+    expect(parseAdminFacebookBusinessLoginConfigurationBody(configuration)).toBeUndefined();
   });
 
   it("normalizes a WhatsApp channel registration and protects its token", () => {

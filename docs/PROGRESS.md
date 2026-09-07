@@ -11,6 +11,21 @@ Regla: una tarea solo pasa a completada con entregable real y evidencia de valid
 - `BLOCKED` solo si existe impedimento externo real documentado.
 - `NO-BUILD` decisión explícita de no construir hasta nueva autorización/evidencia.
 
+## Actualización 2026-09-06 — Facebook Login for Business del catálogo
+
+Esta actualización describe únicamente la conexión de páginas; no certifica tareas históricas
+pendientes ni el bloque de infraestructura con numeración similar.
+
+- [x] OAuth empresarial con configuración por organización, dueño autenticado, estado de un solo
+  uso, credencial en Vault y selección de páginas sin exponer tokens al navegador.
+- [x] Migraciones `20260906180000` y `20260906221500` aplicadas exclusivamente en Supabase AgenteFer.
+- [x] Configuración `AgenteFer Páginas` creada en Meta Frkleads; app aún en modo de pruebas.
+- [x] 1,022 pruebas, 1,266 aserciones pgTAP, 99.05% mutación TypeScript y 7/7 mutantes SQL.
+- [ ] Despliegue de esta actualización en EasyPanel `agente-fer/api` y verificación HTTPS.
+- [ ] Consentimiento real del dueño y selección de su página en el catálogo.
+
+Evidencia y reproducción: [Facebook Business Login QA](quality/FACEBOOK-BUSINESS-LOGIN-QA.md).
+
 ## Bloque 0 — Frontera, requisitos y especificación
 
 | ID     | Fuente                       | Entregable                                                           | Validación                                         | Estado |

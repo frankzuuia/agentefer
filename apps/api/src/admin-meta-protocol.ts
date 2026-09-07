@@ -27,6 +27,12 @@ export type AdminMetaWhatsAppRegistrationInput = Readonly<{
   accessToken: SensitiveValue;
 }>;
 
+export type AdminFacebookBusinessLoginConfigurationInput = Readonly<{
+  organizationId: string;
+  metaApplicationId: string;
+  configurationId: string;
+}>;
+
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -230,4 +236,26 @@ export const parseAdminMetaWhatsAppRegistrationBody = (
     phoneNumberId,
     accessToken,
   });
+};
+
+export const parseAdminFacebookBusinessLoginConfigurationBody = (
+  value: unknown,
+): AdminFacebookBusinessLoginConfigurationInput | undefined => {
+  if (!isRecord(value) || Object.keys(value).length !== 3) {
+    return undefined;
+  }
+
+  const organizationId = parseMetaEndpointKey(value.organizationId);
+  const metaApplicationId = parseMetaEndpointKey(value.metaApplicationId);
+  const configurationId = readMetaNumericIdentifier(value, "configurationId");
+
+  if (
+    organizationId === undefined ||
+    metaApplicationId === undefined ||
+    configurationId === undefined
+  ) {
+    return undefined;
+  }
+
+  return Object.freeze({ organizationId, metaApplicationId, configurationId });
 };

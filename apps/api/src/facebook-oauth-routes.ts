@@ -165,6 +165,7 @@ const handleStart = async (
       const authorizationUrl = input.oauthGraph.createAuthorizationUrl({
         apiVersion: session.apiVersion,
         externalAppId: session.externalAppId,
+        configurationId: session.configurationId,
         redirectUri,
         state,
       });

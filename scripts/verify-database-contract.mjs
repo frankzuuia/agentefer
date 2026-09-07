@@ -53,6 +53,8 @@ assert.deepEqual(
     "20260829130000_b4_005_b4_006_owner_publication_tools.sql",
     "20260829140000_b4_005_b4_006_admin_catalog_panel.sql",
     "20260901090000_b4_007_facebook_page_oauth.sql",
+    "20260906180000_b4_008_facebook_business_login.sql",
+    "20260906221500_b4_008a_facebook_business_login_authorization_alignment.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );

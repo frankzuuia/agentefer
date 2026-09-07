@@ -9,7 +9,8 @@ import { createFacebookOAuthGraph, type FacebookOAuthGraph } from "../src/facebo
 
 const servers: Server[] = [];
 const appSecretValue = "facebook-app-secret-contract-value";
-const pageTokenValue = "facebook-page-access-token-contract-value";
+const systemUserTokenValue = "facebook-system-user-token-contract-value";
+const configurationId = "765432109876543";
 
 const writeJson = (response: ServerResponse, status: number, value: unknown): void => {
   const body = JSON.stringify(value);
@@ -75,25 +76,26 @@ const exchangeInput = () => ({
 });
 
 describe("Facebook OAuth Graph gateway over real TCP", () => {
-  it("builds the versioned Meta dialog with only the required Page scopes", () => {
+  it("builds the versioned Meta Business Login dialog without client-side scopes", () => {
     const url = new URL(
       createGateway("https://graph.facebook.com").createAuthorizationUrl({
         apiVersion: "v26.0",
         externalAppId: "216409300082702",
+        configurationId,
         redirectUri: "https://agentefer.example.test/admin/catalog/facebook/callback",
         state: "state-contract-value-with-enough-entropy",
       }),
     );
     expect(url.origin).toBe("https://www.facebook.com");
     expect(url.pathname).toBe("/v26.0/dialog/oauth");
-    expect(url.searchParams.get("scope")).toBe(
-      "pages_show_list,pages_read_engagement,pages_manage_posts",
-    );
+    expect(url.searchParams.get("config_id")).toBe(configurationId);
+    expect(url.searchParams.has("scope")).toBe(false);
     expect(url.searchParams.get("response_type")).toBe("code");
+    expect(url.searchParams.get("override_default_response_type")).toBe("true");
     expect(url.searchParams.has("client_secret")).toBe(false);
   });
 
-  it("exchanges server-side tokens and returns only publish-capable safe Page candidates", async () => {
+  it("exchanges a server-side system token and returns only assigned publish-capable Pages", async () => {
     const bodies: string[] = [];
     const url = await startServer(async (request, response) => {
       if (request.url === "/v26.0/oauth/access_token") {
@@ -101,30 +103,28 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
         bodies.push(body);
         const parameters = new URLSearchParams(body);
         expect(parameters.get("client_secret")).toBe(appSecretValue);
-        writeJson(response, 200, {
-          access_token: parameters.has("fb_exchange_token")
-            ? "long-lived-user-token-value"
-            : "short-lived-user-token-value",
-        });
+        expect(parameters.has("fb_exchange_token")).toBe(false);
+        writeJson(response, 200, { access_token: systemUserTokenValue });
         return;
       }
-      if (request.url?.startsWith("/v26.0/me/accounts?")) {
-        expect(request.headers.authorization).toBe("Bearer long-lived-user-token-value");
+      if (request.url?.startsWith("/v26.0/me?")) {
+        expect(request.headers.authorization).toBe(`Bearer ${systemUserTokenValue}`);
         writeJson(response, 200, {
-          data: [
-            {
-              id: "103456789",
-              name: "Llantas Fer",
-              access_token: pageTokenValue,
-              tasks: ["PROFILE_PLUS_CREATE_CONTENT", "PROFILE_PLUS_MESSAGING"],
-            },
-            {
-              id: "987654321",
-              name: "Solo estadísticas",
-              access_token: "unreturned-page-token-value",
-              tasks: ["PROFILE_PLUS_ANALYZE"],
-            },
-          ],
+          id: "112233445566778",
+          assigned_pages: {
+            data: [
+              {
+                id: "103456789",
+                name: "Llantas Fer",
+                tasks: ["CREATE_CONTENT", "ANALYZE"],
+              },
+              {
+                id: "987654321",
+                name: "Solo estadísticas",
+                tasks: ["ANALYZE"],
+              },
+            ],
+          },
         });
         return;
       }
@@ -132,18 +132,20 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
     });
 
     const result = await createGateway(url).exchangeCodeAndListPages(exchangeInput());
-    expect(bodies).toHaveLength(2);
+    expect(bodies).toHaveLength(1);
     expect(result.candidates).toEqual([
       {
         id: "103456789",
         name: "Llantas Fer",
-        tasks: ["PROFILE_PLUS_CREATE_CONTENT", "PROFILE_PLUS_MESSAGING"],
+        tasks: ["ANALYZE", "CREATE_CONTENT"],
       },
     ]);
-    expect(JSON.stringify(result.candidates)).not.toContain(pageTokenValue);
-    expect(JSON.parse(result.tokenBundle.reveal())).toEqual([
-      { id: "103456789", access_token: pageTokenValue },
-    ]);
+    expect(JSON.stringify(result.candidates)).not.toContain(systemUserTokenValue);
+    expect(JSON.parse(result.tokenBundle.reveal())).toEqual({
+      token_type: "business_integration_system_user",
+      access_token: systemUserTokenValue,
+      page_ids: ["103456789"],
+    });
   });
 
   it("accepts the shortest supported Graph version", () => {
@@ -151,6 +153,7 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
       createGateway("https://graph.facebook.com").createAuthorizationUrl({
         apiVersion: "v1.0",
         externalAppId: "123",
+        configurationId,
         redirectUri: "https://agentefer.example.test/callback",
         state: "state-contract-value-with-enough-entropy",
       }),
@@ -158,13 +161,79 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
     expect(url.pathname).toBe("/v1.0/dialog/oauth");
   });
 
-  it.each(["latest", "v", "x1.0", "v.1", "v1.", "v1.2.3", "vA.1", "v1.A", "v10"])(
+  it("accepts decimal nines in both Graph version components", () => {
+    const url = new URL(
+      createGateway("https://graph.facebook.com").createAuthorizationUrl({
+        apiVersion: "v19.9",
+        externalAppId: "999",
+        configurationId: "999999999999999",
+        redirectUri: "https://agentefer.example.test/callback",
+        state: "state-contract-value-with-enough-entropy",
+      }),
+    );
+
+    expect(url.pathname).toBe("/v19.9/dialog/oauth");
+  });
+
+  it("rejects a Graph version whose decimal point has no preceding digit", () => {
+    expect(() =>
+      createGateway("https://graph.facebook.com").createAuthorizationUrl({
+        apiVersion: "v.10",
+        externalAppId: "123",
+        configurationId,
+        redirectUri: "https://agentefer.example.test/callback",
+        state: "state-contract-value-with-enough-entropy",
+      }),
+    ).toThrow(expect.objectContaining({ kind: "invalid" }));
+  });
+
+  it("rejects a Graph version whose decimal point has no following digit", () => {
+    expect(() =>
+      createGateway("https://graph.facebook.com").createAuthorizationUrl({
+        apiVersion: "v10.",
+        externalAppId: "123",
+        configurationId,
+        redirectUri: "https://agentefer.example.test/callback",
+        state: "state-contract-value-with-enough-entropy",
+      }),
+    ).toThrow(expect.objectContaining({ kind: "invalid" }));
+  });
+
+  it("rejects a Graph version component below the ASCII decimal range", () => {
+    expect(() =>
+      createGateway("https://graph.facebook.com").createAuthorizationUrl({
+        apiVersion: "v/.1",
+        externalAppId: "123",
+        configurationId,
+        redirectUri: "https://agentefer.example.test/callback",
+        state: "state-contract-value-with-enough-entropy",
+      }),
+    ).toThrow(expect.objectContaining({ kind: "invalid" }));
+  });
+
+  it.each(["/123", ":123", "123/", "123:"])(
+    "rejects non-decimal Business Login configuration identifier %s",
+    (invalidConfigurationId) => {
+      expect(() =>
+        createGateway("https://graph.facebook.com").createAuthorizationUrl({
+          apiVersion: "v26.0",
+          externalAppId: "123",
+          configurationId: invalidConfigurationId,
+          redirectUri: "https://agentefer.example.test/callback",
+          state: "state-contract-value-with-enough-entropy",
+        }),
+      ).toThrow(expect.objectContaining({ kind: "invalid" }));
+    },
+  );
+
+  it.each(["latest", "v", "x1.0", "v.1", "v1.", "v1.2.3", "vA.1", "v1.A", "v10", "v100"])(
     "rejects invalid Graph version %s before making a provider request",
     (apiVersion) => {
       expect(() =>
         createGateway("https://graph.facebook.com").createAuthorizationUrl({
           apiVersion,
           externalAppId: "123",
+          configurationId,
           redirectUri: "https://agentefer.example.test/callback",
           state: "state-contract-value-with-enough-entropy",
         }),
@@ -174,7 +243,7 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
 
   it("maps provider authorization failures without exposing its response", async () => {
     const url = await startServer((_request, response) => {
-      writeJson(response, 403, { error: { message: pageTokenValue } });
+      writeJson(response, 403, { error: { message: systemUserTokenValue } });
     });
     await expect(
       createGateway(url).exchangeCodeAndListPages(exchangeInput()),
@@ -185,19 +254,14 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
     let tokenCalls = 0;
     const url = await startServer((_request, response) => {
       tokenCalls += 1;
-      if (tokenCalls <= 2) {
-        writeJson(response, 200, { access_token: "bounded-user-token-value" });
+      if (tokenCalls === 1) {
+        writeJson(response, 200, { access_token: systemUserTokenValue });
         return;
       }
       writeJson(response, 200, {
-        data: [
-          {
-            id: "123",
-            name: "Sin publicar",
-            access_token: pageTokenValue,
-            tasks: ["PROFILE_PLUS_ANALYZE"],
-          },
-        ],
+        assigned_pages: {
+          data: [{ id: "123", name: "Sin publicar", tasks: ["ANALYZE"] }],
+        },
       });
     });
     await expect(
@@ -206,63 +270,66 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
   });
 
   it.each([
-    [{ data: [] }, "unauthorized"],
-    [{ not_data: [] }, "dependency"],
-    [{ data: [null] }, "dependency"],
+    [{ assigned_pages: { data: [] } }, "unauthorized"],
+    [{ not_assigned_pages: [] }, "dependency"],
+    [{ assigned_pages: { data: [null] } }, "dependency"],
     [
       {
-        data: [
-          {
-            id: "123",
-            name: "Sin tareas",
-            access_token: pageTokenValue,
-          },
-        ],
+        assigned_pages: {
+          data: [
+            {
+              id: "123",
+              name: "Sin tareas",
+            },
+          ],
+        },
       },
       "dependency",
     ],
     [
       {
-        data: [
-          {
-            id: "not-decimal",
-            name: "Página inválida",
-            access_token: pageTokenValue,
-            tasks: ["PROFILE_PLUS_CREATE_CONTENT"],
-          },
-        ],
+        assigned_pages: {
+          data: [
+            {
+              id: "not-decimal",
+              name: "Página inválida",
+              tasks: ["CREATE_CONTENT"],
+            },
+          ],
+        },
       },
       "dependency",
     ],
     [
       {
-        data: [
-          {
-            id: "123",
-            name: "Duplicada",
-            access_token: pageTokenValue,
-            tasks: ["PROFILE_PLUS_CREATE_CONTENT"],
-          },
-          {
-            id: "123",
-            name: "Duplicada otra vez",
-            access_token: pageTokenValue,
-            tasks: ["PROFILE_PLUS_FULL_CONTROL"],
-          },
-        ],
+        assigned_pages: {
+          data: [
+            {
+              id: "123",
+              name: "Duplicada",
+              tasks: ["CREATE_CONTENT"],
+            },
+            {
+              id: "123",
+              name: "Duplicada otra vez",
+              tasks: ["MANAGE"],
+            },
+          ],
+        },
       },
       "dependency",
     ],
     [
       {
-        data: [
-          {
-            id: "123",
-            name: "Demasiadas tareas",
-            access_token: pageTokenValue,
-            tasks: Array.from({ length: 101 }, (_value, index) => `TASK_${String(index)}`),
-          },
-        ],
+        assigned_pages: {
+          data: [
+            {
+              id: "123",
+              name: "Demasiadas tareas",
+              tasks: Array.from({ length: 101 }, (_value, index) => `TASK_${String(index)}`),
+            },
+          ],
+        },
       },
       "dependency",
     ],
@@ -273,7 +340,7 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
       writeJson(
         response,
         200,
-        tokenCalls <= 2 ? { access_token: "bounded-user-token-value" } : pageResponse,
+        tokenCalls === 1 ? { access_token: systemUserTokenValue } : pageResponse,
       );
     });
     await expect(
@@ -285,14 +352,13 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
     const pages = Array.from({ length: 101 }, (_value, index) => ({
       id: String(100_000 + index),
       name: `Página ${String(index)}`,
-      access_token: `page-access-token-${String(index).padStart(4, "0")}`,
       tasks:
         index === 0
           ? [
-              "PROFILE_PLUS_CREATE_CONTENT",
+              "CREATE_CONTENT",
               ...Array.from({ length: 99 }, (_task, taskIndex) => `TASK_${String(taskIndex)}`),
             ]
-          : ["PROFILE_PLUS_CREATE_CONTENT"],
+          : ["CREATE_CONTENT"],
     }));
     let tokenCalls = 0;
     const acceptedUrl = await startServer((_request, response) => {
@@ -300,9 +366,9 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
       writeJson(
         response,
         200,
-        tokenCalls <= 2
-          ? { access_token: "bounded-user-token-value" }
-          : { data: pages.slice(0, 100) },
+        tokenCalls === 1
+          ? { access_token: systemUserTokenValue }
+          : { assigned_pages: { data: pages.slice(0, 100) } },
       );
     });
     const accepted = await createGateway(acceptedUrl).exchangeCodeAndListPages(exchangeInput());
@@ -314,7 +380,9 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
       writeJson(
         response,
         200,
-        rejectedCalls <= 2 ? { access_token: "bounded-user-token-value" } : { data: pages },
+        rejectedCalls === 1
+          ? { access_token: systemUserTokenValue }
+          : { assigned_pages: { data: pages } },
       );
     });
     await expect(

@@ -10,7 +10,19 @@ Característica: Conexión segura de una página de Facebook desde el catálogo
       Dado que el dueño inició sesión y eligió su organización activa
       Cuando pulsa "Conectar Facebook"
       Entonces el sistema crea un estado aleatorio de un solo uso ligado al dueño y la organización
-      Y abre el diálogo oficial de Facebook con los permisos mínimos de páginas
+      Y abre el diálogo oficial de Facebook con la configuración empresarial registrada para esa organización
+
+    Escenario: La aplicación no tiene configuración empresarial registrada
+      Dado que la aplicación Meta pertenece a la organización pero no tiene configuration_id
+      Cuando el dueño intenta iniciar OAuth desde el catálogo
+      Entonces el sistema rechaza el inicio antes de redirigir a Facebook
+      Y no crea una sesión OAuth incompleta
+
+    Escenario: La configuración Meta cambia mientras OAuth está abierto
+      Dado que el backend guardó una instantánea del configuration_id al iniciar OAuth
+      Cuando un administrador actualiza la aplicación antes de que regrese el callback
+      Entonces el intercambio utiliza la configuración ligada a la sesión original
+      Y no cruza autorizaciones entre organizaciones ni configuraciones
 
     Escenario: Un administrador que no es dueño intenta iniciar la conexión
       Dado que un administrador inició sesión en el panel
@@ -28,9 +40,9 @@ Característica: Conexión segura de una página de Facebook desde el catálogo
 
     Escenario: Facebook devuelve páginas administrables
       Dado que Facebook entregó un código válido al callback exacto
-      Cuando el backend intercambia el código y consulta las páginas
+      Cuando el backend intercambia el código por un token de usuario del sistema y consulta assigned_pages
       Entonces el navegador recibe solamente el identificador, nombre y tareas de cada página
-      Y los tokens de usuario y página permanecen entre backend, Meta y Vault
+      Y el token empresarial permanece solamente entre backend, Meta y Vault
 
     Escenario: Facebook devuelve una página sin permiso para crear contenido
       Dado que la cuenta solo tiene una tarea de consulta en esa página

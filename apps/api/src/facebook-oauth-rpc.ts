@@ -15,6 +15,7 @@ export type FacebookOAuthBeginResult = Readonly<{
   oauthSessionId: string;
   externalAppId: string;
   apiVersion: string;
+  configurationId: string;
 }>;
 
 export type FacebookOAuthExchangeLease = Readonly<{
@@ -186,6 +187,7 @@ export function createFacebookOAuthRpc(input: CreateFacebookOAuthRpcInput): Face
         oauthSessionId: readUuid(row, "oauth_session_id"),
         externalAppId: readText(row, "external_app_id", 255),
         apiVersion: readText(row, "api_version", 16),
+        configurationId: readText(row, "configuration_id", 64),
       });
     },
     async claimExchange(claimInput) {

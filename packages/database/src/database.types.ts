@@ -3677,6 +3677,7 @@ export type Database = {
           disabled_at: string | null;
           display_name: string | null;
           external_app_id: string | null;
+          facebook_business_login_configuration_id: string | null;
           id: string | null;
           organization_id: string | null;
           status: string | null;
@@ -3689,6 +3690,7 @@ export type Database = {
           disabled_at?: string | null;
           display_name?: string | null;
           external_app_id?: string | null;
+          facebook_business_login_configuration_id?: string | null;
           id?: string | null;
           organization_id?: string | null;
           status?: string | null;
@@ -3701,6 +3703,7 @@ export type Database = {
           disabled_at?: string | null;
           display_name?: string | null;
           external_app_id?: string | null;
+          facebook_business_login_configuration_id?: string | null;
           id?: string | null;
           organization_id?: string | null;
           status?: string | null;
@@ -6896,6 +6899,7 @@ export type Database = {
         };
         Returns: {
           api_version: string;
+          configuration_id: string;
           external_app_id: string;
           oauth_session_id: string;
         }[];
@@ -7241,6 +7245,17 @@ export type Database = {
           status: string;
           was_replayed: boolean;
         }[];
+      };
+      configure_facebook_business_login: {
+        Args: {
+          target_actor_user_id: string;
+          target_configuration_id: string;
+          target_correlation_id: string;
+          target_meta_application_id: string;
+          target_organization_id: string;
+          target_trace_id?: string;
+        };
+        Returns: undefined;
       };
       confirm_meta_webhook_verification: {
         Args: {
@@ -11218,6 +11233,7 @@ export type Database = {
           exchange_lease_expires_at: string | null;
           exchange_lease_token: string | null;
           expires_at: string;
+          facebook_business_login_configuration_id: string | null;
           id: string;
           meta_application_id: string;
           organization_id: string;
@@ -11235,6 +11251,7 @@ export type Database = {
           exchange_lease_expires_at?: string | null;
           exchange_lease_token?: string | null;
           expires_at: string;
+          facebook_business_login_configuration_id?: string | null;
           id?: string;
           meta_application_id: string;
           organization_id: string;
@@ -11252,6 +11269,7 @@ export type Database = {
           exchange_lease_expires_at?: string | null;
           exchange_lease_token?: string | null;
           expires_at?: string;
+          facebook_business_login_configuration_id?: string | null;
           id?: string;
           meta_application_id?: string;
           organization_id?: string;
@@ -12880,6 +12898,7 @@ export type Database = {
           disabled_at: string | null;
           display_name: string;
           external_app_id: string;
+          facebook_business_login_configuration_id: string | null;
           id: string;
           organization_id: string;
           status: string;
@@ -12892,6 +12911,7 @@ export type Database = {
           disabled_at?: string | null;
           display_name: string;
           external_app_id: string;
+          facebook_business_login_configuration_id?: string | null;
           id?: string;
           organization_id: string;
           status?: string;
@@ -12904,6 +12924,7 @@ export type Database = {
           disabled_at?: string | null;
           display_name?: string;
           external_app_id?: string;
+          facebook_business_login_configuration_id?: string | null;
           id?: string;
           organization_id?: string;
           status?: string;

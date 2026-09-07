@@ -190,7 +190,7 @@ describe("admin catalog routes", () => {
 
   it("completes OAuth without returning app, user or Page credentials to the browser", async () => {
     const appSecret = "route-meta-app-secret-contract-value";
-    const pageToken = "route-facebook-page-token-contract-value";
+    const pageToken = "route-system-user-token-value";
     const oauthSessionId = "b4079000-0000-4000-8000-000000000001";
     const leaseToken = "b4079000-0000-4000-8000-000000000002";
     const stagedBodies: Readonly<Record<string, unknown>>[] = [];
@@ -205,6 +205,7 @@ describe("admin catalog routes", () => {
             oauth_session_id: oauthSessionId,
             external_app_id: "216409300082702",
             api_version: "v26.0",
+            configuration_id: "765432109876543",
           },
         ]);
         return;
@@ -232,23 +233,18 @@ describe("admin catalog routes", () => {
             return body;
           })(),
         );
+        expect(parameters.has("fb_exchange_token")).toBe(false);
         writeJson(response, 200, {
-          access_token: parameters.has("fb_exchange_token")
-            ? "route-long-lived-user-token-value"
-            : "route-short-lived-user-token-value",
+          access_token: pageToken,
         });
         return;
       }
-      if (request.url?.startsWith("/v26.0/me/accounts?")) {
+      if (request.url?.startsWith("/v26.0/me?")) {
         writeJson(response, 200, {
-          data: [
-            {
-              id: "123456789",
-              name: "Llantas Fer",
-              access_token: pageToken,
-              tasks: ["PROFILE_PLUS_CREATE_CONTENT"],
-            },
-          ],
+          id: "112233445566778",
+          assigned_pages: {
+            data: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
+          },
         });
         return;
       }
@@ -279,6 +275,8 @@ describe("admin catalog routes", () => {
     expect(start.statusCode).toBe(201);
     const authorizationUrl = new URL(start.json<{ authorizationUrl: string }>().authorizationUrl);
     expect(authorizationUrl.hostname).toBe("www.facebook.com");
+    expect(authorizationUrl.searchParams.get("config_id")).toBe("765432109876543");
+    expect(authorizationUrl.searchParams.has("scope")).toBe(false);
     expect(authorizationUrl.searchParams.has("client_secret")).toBe(false);
 
     const exchange = await application.inject({
@@ -293,7 +291,7 @@ describe("admin catalog routes", () => {
     expect(exchange.statusCode).toBe(200);
     expect(exchange.json()).toEqual({
       oauthSessionId,
-      pages: [{ id: "123456789", name: "Llantas Fer", tasks: ["PROFILE_PLUS_CREATE_CONTENT"] }],
+      pages: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
     });
     expect(exchange.body).not.toContain(appSecret);
     expect(exchange.body).not.toContain(pageToken);
