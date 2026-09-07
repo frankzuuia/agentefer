@@ -21,7 +21,8 @@ pendientes ni el bloque de infraestructura con numeración similar.
 - [x] Migraciones `20260906180000` y `20260906221500` aplicadas exclusivamente en Supabase AgenteFer.
 - [x] Configuración `AgenteFer Páginas` creada en Meta Frkleads; app aún en modo de pruebas.
 - [x] 1,022 pruebas, 1,266 aserciones pgTAP, 99.05% mutación TypeScript y 7/7 mutantes SQL.
-- [ ] Despliegue de esta actualización en EasyPanel `agente-fer/api` y verificación HTTPS.
+- [x] Despliegue `ab23aa3` en EasyPanel `agente-fer/api`, callback validado por Meta y health checks HTTPS.
+- [ ] Finalización de la suite CI completa de GitHub (las validaciones locales del bloque están verdes).
 - [ ] Consentimiento real del dueño y selección de su página en el catálogo.
 
 Evidencia y reproducción: [Facebook Business Login QA](quality/FACEBOOK-BUSINESS-LOGIN-QA.md).

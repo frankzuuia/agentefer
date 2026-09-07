@@ -68,7 +68,22 @@ mutantes detectados. Las pruebas pgTAP normales sí se ejecutan después de apli
 2. Registrar el ID de configuración en la aplicación de la organización mediante el RPC auditado.
 3. Iniciar sesión como dueño en `/admin/catalog` y completar Conectar Facebook.
 4. Confirmar página seleccionada, aislamiento y ausencia de secretos en respuestas al navegador.
-5. Validar `/health/live` y `/ready` después del despliegue de `agente-fer/api`.
+5. Validar `/health/live` y `/health/ready` después del despliegue de `agente-fer/api`.
+
+### Resultado real del despliegue
+
+- Código `ab23aa3c050ecef859f8d685be3b335b7d2525c3` en `develop` y desplegado en `agente-fer/api`.
+- EasyPanel confirma ese SHA y la acción `cmtqiqs2g00h907ri6n61eqfx` terminada el 7 de septiembre
+  de 2026 a las 00:46 UTC (6 de septiembre en Ciudad de México). No se desplegó el worker.
+- ID de configuración registrado por RPC auditado únicamente para `Frank - Pruebas` y Frkleads.
+- Meta confirma como válida la URI `https://agentefer.frkqr.com/admin/catalog/facebook/callback`.
+- HTTPS: `/health/live`, `/health/ready`, catálogo y callback devuelven HTTP 200.
+- Configuración con cuerpo válido pero sin sesión devuelve HTTP 401; cuerpo inválido HTTP 400.
+- Callback: `no-store`, CSP restrictiva, `no-referrer` y `nosniff` verificados en respuesta real.
+- Escaneo de patrones de secretos sobre el diff del bloque: cero coincidencias; no sustituye
+  un análisis especializado ni es evidencia de inexistencia absoluta de secretos.
+- La suite CI completa permanece pendiente de terminación; la conexión E2E necesita que el dueño
+  inicie sesión en la pestaña y complete el consentimiento. No hay publicaciones de prueba creadas.
 
 Si el consentimiento falla, no se activa ninguna página; la sesión expira y el usuario puede
 iniciar otra. No se revierten migraciones aplicadas ni se eliminan credenciales existentes para
