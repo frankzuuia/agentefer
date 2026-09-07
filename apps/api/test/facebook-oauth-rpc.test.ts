@@ -75,6 +75,32 @@ const createRpc = (supabaseUrl: string, timeoutMilliseconds = 250): FacebookOAut
   });
 
 describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
+  it.each([undefined, null, "automatic", ""])(
+    "rejects an absent or unknown lease mode %s",
+    async (login_mode) => {
+      const url = await startServer((_request, response) => {
+        writeJson(response, 200, [
+          {
+            oauth_session_id: oauthSessionId,
+            organization_id: organizationId,
+            external_app_id: "123",
+            api_version: "v26.0",
+            redirect_uri: "https://agentefer.example.test/callback",
+            app_secret: appSecret,
+            exchange_lease_token: leaseToken,
+            login_mode,
+          },
+        ]);
+      });
+      await expect(
+        createRpc(url).claimExchange({
+          actorUserId,
+          state: "state-value-with-at-least-thirty-two-characters",
+        }),
+      ).rejects.toMatchObject({ kind: "dependency" });
+    },
+  );
+
   it("executes the complete owner-bound handoff and keeps credentials in service traffic", async () => {
     const requests: { path: string; body: Readonly<Record<string, unknown>> }[] = [];
     const url = await startServer(async (request, response) => {
@@ -103,6 +129,7 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
             redirect_uri: "https://agentefer.example.test/admin/catalog/facebook/callback",
             app_secret: appSecret,
             exchange_lease_token: leaseToken,
+            login_mode: "business_integration_system_user",
           },
         ]);
       } else if (path.endsWith("/complete_facebook_page_oauth")) {
@@ -147,6 +174,7 @@ describe("Facebook OAuth Supabase RPC gateway over real TCP", () => {
       configurationId: "765432109876543",
     });
     expect(claimed.appSecret.reveal()).toBe(appSecret);
+    expect(claimed.loginMode).toBe("business_integration_system_user");
     expect(JSON.stringify(claimed)).not.toContain(appSecret);
     expect(completed).toEqual({ socialConnectionId: connectionId, pageName: "Llantas Fer" });
     expect(requests).toHaveLength(5);

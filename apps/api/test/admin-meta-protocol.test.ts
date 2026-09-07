@@ -154,13 +154,29 @@ describe("admin Meta protocol", () => {
         organizationId,
         metaApplicationId: "b4031000-0000-4000-8000-000000000002",
         configurationId: " 123456789012345 ",
+        loginMode: "user_page",
       }),
     ).toEqual({
       organizationId,
       metaApplicationId: "b4031000-0000-4000-8000-000000000002",
       configurationId: "123456789012345",
+      loginMode: "user_page",
     });
   });
+
+  it.each([undefined, null, "auto", "USER_PAGE"])(
+    "rejects absent or unsupported Facebook login mode %s",
+    (loginMode) => {
+      expect(
+        parseAdminFacebookBusinessLoginConfigurationBody({
+          organizationId,
+          metaApplicationId: "b4031000-0000-4000-8000-000000000002",
+          configurationId: "123",
+          loginMode,
+        }),
+      ).toBeUndefined();
+    },
+  );
 
   it.each([
     undefined,
@@ -171,27 +187,32 @@ describe("admin Meta protocol", () => {
       organizationId,
       metaApplicationId: "b4031000-0000-4000-8000-000000000002",
       configurationId: "123456789012345",
+      loginMode: "user_page",
       extra: "blocked",
     },
     {
       organizationId: "not-a-uuid",
       metaApplicationId: "b4031000-0000-4000-8000-000000000002",
       configurationId: "123456789012345",
+      loginMode: "user_page",
     },
     {
       organizationId,
       metaApplicationId: "not-a-uuid",
       configurationId: "123456789012345",
+      loginMode: "user_page",
     },
     {
       organizationId,
       metaApplicationId: "b4031000-0000-4000-8000-000000000002",
       configurationId: "config-123",
+      loginMode: "user_page",
     },
     {
       organizationId,
       metaApplicationId: "b4031000-0000-4000-8000-000000000002",
       configurationId: "9".repeat(65),
+      loginMode: "user_page",
     },
   ])("rejects an invalid Facebook Login for Business configuration", (configuration) => {
     expect(parseAdminFacebookBusinessLoginConfigurationBody(configuration)).toBeUndefined();

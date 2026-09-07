@@ -215,6 +215,7 @@ const handleExchange = async (
         exchangeLeaseToken: claimed.exchangeLeaseToken,
       });
       const authorization = await input.oauthGraph.exchangeCodeAndListPages({
+        loginMode: claimed.loginMode,
         apiVersion: claimed.apiVersion,
         externalAppId: claimed.externalAppId,
         appSecret: claimed.appSecret,

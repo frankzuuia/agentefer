@@ -55,6 +55,7 @@ assert.deepEqual(
     "20260901090000_b4_007_facebook_page_oauth.sql",
     "20260906180000_b4_008_facebook_business_login.sql",
     "20260906221500_b4_008a_facebook_business_login_authorization_alignment.sql",
+    "20260907110000_b4_009_facebook_login_modes.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );

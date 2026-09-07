@@ -3678,6 +3678,7 @@ export type Database = {
           display_name: string | null;
           external_app_id: string | null;
           facebook_business_login_configuration_id: string | null;
+          facebook_login_mode: string | null;
           id: string | null;
           organization_id: string | null;
           status: string | null;
@@ -3691,6 +3692,7 @@ export type Database = {
           display_name?: string | null;
           external_app_id?: string | null;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string | null;
           id?: string | null;
           organization_id?: string | null;
           status?: string | null;
@@ -3704,6 +3706,7 @@ export type Database = {
           display_name?: string | null;
           external_app_id?: string | null;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string | null;
           id?: string | null;
           organization_id?: string | null;
           status?: string | null;
@@ -6980,6 +6983,7 @@ export type Database = {
           app_secret: string;
           exchange_lease_token: string;
           external_app_id: string;
+          login_mode: string;
           oauth_session_id: string;
           organization_id: string;
           redirect_uri: string;
@@ -7251,6 +7255,18 @@ export type Database = {
           target_actor_user_id: string;
           target_configuration_id: string;
           target_correlation_id: string;
+          target_meta_application_id: string;
+          target_organization_id: string;
+          target_trace_id?: string;
+        };
+        Returns: undefined;
+      };
+      configure_facebook_login: {
+        Args: {
+          target_actor_user_id: string;
+          target_configuration_id: string;
+          target_correlation_id: string;
+          target_login_mode: string;
           target_meta_application_id: string;
           target_organization_id: string;
           target_trace_id?: string;
@@ -11234,6 +11250,7 @@ export type Database = {
           exchange_lease_token: string | null;
           expires_at: string;
           facebook_business_login_configuration_id: string | null;
+          facebook_login_mode: string;
           id: string;
           meta_application_id: string;
           organization_id: string;
@@ -11252,6 +11269,7 @@ export type Database = {
           exchange_lease_token?: string | null;
           expires_at: string;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string;
           id?: string;
           meta_application_id: string;
           organization_id: string;
@@ -11270,6 +11288,7 @@ export type Database = {
           exchange_lease_token?: string | null;
           expires_at?: string;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string;
           id?: string;
           meta_application_id?: string;
           organization_id?: string;
@@ -12899,6 +12918,7 @@ export type Database = {
           display_name: string;
           external_app_id: string;
           facebook_business_login_configuration_id: string | null;
+          facebook_login_mode: string;
           id: string;
           organization_id: string;
           status: string;
@@ -12912,6 +12932,7 @@ export type Database = {
           display_name: string;
           external_app_id: string;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string;
           id?: string;
           organization_id: string;
           status?: string;
@@ -12925,6 +12946,7 @@ export type Database = {
           display_name?: string;
           external_app_id?: string;
           facebook_business_login_configuration_id?: string | null;
+          facebook_login_mode?: string;
           id?: string;
           organization_id?: string;
           status?: string;
@@ -16713,6 +16735,10 @@ export type Database = {
           actor_kind: string;
           actor_user_id: string;
         }[];
+      };
+      validate_facebook_oauth_bundle: {
+        Args: { bundle: Json; candidates: Json; expected_mode: string };
+        Returns: undefined;
       };
       whatsapp_agent_run_actor_is_current: {
         Args: { target_organization_id: string; target_run_id: string };

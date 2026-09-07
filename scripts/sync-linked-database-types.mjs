@@ -19,6 +19,7 @@ const maxBuffer = 50 * 1024 * 1024;
 const projectRef = (
   await readFile(path.join(repositoryRoot, "supabase", ".temp", "project-ref"), "utf8")
 ).trim();
+assert.equal(projectRef, "hprdctmblmfcoagugvyp", "only the linked AgenteFer project is permitted");
 
 const runSupabase = (arguments_) => {
   const result = spawnSync(process.execPath, [...npxArguments, ...arguments_], {
@@ -39,12 +40,6 @@ const runSupabase = (arguments_) => {
   }
   return result.stdout;
 };
-
-const projects = JSON.parse(runSupabase(["projects", "list", "--output", "json"]));
-const linkedProjects = projects.filter((project) => project.linked === true);
-assert.equal(linkedProjects.length, 1, "exactly one Supabase project must be linked");
-assert.equal(linkedProjects[0]?.ref, projectRef, "CLI linked ref must match local link state");
-assert.equal(linkedProjects[0]?.name, "AgenteFer", "linked project must be AgenteFer");
 
 const generatedTypes = runSupabase([
   "gen",

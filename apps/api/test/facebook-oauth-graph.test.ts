@@ -68,6 +68,7 @@ const createGateway = (baseUrl: string, timeoutMilliseconds = 250): FacebookOAut
   });
 
 const exchangeInput = () => ({
+  loginMode: "business_integration_system_user" as const,
   apiVersion: "v26.0",
   externalAppId: "216409300082702",
   appSecret: new SensitiveValue(appSecretValue),
@@ -76,6 +77,165 @@ const exchangeInput = () => ({
 });
 
 describe("Facebook OAuth Graph gateway over real TCP", () => {
+  it("exchanges a user token server-side and isolates each selected Page credential", async () => {
+    const initial = "initial-user-token-contract";
+    const extended = "extended-user-token-contract";
+    const requests: string[] = [];
+    const url = await startServer(async (request, response) => {
+      const target = new URL(request.url ?? "", "http://127.0.0.1");
+      requests.push(target.pathname);
+      if (request.method === "POST") {
+        const fields = new URLSearchParams(await readBody(request));
+        expect(fields.get("code")).toBe("facebook-authorization-code");
+        expect(fields.get("client_secret")).toBe(appSecretValue);
+        writeJson(response, 200, { access_token: initial });
+      } else if (target.pathname.endsWith("/oauth/access_token")) {
+        expect(target.searchParams.get("grant_type")).toBe("fb_exchange_token");
+        expect(target.searchParams.get("fb_exchange_token")).toBe(initial);
+        expect(target.searchParams.get("client_secret")).toBe(appSecretValue);
+        expect(target.searchParams.get("client_id")).toBe(exchangeInput().externalAppId);
+        writeJson(response, 200, { access_token: extended });
+      } else {
+        expect(target.pathname).toBe("/v26.0/me/accounts");
+        expect(target.searchParams.get("fields")).toBe("id,name,tasks,access_token");
+        expect(target.searchParams.get("limit")).toBe("100");
+        expect(target.searchParams.has("access_token")).toBe(false);
+        expect(request.headers.authorization).toBe(`Bearer ${extended}`);
+        writeJson(response, 200, {
+          data: [
+            {
+              id: "123",
+              name: "Prueba A",
+              tasks: ["CREATE_CONTENT"],
+              access_token: "a".repeat(16),
+            },
+            { id: "456", name: "Prueba B", tasks: ["MANAGE"], access_token: "b".repeat(16) },
+            { id: "789", name: "Consulta", tasks: ["ANALYZE"] },
+          ],
+          paging: { cursors: { after: "end" } },
+        });
+      }
+    });
+    const result = await createGateway(url).exchangeCodeAndListPages({
+      ...exchangeInput(),
+      loginMode: "user_page",
+    });
+    expect(requests).toEqual([
+      "/v26.0/oauth/access_token",
+      "/v26.0/oauth/access_token",
+      "/v26.0/me/accounts",
+    ]);
+    expect(result.candidates).toEqual([
+      { id: "123", name: "Prueba A", tasks: ["CREATE_CONTENT"] },
+      { id: "456", name: "Prueba B", tasks: ["MANAGE"] },
+    ]);
+    expect(JSON.parse(result.tokenBundle.reveal())).toEqual({
+      token_type: "user_page",
+      page_ids: ["123", "456"],
+      page_tokens: [
+        { id: "123", access_token: "a".repeat(16) },
+        { id: "456", access_token: "b".repeat(16) },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("a".repeat(16));
+    expect(result.tokenBundle.reveal()).not.toContain(initial);
+    expect(result.tokenBundle.reveal()).not.toContain(extended);
+  });
+
+  it.each([undefined, null, "", "automatic", "USER_PAGE"])(
+    "rejects unknown mode %s before network access",
+    async (loginMode) => {
+      await expect(
+        createGateway("http://127.0.0.1:9").exchangeCodeAndListPages({
+          ...exchangeInput(),
+          loginMode: loginMode as never,
+        }),
+      ).rejects.toMatchObject({ kind: "invalid" });
+    },
+  );
+
+  it.each([null, {}, { access_token: null }, { access_token: "" }])(
+    "rejects an invalid extended user token %#",
+    async (extendedResponse) => {
+      const url = await startServer((request, response) => {
+        writeJson(
+          response,
+          200,
+          request.method === "POST" ? { access_token: systemUserTokenValue } : extendedResponse,
+        );
+      });
+      await expect(
+        createGateway(url).exchangeCodeAndListPages({ ...exchangeInput(), loginMode: "user_page" }),
+      ).rejects.toMatchObject({ kind: "dependency" });
+    },
+  );
+
+  it.each([undefined, null, 15, [], "short", "a".repeat(15)])(
+    "rejects a missing or short Page credential %#",
+    async (access_token) => {
+      const url = await startServer((request, response) => {
+        writeJson(
+          response,
+          200,
+          request.url?.startsWith("/v26.0/me/accounts")
+            ? { data: [{ id: "123", name: "Pruebas", tasks: ["CREATE_CONTENT"], access_token }] }
+            : { access_token: systemUserTokenValue },
+        );
+      });
+      await expect(
+        createGateway(url).exchangeCodeAndListPages({ ...exchangeInput(), loginMode: "user_page" }),
+      ).rejects.toMatchObject({ kind: "dependency" });
+    },
+  );
+
+  it.each(["user_page", "business_integration_system_user"] as const)(
+    "rejects partial pagination for %s without following provider URLs",
+    async (loginMode) => {
+      let requests = 0;
+      const url = await startServer((request, response) => {
+        requests += 1;
+        const collection = {
+          data: [
+            {
+              id: "123",
+              name: "Pruebas",
+              tasks: ["CREATE_CONTENT"],
+              access_token: systemUserTokenValue,
+            },
+          ],
+          paging: { next: "https://untrusted.example.test/credential-leak" },
+        };
+        writeJson(
+          response,
+          200,
+          request.url?.includes("/me")
+            ? loginMode === "user_page"
+              ? collection
+              : { assigned_pages: collection }
+            : { access_token: systemUserTokenValue },
+        );
+      });
+      await expect(
+        createGateway(url).exchangeCodeAndListPages({ ...exchangeInput(), loginMode }),
+      ).rejects.toMatchObject({ kind: "dependency" });
+      expect(requests).toBe(loginMode === "user_page" ? 3 : 2);
+    },
+  );
+
+  it("does not fall back to BISU after denied user-token extension", async () => {
+    let calls = 0;
+    const url = await startServer((request, response) => {
+      calls += 1;
+      writeJson(response, request.method === "POST" ? 200 : 403, {
+        access_token: systemUserTokenValue,
+      });
+    });
+    await expect(
+      createGateway(url).exchangeCodeAndListPages({ ...exchangeInput(), loginMode: "user_page" }),
+    ).rejects.toMatchObject({ kind: "unauthorized" });
+    expect(calls).toBe(2);
+  });
+
   it("builds the versioned Meta Business Login dialog without client-side scopes", () => {
     const url = new URL(
       createGateway("https://graph.facebook.com").createAuthorizationUrl({
@@ -270,6 +430,7 @@ describe("Facebook OAuth Graph gateway over real TCP", () => {
   });
 
   it.each([
+    [null, "dependency"],
     [{ assigned_pages: { data: [] } }, "unauthorized"],
     [{ not_assigned_pages: [] }, "dependency"],
     [{ assigned_pages: { data: [null] } }, "dependency"],

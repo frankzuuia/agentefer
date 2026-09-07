@@ -160,6 +160,7 @@ const facebookBusinessLoginConfigurationBody = () => ({
   organizationId,
   metaApplicationId,
   configurationId: facebookBusinessLoginConfigurationId,
+  loginMode: "user_page" as const,
 });
 
 describe("admin Meta routes", () => {
@@ -172,7 +173,7 @@ describe("admin Meta routes", () => {
         writeJson(response, 200, { id: userId });
         return;
       }
-      if (request.url === "/rest/v1/rpc/configure_facebook_business_login") {
+      if (request.url === "/rest/v1/rpc/configure_facebook_login") {
         expect(request.method).toBe("POST");
         expect(request.headers.apikey).toBe(serviceSecret);
         requests.push(await readJsonBody(request));
@@ -197,6 +198,7 @@ describe("admin Meta routes", () => {
       target_organization_id: organizationId,
       target_meta_application_id: metaApplicationId,
       target_configuration_id: facebookBusinessLoginConfigurationId,
+      target_login_mode: "user_page",
       target_actor_user_id: userId,
     });
     expect(typeof requests[0]?.target_correlation_id).toBe("string");

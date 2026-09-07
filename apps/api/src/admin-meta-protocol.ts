@@ -1,6 +1,7 @@
 import { SensitiveValue } from "@agentefer/config";
 
 import { parseMetaEndpointKey } from "./meta-webhook-protocol.js";
+import { parseFacebookLoginMode, type FacebookLoginMode } from "./facebook-login-mode.js";
 
 const MINIMUM_SECRET_LENGTH = 16;
 const MAXIMUM_SECRET_LENGTH = 65_536;
@@ -28,6 +29,7 @@ export type AdminMetaWhatsAppRegistrationInput = Readonly<{
 }>;
 
 export type AdminFacebookBusinessLoginConfigurationInput = Readonly<{
+  loginMode: FacebookLoginMode;
   organizationId: string;
   metaApplicationId: string;
   configurationId: string;
@@ -241,21 +243,23 @@ export const parseAdminMetaWhatsAppRegistrationBody = (
 export const parseAdminFacebookBusinessLoginConfigurationBody = (
   value: unknown,
 ): AdminFacebookBusinessLoginConfigurationInput | undefined => {
-  if (!isRecord(value) || Object.keys(value).length !== 3) {
+  if (!isRecord(value) || Object.keys(value).length !== 4) {
     return undefined;
   }
 
   const organizationId = parseMetaEndpointKey(value.organizationId);
   const metaApplicationId = parseMetaEndpointKey(value.metaApplicationId);
   const configurationId = readMetaNumericIdentifier(value, "configurationId");
+  const loginMode = parseFacebookLoginMode(value.loginMode);
 
   if (
     organizationId === undefined ||
     metaApplicationId === undefined ||
-    configurationId === undefined
+    configurationId === undefined ||
+    loginMode === undefined
   ) {
     return undefined;
   }
 
-  return Object.freeze({ organizationId, metaApplicationId, configurationId });
+  return Object.freeze({ organizationId, metaApplicationId, configurationId, loginMode });
 };

@@ -188,127 +188,155 @@ describe("admin catalog routes", () => {
     expect(javascript.headers["referrer-policy"]).toBe("no-referrer");
   });
 
-  it("completes OAuth without returning app, user or Page credentials to the browser", async () => {
-    const appSecret = "route-meta-app-secret-contract-value";
-    const pageToken = "route-system-user-token-value";
-    const oauthSessionId = "b4079000-0000-4000-8000-000000000001";
-    const leaseToken = "b4079000-0000-4000-8000-000000000002";
-    const stagedBodies: Readonly<Record<string, unknown>>[] = [];
-    const dependencyUrl = await startServer(async (request, response) => {
-      if (request.url === "/auth/v1/user") {
-        writeJson(response, 200, { id: userId });
-        return;
-      }
-      if (request.url === "/rest/v1/rpc/begin_facebook_page_oauth") {
-        writeJson(response, 200, [
-          {
-            oauth_session_id: oauthSessionId,
-            external_app_id: "216409300082702",
-            api_version: "v26.0",
-            configuration_id: "765432109876543",
-          },
-        ]);
-        return;
-      }
-      if (request.url === "/rest/v1/rpc/claim_facebook_page_oauth_exchange") {
-        writeJson(response, 200, [
-          {
-            oauth_session_id: oauthSessionId,
-            organization_id: organizationId,
-            external_app_id: "216409300082702",
-            api_version: "v26.0",
-            redirect_uri: "https://agentefer.example.test/admin/catalog/facebook/callback",
-            app_secret: appSecret,
-            exchange_lease_token: leaseToken,
-          },
-        ]);
-        return;
-      }
-      if (request.url === "/v26.0/oauth/access_token") {
-        const parameters = new URLSearchParams(
-          await (async () => {
-            request.setEncoding("utf8");
-            let body = "";
-            for await (const chunk of request) body += String(chunk);
-            return body;
-          })(),
-        );
-        expect(parameters.has("fb_exchange_token")).toBe(false);
-        writeJson(response, 200, {
-          access_token: pageToken,
-        });
-        return;
-      }
-      if (request.url?.startsWith("/v26.0/me?")) {
-        writeJson(response, 200, {
-          id: "112233445566778",
-          assigned_pages: {
-            data: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
-          },
-        });
-        return;
-      }
-      if (request.url === "/rest/v1/rpc/stage_facebook_page_oauth_pages") {
-        stagedBodies.push(await readBody(request));
-        writeJson(response, 200, null);
-        return;
-      }
-      if (request.url === "/rest/v1/rpc/complete_facebook_page_oauth") {
-        writeJson(response, 200, [
-          { social_connection_id: connectionId, page_name: "Llantas Fer" },
-        ]);
-        return;
-      }
-      writeJson(response, 404, {});
-    });
-    const application = createApplication(dependencyUrl);
-    const headers = {
-      authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
-    };
-    const start = await application.inject({
-      method: "POST",
-      url: "/admin/catalog/facebook/oauth/start",
-      headers,
-      payload: { organizationId },
-    });
-    expect(start.statusCode).toBe(201);
-    const authorizationUrl = new URL(start.json<{ authorizationUrl: string }>().authorizationUrl);
-    expect(authorizationUrl.hostname).toBe("www.facebook.com");
-    expect(authorizationUrl.searchParams.get("config_id")).toBe("765432109876543");
-    expect(authorizationUrl.searchParams.has("scope")).toBe(false);
-    expect(authorizationUrl.searchParams.has("client_secret")).toBe(false);
+  it.each(["business_integration_system_user", "user_page"] as const)(
+    "completes %s OAuth without returning credentials to the browser",
+    async (loginMode) => {
+      const appSecret = "route-meta-app-secret-contract-value";
+      const pageToken = "route-system-user-token-value";
+      const oauthSessionId = "b4079000-0000-4000-8000-000000000001";
+      const leaseToken = "b4079000-0000-4000-8000-000000000002";
+      const stagedBodies: Readonly<Record<string, unknown>>[] = [];
+      const dependencyUrl = await startServer(async (request, response) => {
+        if (request.url === "/auth/v1/user") {
+          writeJson(response, 200, { id: userId });
+          return;
+        }
+        if (request.url === "/rest/v1/rpc/begin_facebook_page_oauth") {
+          writeJson(response, 200, [
+            {
+              oauth_session_id: oauthSessionId,
+              external_app_id: "216409300082702",
+              api_version: "v26.0",
+              configuration_id: "765432109876543",
+            },
+          ]);
+          return;
+        }
+        if (request.url === "/rest/v1/rpc/claim_facebook_page_oauth_exchange") {
+          writeJson(response, 200, [
+            {
+              oauth_session_id: oauthSessionId,
+              organization_id: organizationId,
+              external_app_id: "216409300082702",
+              api_version: "v26.0",
+              redirect_uri: "https://agentefer.example.test/admin/catalog/facebook/callback",
+              app_secret: appSecret,
+              exchange_lease_token: leaseToken,
+              login_mode: loginMode,
+            },
+          ]);
+          return;
+        }
+        if (request.url === "/v26.0/oauth/access_token") {
+          const parameters = new URLSearchParams(
+            await (async () => {
+              request.setEncoding("utf8");
+              let body = "";
+              for await (const chunk of request) body += String(chunk);
+              return body;
+            })(),
+          );
+          expect(parameters.has("fb_exchange_token")).toBe(false);
+          writeJson(response, 200, {
+            access_token: pageToken,
+          });
+          return;
+        }
+        if (request.url?.startsWith("/v26.0/oauth/access_token?")) {
+          writeJson(response, 200, { access_token: "route-extended-user-token-contract" });
+          return;
+        }
+        if (request.url?.startsWith("/v26.0/me/accounts?")) {
+          expect(request.headers.authorization).toBe("Bearer route-extended-user-token-contract");
+          writeJson(response, 200, {
+            data: [
+              {
+                id: "123456789",
+                name: "Llantas Fer",
+                tasks: ["CREATE_CONTENT"],
+                access_token: pageToken,
+              },
+            ],
+          });
+          return;
+        }
+        if (request.url?.startsWith("/v26.0/me?")) {
+          writeJson(response, 200, {
+            id: "112233445566778",
+            assigned_pages: {
+              data: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
+            },
+          });
+          return;
+        }
+        if (request.url === "/rest/v1/rpc/stage_facebook_page_oauth_pages") {
+          stagedBodies.push(await readBody(request));
+          writeJson(response, 200, null);
+          return;
+        }
+        if (request.url === "/rest/v1/rpc/complete_facebook_page_oauth") {
+          writeJson(response, 200, [
+            { social_connection_id: connectionId, page_name: "Llantas Fer" },
+          ]);
+          return;
+        }
+        writeJson(response, 404, {});
+      });
+      const application = createApplication(dependencyUrl);
+      const headers = {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      };
+      const start = await application.inject({
+        method: "POST",
+        url: "/admin/catalog/facebook/oauth/start",
+        headers,
+        payload: { organizationId },
+      });
+      expect(start.statusCode).toBe(201);
+      const authorizationUrl = new URL(start.json<{ authorizationUrl: string }>().authorizationUrl);
+      expect(authorizationUrl.hostname).toBe("www.facebook.com");
+      expect(authorizationUrl.searchParams.get("config_id")).toBe("765432109876543");
+      expect(authorizationUrl.searchParams.has("scope")).toBe(false);
+      expect(authorizationUrl.searchParams.has("client_secret")).toBe(false);
 
-    const exchange = await application.inject({
-      method: "POST",
-      url: "/admin/catalog/facebook/oauth/exchange",
-      headers,
-      payload: {
-        state: authorizationUrl.searchParams.get("state"),
-        code: "route-facebook-authorization-code",
-      },
-    });
-    expect(exchange.statusCode).toBe(200);
-    expect(exchange.json()).toEqual({
-      oauthSessionId,
-      pages: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
-    });
-    expect(exchange.body).not.toContain(appSecret);
-    expect(exchange.body).not.toContain(pageToken);
-    expect(stagedBodies[0]?.target_token_bundle).toContain(pageToken);
+      const exchange = await application.inject({
+        method: "POST",
+        url: "/admin/catalog/facebook/oauth/exchange",
+        headers,
+        payload: {
+          state: authorizationUrl.searchParams.get("state"),
+          code: "route-facebook-authorization-code",
+        },
+      });
+      expect(exchange.statusCode).toBe(200);
+      expect(exchange.json()).toEqual({
+        oauthSessionId,
+        pages: [{ id: "123456789", name: "Llantas Fer", tasks: ["CREATE_CONTENT"] }],
+      });
+      expect(exchange.body).not.toContain(appSecret);
+      expect(exchange.body).not.toContain(pageToken);
+      expect(stagedBodies[0]?.target_token_bundle).toContain(pageToken);
+      expect(JSON.parse(String(stagedBodies[0]?.target_token_bundle))).toMatchObject({
+        token_type: loginMode,
+      });
+      expect(stagedBodies[0]?.target_token_bundle).not.toContain(
+        "route-extended-user-token-contract",
+      );
 
-    const complete = await application.inject({
-      method: "POST",
-      url: "/admin/catalog/facebook/oauth/complete",
-      headers,
-      payload: { oauthSessionId, pageId: "123456789" },
-    });
-    expect(complete.statusCode).toBe(200);
-    expect(complete.json()).toEqual({
-      socialConnectionId: connectionId,
-      pageName: "Llantas Fer",
-    });
-  });
+      const complete = await application.inject({
+        method: "POST",
+        url: "/admin/catalog/facebook/oauth/complete",
+        headers,
+        payload: { oauthSessionId, pageId: "123456789" },
+      });
+      expect(complete.statusCode).toBe(200);
+      expect(complete.json()).toEqual({
+        socialConnectionId: connectionId,
+        pageName: "Llantas Fer",
+      });
+    },
+  );
 
   it.each([
     ["/admin/catalog/facebook/oauth/start", { organizationId }],
@@ -384,6 +412,7 @@ describe("admin catalog routes", () => {
               redirect_uri: "https://agentefer.example.test/admin/catalog/facebook/callback",
               app_secret: "route-app-secret-value",
               exchange_lease_token: leaseToken,
+              login_mode: "business_integration_system_user",
             },
           ]);
           return;

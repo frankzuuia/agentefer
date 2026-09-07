@@ -518,6 +518,7 @@ const handleFacebookBusinessLoginConfiguration = async (
         organizationId: configuration.organizationId,
         metaApplicationId: configuration.metaApplicationId,
         configurationId: configuration.configurationId,
+        loginMode: configuration.loginMode,
         actorUserId: identity.userId,
         requestId: scope.identifiers.requestId,
         traceId: scope.identifiers.traceId,

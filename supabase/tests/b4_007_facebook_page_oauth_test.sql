@@ -211,7 +211,8 @@ create temporary table pg_temp.facebook_oauth_claim (
   api_version text,
   redirect_uri text,
   app_secret text,
-  exchange_lease_token uuid
+  exchange_lease_token uuid,
+  login_mode text
 ) on commit drop;
 
 create temporary table pg_temp.facebook_oauth_complete (

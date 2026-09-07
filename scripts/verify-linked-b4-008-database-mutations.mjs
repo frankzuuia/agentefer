@@ -10,6 +10,7 @@ import { b4008DatabaseMutants } from "./database-b4-008-mutants.mjs";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const expectedProjectRef = "hprdctmblmfcoagugvyp";
+const expectedProjectName = "AgenteFer";
 const migrationRelativePath =
   "supabase/migrations/20260906180000_b4_008_facebook_business_login.sql";
 const testRelativePath = "supabase/tests/b4_008_facebook_business_login_test.sql";

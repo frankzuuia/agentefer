@@ -13,6 +13,19 @@ Regla: una tarea solo pasa a completada con entregable real y evidencia de valid
 
 ## Actualización 2026-09-06 — Facebook Login for Business del catálogo
 
+### Corrección B4-009 — páginas del propietario de la app
+
+Especificación: [modos Facebook](architecture/FACEBOOK-LOGIN-MODES-B4-009.md).
+
+- [x] Diagnóstico real y referencias oficiales; matriz M01–M14 auditada.
+- [x] M01–M03/M06/M07/M09/M11/M13: migración aplicada, RPC por organización, instantánea y Vault.
+- [x] M04–M06/M08/M10/M12: adaptador dual y contratos HTTP sin secretos.
+- [x] 1,061 pruebas, 1,309 pgTAP, mutación TypeScript 99.22% y SQL 9/9; regresión de lease nulo.
+- [ ] Advisor remoto: comprobación de contraseñas filtradas desactivada; pendiente de decisión de Auth.
+- [ ] M14: configuración Meta solo de pruebas, despliegue y consentimiento real del dueño.
+
+Evidencia y límites: [QA de los modos de Facebook](quality/FACEBOOK-LOGIN-MODES-QA.md).
+
 Esta actualización describe únicamente la conexión de páginas; no certifica tareas históricas
 pendientes ni el bloque de infraestructura con numeración similar.
 
@@ -22,7 +35,7 @@ pendientes ni el bloque de infraestructura con numeración similar.
 - [x] Configuración `AgenteFer Páginas` creada en Meta Frkleads; app aún en modo de pruebas.
 - [x] 1,022 pruebas, 1,266 aserciones pgTAP, 99.05% mutación TypeScript y 7/7 mutantes SQL.
 - [x] Despliegue `ab23aa3` en EasyPanel `agente-fer/api`, callback validado por Meta y health checks HTTPS.
-- [ ] Finalización de la suite CI completa de GitHub (las validaciones locales del bloque están verdes).
+- [x] CI anterior `34070992290` de `380666b` finalizado correctamente; no certifica el nuevo bloque de modos.
 - [ ] Consentimiento real del dueño y selección de su página en el catálogo.
 
 Evidencia y reproducción: [Facebook Business Login QA](quality/FACEBOOK-BUSINESS-LOGIN-QA.md).

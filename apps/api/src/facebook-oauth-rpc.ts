@@ -1,6 +1,7 @@
 import { SensitiveValue, type SensitiveValue as SensitiveValueType } from "@agentefer/config";
 
 import { AdminMetaGatewayError } from "./admin-meta-gateway.js";
+import { parseFacebookLoginMode, type FacebookLoginMode } from "./facebook-login-mode.js";
 import { parseMetaEndpointKey } from "./meta-webhook-protocol.js";
 
 const MAXIMUM_RESPONSE_BYTES = 65_536;
@@ -19,6 +20,7 @@ export type FacebookOAuthBeginResult = Readonly<{
 }>;
 
 export type FacebookOAuthExchangeLease = Readonly<{
+  loginMode: FacebookLoginMode;
   oauthSessionId: string;
   organizationId: string;
   externalAppId: string;
@@ -197,7 +199,10 @@ export function createFacebookOAuthRpc(input: CreateFacebookOAuthRpcInput): Face
           target_actor_user_id: claimInput.actorUserId,
         }),
       );
+      const loginMode = parseFacebookLoginMode(row.login_mode);
+      if (loginMode === undefined) throw new AdminMetaGatewayError("dependency");
       return Object.freeze({
+        loginMode,
         oauthSessionId: readUuid(row, "oauth_session_id"),
         organizationId: readUuid(row, "organization_id"),
         externalAppId: readText(row, "external_app_id", 255),

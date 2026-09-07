@@ -1,5 +1,11 @@
 # AgenteFer — especificación maestra
 
+## Addendum B4-009 — modos de acceso a Facebook
+
+BL-015/020/021/025 se implementan para páginas propias y negocios clientes con la matriz M01–M14
+de [Facebook Login Modes](architecture/FACEBOOK-LOGIN-MODES-B4-009.md). La configuración y sesión
+guardan un modo explícito; no se sustituye el flujo empresarial ni se fijan IDs de pruebas en código.
+
 Estado: v0.1 de Bloque 0.  
 Entradas: `docs/context/ORIGINAL_REQUIREMENTS.md`, `docs/BUSINESS_LOGIC.md`, `docs/architecture/SYSTEM_CONTEXT.md`, `docs/security/*`.  
 Regla de implementación: ningún nombre externo/capacidad de proveedor aquí descrito se considera disponible hasta validarlo con documentación oficial y una prueba real.

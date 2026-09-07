@@ -163,6 +163,7 @@ const facebookBusinessLoginConfigurationInput = () => ({
   organizationId,
   metaApplicationId,
   configurationId: facebookBusinessLoginConfigurationId,
+  loginMode: "user_page" as const,
   actorUserId: userId,
   requestId: "request-admin-meta-facebook-business-login-contract",
   traceId: "abcdef0123456789abcdef0123456789",
@@ -411,7 +412,7 @@ describe("admin Meta Supabase gateway over real TCP", () => {
     async (status) => {
       let rpcBody: Readonly<Record<string, unknown>> | undefined;
       const baseUrl = await startServer(async (request, response) => {
-        expect(request.url).toBe("/rest/v1/rpc/configure_facebook_business_login");
+        expect(request.url).toBe("/rest/v1/rpc/configure_facebook_login");
         expect(request.method).toBe("POST");
         expect(request.headers.apikey).toBe(serviceSecret);
         expect(request.headers["accept-profile"]).toBe("api");
@@ -430,6 +431,7 @@ describe("admin Meta Supabase gateway over real TCP", () => {
         target_organization_id: organizationId,
         target_meta_application_id: metaApplicationId,
         target_configuration_id: facebookBusinessLoginConfigurationId,
+        target_login_mode: "user_page",
         target_actor_user_id: userId,
         target_correlation_id: "request-admin-meta-facebook-business-login-contract",
         target_trace_id: "abcdef0123456789abcdef0123456789",

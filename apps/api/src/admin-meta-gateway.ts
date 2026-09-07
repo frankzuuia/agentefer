@@ -2,6 +2,7 @@ import { type SensitiveValue } from "@agentefer/config";
 import { OperationalError } from "@agentefer/observability";
 
 import { parseMetaEndpointKey } from "./meta-webhook-protocol.js";
+import { type FacebookLoginMode } from "./facebook-login-mode.js";
 
 const MAXIMUM_RESPONSE_BYTES = 65_536;
 const MAXIMUM_ORGANIZATIONS = 100;
@@ -149,6 +150,7 @@ export type RegisteredAdminMetaWhatsAppConnection = Readonly<{
 }>;
 
 export type ConfigureAdminFacebookBusinessLoginInput = Readonly<{
+  loginMode: FacebookLoginMode;
   organizationId: string;
   metaApplicationId: string;
   configurationId: string;
@@ -569,7 +571,7 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
     },
     async configureFacebookBusinessLogin(inputValue) {
       const url = new URL(baseUrl);
-      url.pathname = "/rest/v1/rpc/configure_facebook_business_login";
+      url.pathname = "/rest/v1/rpc/configure_facebook_login";
 
       await execute("configure-facebook-business-login", url, {
         method: "POST",
@@ -584,6 +586,7 @@ export function createAdminMetaGateway(input: CreateAdminMetaGatewayInput): Admi
           target_organization_id: inputValue.organizationId,
           target_meta_application_id: inputValue.metaApplicationId,
           target_configuration_id: inputValue.configurationId,
+          target_login_mode: inputValue.loginMode,
           target_actor_user_id: inputValue.actorUserId,
           target_correlation_id: inputValue.requestId,
           target_trace_id: inputValue.traceId,
