@@ -22,7 +22,10 @@ Especificación: [modos Facebook](architecture/FACEBOOK-LOGIN-MODES-B4-009.md).
 - [x] M04–M06/M08/M10/M12: adaptador dual y contratos HTTP sin secretos.
 - [x] 1,061 pruebas, 1,309 pgTAP, mutación TypeScript 99.22% y SQL 9/9; regresión de lease nulo.
 - [ ] Advisor remoto: comprobación de contraseñas filtradas desactivada; pendiente de decisión de Auth.
-- [ ] M14: configuración Meta solo de pruebas, despliegue y consentimiento real del dueño.
+- [x] M14 parcial: configuración de pruebas creada, código `db389bd9` desplegado solo en API,
+  modo `user_page` registrado por RPC auditado únicamente para `Frank - Pruebas`.
+- [ ] M14: inicio de sesión privado y consentimiento real del dueño; selección de Página pendiente.
+- [ ] CI nuevo: run `34074397824` en ejecución al registrar el despliegue.
 
 Evidencia y límites: [QA de los modos de Facebook](quality/FACEBOOK-LOGIN-MODES-QA.md).
 

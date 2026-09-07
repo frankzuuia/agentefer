@@ -41,6 +41,10 @@ Trazabilidad: matriz M01–M14 en
 - Regresión PostgreSQL posterior: **1,309/1,309** aserciones en **27** archivos, cero fallos,
   datos transaccionales de pruebas revertidos. Tipos TypeScript regenerados desde la base real.
 - Lint de `app_private,api`: cero errores. Auditoría npm completa y productiva: cero vulnerabilidades.
+- Complejidad ciclomática medida con ESLint: parser de modo 3; intercambio/listado Graph 23.
+  No es una reducción de umbrales ni una medición de latencia productiva.
+- Escaneo del diff añadido contra patrones conocidos de claves privadas y tokens: cero coincidencias.
+  Es una comprobación acotada, no una garantía absoluta de ausencia de secretos.
 - El generador de tipos y los ensayos validan la referencia exacta de AgenteFer; no enumeran
   proyectos de la cuenta. No se guardaron credenciales reales en código, fixtures ni reportes.
 
@@ -71,6 +75,21 @@ Se comprobó que la organización `Frank - Pruebas` y su dueño corresponden a l
 El registro del nuevo ID/modo debe hacerse mediante `api.configure_facebook_login` únicamente
 después de desplegar la API compatible. La sesión anterior debe abandonarse y comenzar otra
 desde **Conectar Facebook**. Fer utilizará su propio consentimiento cuando se configure producción.
+
+### Resultado operativo registrado
+
+- Código `db389bd919314aba851af5fbd6cfaaede863768b` subido a `develop`; `main` sin cambios.
+- EasyPanel confirma ese SHA en `agente-fer/api`, acción `cmtql5npw00hl07ricu3t4j2d` terminada
+  el 7 de septiembre de 2026 a las 01:53:25 UTC (6 de septiembre en Ciudad de México).
+- Health live/ready, catálogo y callback: HTTP 200. Muestreo simple de cliente: 786/698/182/182 ms,
+  respectivamente; no representa percentiles, carga ni un SLO del proveedor.
+- Catálogo/callback conservan `no-store` y `no-referrer`. Worker no desplegado.
+- RPC auditado ejecutado después del deploy: `Frank - Pruebas` tiene `user_page` y el ID
+  `28333701236299503`; verificación de auditoría positiva. Ninguna otra organización configurada.
+- Pestaña del catálogo abierta en Chrome, detenida en inicio de sesión privado del dueño.
+  No se completó consentimiento, selección de página ni publicación; E2E Meta sigue pendiente.
+- CI del código: https://github.com/frankzuuia/agentefer/actions/runs/34074397824,
+  en ejecución al registrar esta evidencia. No se presenta como aprobado.
 
 ## Reproducción y recuperación
 
