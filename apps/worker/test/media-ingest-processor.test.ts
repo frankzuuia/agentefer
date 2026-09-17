@@ -117,6 +117,7 @@ const runEvidenceScenario = async (
       });
     },
     registerObject: () => Promise.reject(new Error("verified asset must not register objects")),
+    completeAsset: () => Promise.reject(new Error("verified asset must not be completed again")),
     complete: () => {
       completeCalls += 1;
       return Promise.resolve({
@@ -152,6 +153,7 @@ describe("WhatsApp media ingest processor", () => {
       .toBuffer();
     const uploads: { descriptor: MediaObjectDescriptor; body: Uint8Array }[] = [];
     const completed: Readonly<Record<string, unknown>>[] = [];
+    const verifiedAssets: Readonly<Record<string, unknown>>[] = [];
     const registered: MediaObjectDescriptor[] = [];
     const beginInputs: Readonly<Record<string, unknown>>[] = [];
     const registrationInputs: Readonly<Record<string, unknown>>[] = [];
@@ -178,6 +180,14 @@ describe("WhatsApp media ingest processor", () => {
         return Promise.resolve({
           mediaAssetObjectId: ids.asset,
           objectStatus: "verified",
+          wasReplayed: false,
+        });
+      },
+      completeAsset: (input) => {
+        verifiedAssets.push(input);
+        return Promise.resolve({
+          mediaAssetId: ids.asset,
+          ingestStatus: "verified",
           wasReplayed: false,
         });
       },
@@ -209,6 +219,14 @@ describe("WhatsApp media ingest processor", () => {
       expect.objectContaining({
         mediaAssetId: ids.asset,
         contentSha256Hex: createHash("sha256").update(png).digest("hex"),
+      }),
+    ]);
+    expect(verifiedAssets).toEqual([
+      expect.objectContaining({
+        organizationId: ids.organization,
+        mediaAssetId: ids.asset,
+        correlationId: "message-correlation",
+        traceId: "trace-id",
       }),
     ]);
     expect(uploads.map(({ descriptor }) => descriptor.renditionKind)).toEqual([
@@ -255,6 +273,7 @@ describe("WhatsApp media ingest processor", () => {
       },
       beginAsset: () => Promise.reject(new Error("unexpected begin")),
       registerObject: () => Promise.reject(new Error("unexpected register")),
+      completeAsset: () => Promise.reject(new Error("unexpected verification")),
       complete: () => Promise.reject(new Error("unexpected complete")),
       fail: (input) => {
         failures.push(input);
@@ -307,6 +326,7 @@ describe("WhatsApp media ingest processor", () => {
           return Promise.reject(new Error("begin must not run"));
         },
         registerObject: () => Promise.reject(new Error("register must not run")),
+        completeAsset: () => Promise.reject(new Error("verification must not run")),
         complete: () => Promise.reject(new Error("complete must not run")),
         fail: () => {
           failCalls += 1;
@@ -444,6 +464,7 @@ describe("WhatsApp media ingest processor", () => {
       },
       beginAsset: () => Promise.reject(new Error("unexpected begin")),
       registerObject: () => Promise.reject(new Error("unexpected register")),
+      completeAsset: () => Promise.reject(new Error("unexpected verification")),
       complete: () => Promise.reject(new Error("unexpected complete")),
       fail: () => {
         failCalls += 1;
@@ -481,6 +502,7 @@ describe("WhatsApp media ingest processor", () => {
       beginAsset: () =>
         Promise.resolve({ mediaAssetId: ids.asset, ingestStatus: "verified", wasReplayed: true }),
       registerObject: () => Promise.reject(new Error("unexpected register")),
+      completeAsset: () => Promise.reject(new Error("verified asset must not be completed again")),
       complete: () => {
         completed += 1;
         return Promise.resolve({
@@ -516,6 +538,7 @@ describe("WhatsApp media ingest processor", () => {
       beginAsset: () =>
         Promise.resolve({ mediaAssetId: ids.asset, ingestStatus: "rejected", wasReplayed: false }),
       registerObject: () => Promise.reject(new Error("unexpected register")),
+      completeAsset: () => Promise.reject(new Error("non-ingestible asset must not verify")),
       complete: () => Promise.reject(new Error("unexpected complete")),
       fail: (input) => {
         failures.push(input);
@@ -536,6 +559,57 @@ describe("WhatsApp media ingest processor", () => {
       new AbortController().signal,
     );
     expect(failures).toMatchObject([{ errorCode: "MEDIA_INGEST_RPC_INVALID", retryable: false }]);
+  });
+
+  it("does not complete the WhatsApp request unless asset verification returns the same verified asset", async () => {
+    const png = await sharp({
+      create: { width: 1, height: 1, channels: 3, background: { r: 2, g: 4, b: 6 } },
+    })
+      .png()
+      .toBuffer();
+    for (const verification of [
+      { mediaAssetId: ids.asset, ingestStatus: "received" },
+      { mediaAssetId: ids.object, ingestStatus: "verified" },
+    ]) {
+      const failures: Readonly<Record<string, unknown>>[] = [];
+      let claimed = true;
+      let completeCalls = 0;
+      const rpcClient: MediaIngestRpcClient = {
+        claim: () => {
+          if (!claimed) return Promise.resolve(undefined);
+          claimed = false;
+          return Promise.resolve(claim());
+        },
+        beginAsset: () =>
+          Promise.resolve({ mediaAssetId: ids.asset, ingestStatus: "received", wasReplayed: false }),
+        registerObject: () =>
+          Promise.resolve({
+            mediaAssetObjectId: ids.object,
+            objectStatus: "verified",
+            wasReplayed: false,
+          }),
+        completeAsset: () => Promise.resolve({ ...verification, wasReplayed: false }),
+        complete: () => {
+          completeCalls += 1;
+          return Promise.reject(new Error("request completion must not run"));
+        },
+        fail: (input) => {
+          failures.push(input);
+          return Promise.resolve({ requestId: ids.request, status: "rejected", wasReplayed: false });
+        },
+      };
+      const mediaClient: WhatsAppMediaClient = {
+        retrieveImage: () => Promise.resolve({ bytes: png, declaredMimeType: "image/png" }),
+      };
+
+      await drainMediaIngestOnce(
+        createInput({ mediaClient, rpcClient, storageClient: storageDouble([]) }),
+        new AbortController().signal,
+      );
+
+      expect(completeCalls).toBe(0);
+      expect(failures).toMatchObject([{ errorCode: "MEDIA_INGEST_RPC_INVALID", retryable: false }]);
+    }
   });
 
   it("verifies an existing Storage object after an upload conflict", async () => {
@@ -573,6 +647,12 @@ describe("WhatsApp media ingest processor", () => {
         Promise.resolve({
           mediaAssetObjectId: ids.object,
           objectStatus: "verified",
+          wasReplayed: false,
+        }),
+      completeAsset: () =>
+        Promise.resolve({
+          mediaAssetId: ids.asset,
+          ingestStatus: "verified",
           wasReplayed: false,
         }),
       complete: () =>
@@ -636,6 +716,7 @@ describe("WhatsApp media ingest processor", () => {
             objectStatus: "verified",
             wasReplayed: false,
           }),
+        completeAsset: () => Promise.reject(new Error("verification must not run")),
         complete: () => Promise.reject(new Error("complete must not run")),
         fail: (input) => {
           failures.push(input);

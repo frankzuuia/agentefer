@@ -6,6 +6,7 @@ export default {
   mutate: [
     "apps/worker/src/media-ingest-processor.ts:80-119",
     "apps/worker/src/media-ingest-processor.ts:140-145",
+    "apps/worker/src/media-ingest-processor.ts:205-219",
     "apps/worker/src/media-ingest-rpc.ts:250-255",
     "apps/worker/src/media-ingest-rpc.ts:302-309",
     "apps/worker/src/whatsapp-media.ts:265-273",

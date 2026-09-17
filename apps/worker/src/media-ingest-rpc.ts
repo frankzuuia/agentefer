@@ -110,6 +110,15 @@ export type MediaIngestRpcClient = Readonly<{
     }> &
       RpcSignal,
   ): Promise<Readonly<{ mediaAssetObjectId: string; objectStatus: string; wasReplayed: boolean }>>;
+  completeAsset(
+    input: Readonly<{
+      organizationId: string;
+      mediaAssetId: string;
+      correlationId: string;
+      traceId?: string;
+    }> &
+      RpcSignal,
+  ): Promise<Readonly<{ mediaAssetId: string; ingestStatus: string; wasReplayed: boolean }>>;
   complete(
     input: Readonly<{
       organizationId: string;
@@ -425,6 +434,27 @@ export const createMediaIngestRpcClient = (
       return Object.freeze({
         mediaAssetObjectId: readUuid(row, "media_asset_object_id"),
         objectStatus: readText(row, "object_status", 32),
+        wasReplayed: readBoolean(row, "was_replayed"),
+      });
+    },
+    async completeAsset(inputValue) {
+      const operation = "complete_media_asset_ingest";
+      const response = await postRpc(
+        operation,
+        {
+          target_organization_id: inputValue.organizationId,
+          target_media_asset_id: inputValue.mediaAssetId,
+          target_actor_kind: "worker",
+          target_actor_user_id: null,
+          target_correlation_id: inputValue.correlationId,
+          target_trace_id: inputValue.traceId ?? null,
+        },
+        inputValue.signal,
+      );
+      const row = readSingleRow(response);
+      return Object.freeze({
+        mediaAssetId: readUuid(row, "media_asset_id"),
+        ingestStatus: readText(row, "ingest_status", 32),
         wasReplayed: readBoolean(row, "was_replayed"),
       });
     },

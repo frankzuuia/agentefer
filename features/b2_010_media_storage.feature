@@ -51,6 +51,13 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Y completa el nuevo request usando el asset verificado y ese SHA-256
       Y rechaza un asset cuyo SHA-256 no corresponde a la foto reenviada
 
+    Escenario: El worker verifica el asset antes de completar el mensaje de WhatsApp
+      Dado un original y un derivado de análisis registrados para el mismo asset
+      Cuando el worker solicita verificar el asset con su identidad de servicio
+      Entonces la verificación debe devolver el mismo asset en estado verificado
+      Y sólo después puede completar el request de WhatsApp
+      Y si la verificación devuelve otro estado o asset el request queda rechazado
+
   Regla: Cada organización queda aislada también dentro de Storage
 
     Escenario: Un miembro intenta leer el original de otra organización

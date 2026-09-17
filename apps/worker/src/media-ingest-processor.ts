@@ -206,7 +206,18 @@ const persistNormalizedImage = async (
     signal,
   });
 
-  return begun.mediaAssetId;
+  const verified = await input.rpcClient.completeAsset({
+    organizationId: claim.organizationId,
+    mediaAssetId: begun.mediaAssetId,
+    correlationId: claim.correlationId,
+    ...(claim.traceId === undefined ? {} : { traceId: claim.traceId }),
+    signal,
+  });
+  if (verified.mediaAssetId !== begun.mediaAssetId || verified.ingestStatus !== "verified") {
+    throw new MediaIngestRpcError("invalid", new Error("media asset verification did not complete"));
+  }
+
+  return verified.mediaAssetId;
 };
 
 const processClaim = async (

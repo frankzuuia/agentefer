@@ -151,6 +151,12 @@ describe("media ingest Supabase RPC contract", () => {
         ]);
         return;
       }
+      if (request.url?.endsWith("complete_media_asset_ingest") === true) {
+        respond(response, [
+          { media_asset_id: ids.asset, ingest_status: "verified", was_replayed: false },
+        ]);
+        return;
+      }
       if (request.url?.endsWith("complete_whatsapp_media_ingest_v2") === true) {
         respond(response, [
           {
@@ -206,6 +212,13 @@ describe("media ingest Supabase RPC contract", () => {
       }),
     ).resolves.toMatchObject({ mediaAssetObjectId: ids.object });
     await expect(
+      client.completeAsset({
+        organizationId: ids.organization,
+        mediaAssetId: ids.asset,
+        correlationId: "message-correlation",
+      }),
+    ).resolves.toMatchObject({ mediaAssetId: ids.asset, ingestStatus: "verified" });
+    await expect(
       client.complete({
         organizationId: ids.organization,
         requestId: ids.request,
@@ -238,6 +251,12 @@ describe("media ingest Supabase RPC contract", () => {
         expect.objectContaining({
           target_request_id: ids.request,
           target_content_sha256: `\\x${hash}`,
+        }),
+        expect.objectContaining({
+          target_media_asset_id: ids.asset,
+          target_actor_kind: "worker",
+          target_actor_user_id: null,
+          target_correlation_id: "message-correlation",
         }),
       ]),
     );
