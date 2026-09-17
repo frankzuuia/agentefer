@@ -345,6 +345,42 @@ describe("media Storage HTTP transport", () => {
     expect(JSON.stringify(failure)).not.toContain("private provider prose");
   });
 
+  it("treats a Duplicate upload response as an immutable object conflict even through HTTP 400", async () => {
+    const server = await startServer((_request, response) => {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ error: "Duplicate" }));
+    });
+
+    await expect(
+      createClient(server.origin).uploadObject(descriptor(), Uint8Array.from([1])),
+    ).rejects.toMatchObject({
+      kind: "conflict",
+      httpDiagnostic: {
+        operation: "upload",
+        status: 400,
+        providerErrorCode: "Duplicate",
+      },
+    });
+  });
+
+  it("does not treat Duplicate outside an upload as an object conflict", async () => {
+    const server = await startServer((_request, response) => {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ error: "Duplicate" }));
+    });
+
+    await expect(
+      createClient(server.origin).createSignedPrivateUrl(descriptor(), 300),
+    ).rejects.toMatchObject({
+      kind: "invalid",
+      httpDiagnostic: {
+        operation: "sign",
+        status: 400,
+        providerErrorCode: "Duplicate",
+      },
+    });
+  });
+
   it("drops unsafe Storage error identifiers", async () => {
     const server = await startServer((_request, response) => {
       response.statusCode = 400;

@@ -37,6 +37,13 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Y puede registrar sólo un identificador seguro y acotado del proveedor
       Y no registra la llave, el contenido de la respuesta ni los bytes de la fotografía
 
+    Escenario: Una carga inmutable encuentra un objeto ya existente
+      Dado una carga cuyo path y hash ya existen en Storage
+      Cuando Storage responde Duplicate aunque el gateway use HTTP 400
+      Entonces el backend lo trata como conflicto de carga
+      Y verifica el hash del objeto existente antes de registrar o completar el asset
+      Y ningún otro error HTTP 400 se convierte en conflicto
+
   Regla: Cada organización queda aislada también dentro de Storage
 
     Escenario: Un miembro intenta leer el original de otra organización

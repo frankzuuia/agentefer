@@ -390,7 +390,14 @@ const failureForResponse = async (
   response: Response,
 ): Promise<MediaStorageError> => {
   const providerErrorCode = await readSafeProviderErrorCode(response);
-  return new MediaStorageError(failureForStatus(response.status), undefined, {
+  // Some Storage gateways preserve the Duplicate identifier but normalize its
+  // status to 400. For an immutable upload that is still a collision, so the
+  // caller must verify the existing object's digest before proceeding.
+  const kind =
+    operation === "upload" && providerErrorCode === "Duplicate"
+      ? "conflict"
+      : failureForStatus(response.status);
+  return new MediaStorageError(kind, undefined, {
     operation,
     status: response.status,
     ...(providerErrorCode === undefined ? {} : { providerErrorCode }),
