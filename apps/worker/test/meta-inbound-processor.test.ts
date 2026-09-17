@@ -1,5 +1,4 @@
 import { Buffer } from "node:buffer";
-import { getEventListeners } from "node:events";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { type AddressInfo } from "node:net";
 import { Writable } from "node:stream";
@@ -18,7 +17,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyMetaInboundFailure,
   createMetaInboundProcessor,
-  waitForPollInterval,
 } from "../src/meta-inbound-processor.js";
 import { createMetaInboundRpcClient, MetaInboundRpcError } from "../src/meta-inbound-rpc.js";
 
@@ -178,11 +176,14 @@ const createProcessor = (
   telemetry = createTelemetry(),
   pollIntervalMilliseconds = 60_000,
   rpcTimeoutMilliseconds = 1_000,
+  onWorkObserved?: () => void,
 ) =>
   createMetaInboundProcessor({
     configuration: {
       workerId: "worker-processor-contract",
       pollIntervalMilliseconds,
+      maximumIdlePollIntervalMilliseconds: pollIntervalMilliseconds,
+      idleBackoffJitterPercent: 0,
       leaseSeconds: 120,
       maxAttempts: 8,
       retryDelaySeconds: 5,
@@ -198,6 +199,7 @@ const createProcessor = (
     onOperationalStateChange(operational) {
       operationalStates.push(operational);
     },
+    ...(onWorkObserved === undefined ? {} : { onWorkObserved }),
   });
 
 afterEach(async () => {
@@ -229,34 +231,6 @@ describe("durable Meta inbound worker cycle", () => {
       retryable: true,
       settleLease: true,
     });
-  });
-
-  it("removes its abort listener after an ordinary poll interval", async () => {
-    const controller = new AbortController();
-
-    await expect(waitForPollInterval(1, controller.signal)).resolves.toBe(true);
-
-    expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
-  });
-
-  it("does not register a listener when polling starts after shutdown", async () => {
-    const controller = new AbortController();
-    controller.abort();
-
-    await expect(waitForPollInterval(60_000, controller.signal)).resolves.toBe(false);
-
-    expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
-  });
-
-  it("cancels a pending poll interval and removes its listener during shutdown", async () => {
-    const controller = new AbortController();
-    const polling = waitForPollInterval(60_000, controller.signal);
-    expect(getEventListeners(controller.signal, "abort")).toHaveLength(1);
-
-    controller.abort();
-    await expect(polling).resolves.toBe(false);
-
-    expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
   });
 
   it("drains an authenticated delivery and its routed WhatsApp message in one cycle", async () => {
@@ -296,7 +270,10 @@ describe("durable Meta inbound worker cycle", () => {
     });
     const states: boolean[] = [];
     const telemetry = createTelemetry();
-    const processor = createProcessor(server.url, states, 25, telemetry);
+    let workObservationCount = 0;
+    const processor = createProcessor(server.url, states, 25, telemetry, 60_000, 1_000, () => {
+      workObservationCount += 1;
+    });
     const processorStartedAt = performance.now();
 
     await expect(processor.start()).resolves.toBe(true);
@@ -312,6 +289,7 @@ describe("durable Meta inbound worker cycle", () => {
       "/rest/v1/rpc/claim_meta_whatsapp_message_event",
     ]);
     expect(states[0]).toBe(true);
+    expect(workObservationCount).toBe(1);
     expect(server.requests.map((request) => request.body)).toEqual([
       {
         target_worker_id: "worker-processor-contract",
@@ -373,6 +351,15 @@ describe("durable Meta inbound worker cycle", () => {
         event: "worker.meta.inbound.cycle_completed",
         outcome: "succeeded",
         attributes: { delivery_count: 1, normalized_event_count: 1 },
+      },
+      {
+        event: "worker.meta.inbound.poll_scheduled",
+        outcome: "succeeded",
+        attributes: {
+          cycle_outcome: "active",
+          consecutive_idle_cycles: 0,
+          next_poll_interval_ms: 60_000,
+        },
       },
     ]);
 

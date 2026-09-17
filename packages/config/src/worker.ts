@@ -34,6 +34,7 @@ export const aiSafetyCeilings = Object.freeze({
 export const workerOperationalCeilings = Object.freeze({
   rpcTimeoutMilliseconds: 60_000,
   pollIntervalMilliseconds: 60_000,
+  idleBackoffJitterPercent: 50,
   leaseSeconds: 900,
   maxAttempts: 100,
   retryDelaySeconds: 3_600,
@@ -143,6 +144,9 @@ export const workerEnvironmentVariables = [
   "WORKER_META_INBOUND_ENABLED",
   "WORKER_META_RPC_TIMEOUT_MS",
   "WORKER_META_POLL_INTERVAL_MS",
+  "WORKER_META_IDLE_BACKOFF_MAX_MS",
+  "WORKER_ASYNC_IDLE_BACKOFF_MAX_MS",
+  "WORKER_IDLE_BACKOFF_JITTER_PERCENT",
   "WORKER_META_LEASE_SECONDS",
   "WORKER_META_MAX_ATTEMPTS",
   "WORKER_META_RETRY_DELAY_SECONDS",
@@ -183,6 +187,18 @@ const workerEnvironmentSchema = z
     WORKER_META_POLL_INTERVAL_MS: defaultedPositiveInteger(1_000).refine(
       (value) => value >= 100 && value <= workerOperationalCeilings.pollIntervalMilliseconds,
       "must be between 100 and 60000 milliseconds",
+    ),
+    WORKER_META_IDLE_BACKOFF_MAX_MS: defaultedPositiveInteger(5_000).refine(
+      (value) => value >= 100 && value <= workerOperationalCeilings.pollIntervalMilliseconds,
+      "must be between 100 and 60000 milliseconds",
+    ),
+    WORKER_ASYNC_IDLE_BACKOFF_MAX_MS: defaultedPositiveInteger(60_000).refine(
+      (value) => value >= 100 && value <= workerOperationalCeilings.pollIntervalMilliseconds,
+      "must be between 100 and 60000 milliseconds",
+    ),
+    WORKER_IDLE_BACKOFF_JITTER_PERCENT: defaultedNonNegativeInteger(10).refine(
+      (value) => value <= workerOperationalCeilings.idleBackoffJitterPercent,
+      "must not exceed 50 percent",
     ),
     WORKER_META_LEASE_SECONDS: defaultedPositiveInteger(120).refine(
       (value) => value >= 15 && value <= workerOperationalCeilings.leaseSeconds,
@@ -241,6 +257,20 @@ const workerEnvironmentSchema = z
       "SUPABASE_URL",
       context,
     );
+    if (environment.WORKER_META_IDLE_BACKOFF_MAX_MS < environment.WORKER_META_POLL_INTERVAL_MS) {
+      context.addIssue({
+        code: "custom",
+        path: ["WORKER_META_IDLE_BACKOFF_MAX_MS"],
+        message: "must not be less than WORKER_META_POLL_INTERVAL_MS",
+      });
+    }
+    if (environment.WORKER_ASYNC_IDLE_BACKOFF_MAX_MS < environment.WORKER_META_POLL_INTERVAL_MS) {
+      context.addIssue({
+        code: "custom",
+        path: ["WORKER_ASYNC_IDLE_BACKOFF_MAX_MS"],
+        message: "must not be less than WORKER_META_POLL_INTERVAL_MS",
+      });
+    }
 
     const selectedProviders = new Set([
       environment.AI_MODEL.provider,
@@ -292,6 +322,8 @@ const workerEnvironmentSchema = z
         enabled: environment.WORKER_META_INBOUND_ENABLED,
         rpcTimeoutMilliseconds: environment.WORKER_META_RPC_TIMEOUT_MS,
         pollIntervalMilliseconds: environment.WORKER_META_POLL_INTERVAL_MS,
+        maximumIdlePollIntervalMilliseconds: environment.WORKER_META_IDLE_BACKOFF_MAX_MS,
+        idleBackoffJitterPercent: environment.WORKER_IDLE_BACKOFF_JITTER_PERCENT,
         leaseSeconds: environment.WORKER_META_LEASE_SECONDS,
         maxAttempts: environment.WORKER_META_MAX_ATTEMPTS,
         retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
@@ -301,6 +333,8 @@ const workerEnvironmentSchema = z
         enabled: environment.WORKER_WHATSAPP_AI_ENABLED,
         rpcTimeoutMilliseconds: environment.WORKER_META_RPC_TIMEOUT_MS,
         pollIntervalMilliseconds: environment.WORKER_META_POLL_INTERVAL_MS,
+        maximumIdlePollIntervalMilliseconds: environment.WORKER_ASYNC_IDLE_BACKOFF_MAX_MS,
+        idleBackoffJitterPercent: environment.WORKER_IDLE_BACKOFF_JITTER_PERCENT,
         leaseSeconds: whatsappAiLeaseSeconds,
         maxAttempts: environment.WORKER_META_MAX_ATTEMPTS,
         retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
@@ -310,6 +344,8 @@ const workerEnvironmentSchema = z
         enabled: environment.WORKER_FACEBOOK_PUBLICATION_ENABLED,
         rpcTimeoutMilliseconds: environment.WORKER_META_RPC_TIMEOUT_MS,
         pollIntervalMilliseconds: environment.WORKER_META_POLL_INTERVAL_MS,
+        maximumIdlePollIntervalMilliseconds: environment.WORKER_ASYNC_IDLE_BACKOFF_MAX_MS,
+        idleBackoffJitterPercent: environment.WORKER_IDLE_BACKOFF_JITTER_PERCENT,
         leaseSeconds: environment.WORKER_META_LEASE_SECONDS,
         retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
         batchSize: environment.WORKER_META_BATCH_SIZE,

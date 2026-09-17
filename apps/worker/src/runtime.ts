@@ -94,6 +94,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         configuration: {
           workerId: `worker-${randomUUID()}`,
           pollIntervalMilliseconds: configuration.metaInbound.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.metaInbound.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.metaInbound.idleBackoffJitterPercent,
           leaseSeconds: configuration.metaInbound.leaseSeconds,
           maxAttempts: configuration.metaInbound.maxAttempts,
           retryDelaySeconds: configuration.metaInbound.retryDelaySeconds,
@@ -110,6 +113,10 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
           metaInboundOperational = operational;
           synchronizeReadiness();
         },
+        onWorkObserved() {
+          mediaIngestProcessor?.wake();
+          whatsappAiProcessor?.wake();
+        },
       })
     : undefined;
   const mediaIngestProcessor = configuration.whatsappAi.enabled
@@ -117,6 +124,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         configuration: {
           workerId: `media-ingest-${randomUUID()}`,
           pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.whatsappAi.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.whatsappAi.idleBackoffJitterPercent,
           leaseSeconds: configuration.whatsappAi.leaseSeconds,
           maxAttempts: configuration.whatsappAi.maxAttempts,
           retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
@@ -138,6 +148,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
           mediaIngestOperational = operational;
           synchronizeReadiness();
         },
+        onWorkObserved() {
+          whatsappAiProcessor?.wake();
+        },
       })
     : undefined;
   const whatsappAiProcessor = configuration.whatsappAi.enabled
@@ -145,6 +158,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         configuration: {
           workerId: `whatsapp-ai-${randomUUID()}`,
           pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.whatsappAi.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.whatsappAi.idleBackoffJitterPercent,
           leaseSeconds: configuration.whatsappAi.leaseSeconds,
           maxAttempts: configuration.whatsappAi.maxAttempts,
           retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
@@ -178,6 +194,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
           workerId: `facebook-publication-${randomUUID()}`,
           supabaseUrl: configuration.supabase.url,
           pollIntervalMilliseconds: configuration.facebookPublication.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.facebookPublication.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.facebookPublication.idleBackoffJitterPercent,
           leaseSeconds: configuration.facebookPublication.leaseSeconds,
           retryDelaySeconds: configuration.facebookPublication.retryDelaySeconds,
           batchSize: configuration.facebookPublication.batchSize,
@@ -194,6 +213,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
           facebookPublicationOperational = operational;
           synchronizeReadiness();
         },
+        onWorkObserved() {
+          publicationNotificationProcessor?.wake();
+        },
       })
     : undefined;
   const publicationNotificationProcessor = configuration.facebookPublication.enabled
@@ -201,6 +223,9 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         configuration: {
           workerId: `facebook-publication-summary-${randomUUID()}`,
           pollIntervalMilliseconds: configuration.facebookPublication.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.facebookPublication.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.facebookPublication.idleBackoffJitterPercent,
           leaseSeconds: configuration.whatsappAi.leaseSeconds,
           retryDelaySeconds: configuration.facebookPublication.retryDelaySeconds,
           batchSize: configuration.facebookPublication.batchSize,

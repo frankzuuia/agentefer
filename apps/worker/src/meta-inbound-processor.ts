@@ -1,5 +1,6 @@
 import { type OperationalMetrics, type StructuredLogger } from "@agentefer/observability";
 
+import { createAdaptivePoller, type PollingCycleOutcome } from "./adaptive-polling.js";
 import {
   MetaInboundRpcError,
   type ClaimedMetaDelivery,
@@ -10,6 +11,8 @@ import {
 export type MetaInboundProcessorConfiguration = Readonly<{
   workerId: string;
   pollIntervalMilliseconds: number;
+  maximumIdlePollIntervalMilliseconds: number;
+  idleBackoffJitterPercent: number;
   leaseSeconds: number;
   maxAttempts: number;
   retryDelaySeconds: number;
@@ -24,6 +27,7 @@ export type MetaInboundCycleResult = Readonly<{
 export type MetaInboundProcessor = Readonly<{
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  wake(): void;
 }>;
 
 export type CreateMetaInboundProcessorInput = Readonly<{
@@ -32,6 +36,7 @@ export type CreateMetaInboundProcessorInput = Readonly<{
   logger: StructuredLogger;
   metrics: OperationalMetrics;
   onOperationalStateChange(operational: boolean): void;
+  onWorkObserved?(): void;
 }>;
 
 export type MetaInboundFailureDisposition = Readonly<{
@@ -39,27 +44,6 @@ export type MetaInboundFailureDisposition = Readonly<{
   retryable: boolean;
   settleLease: boolean;
 }>;
-
-export const waitForPollInterval = (milliseconds: number, signal: AbortSignal): Promise<boolean> =>
-  new Promise((resolve) => {
-    if (signal.aborted) {
-      resolve(false);
-      return;
-    }
-
-    const finishAfterAbort = (): void => {
-      clearTimeout(timer);
-      signal.removeEventListener("abort", finishAfterAbort);
-      resolve(false);
-    };
-    const finishAfterInterval = (): void => {
-      signal.removeEventListener("abort", finishAfterAbort);
-      resolve(true);
-    };
-    const timer = setTimeout(finishAfterInterval, milliseconds);
-
-    signal.addEventListener("abort", finishAfterAbort);
-  });
 
 export const classifyMetaInboundFailure = (
   error: unknown,
@@ -328,10 +312,19 @@ export function createMetaInboundProcessor(
   input: CreateMetaInboundProcessorInput,
 ): MetaInboundProcessor {
   const controller = new AbortController();
+  const poller = createAdaptivePoller({
+    configuration: {
+      baseIntervalMilliseconds: input.configuration.pollIntervalMilliseconds,
+      maximumIdleIntervalMilliseconds: input.configuration.maximumIdlePollIntervalMilliseconds,
+      jitterPercent: input.configuration.idleBackoffJitterPercent,
+    },
+  });
   let started = false;
   let loopPromise: Promise<void> | undefined;
 
-  const executeCycle = async (): Promise<boolean> => {
+  const executeCycle = async (): Promise<
+    Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>
+  > => {
     const operation = "meta.inbound.cycle";
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
@@ -344,12 +337,18 @@ export function createMetaInboundProcessor(
         durationMilliseconds: elapsedMilliseconds(startedAt),
       });
       if (!controller.signal.aborted) {
+        const outcome: PollingCycleOutcome =
+          result.deliveryCount + result.messageCount > 0 ? "active" : "idle";
         input.logger.debug("worker.meta.inbound.cycle_completed", "succeeded", {
           delivery_count: result.deliveryCount,
           normalized_event_count: result.messageCount,
         });
+        if (outcome === "active") {
+          input.onWorkObserved?.();
+        }
+        return Object.freeze({ operational: true, outcome });
       }
-      return !controller.signal.aborted;
+      return Object.freeze({ operational: false, outcome: "failed" });
     } catch (error) {
       if (controller.signal.aborted) {
         input.metrics.recordCompleted({
@@ -357,25 +356,39 @@ export function createMetaInboundProcessor(
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
-        return false;
+        return Object.freeze({ operational: false, outcome: "failed" });
       }
       recordFailure(input.metrics, operation, startedAt, error);
       input.logger.error("worker.meta.inbound.cycle_failed", error);
-      return false;
+      return Object.freeze({ operational: false, outcome: "failed" });
     }
   };
 
-  const runLoop = async (): Promise<void> => {
+  const runLoop = async (
+    initialCycle: Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>,
+  ): Promise<void> => {
+    let previousCycle = initialCycle;
     while (!controller.signal.aborted) {
-      const intervalCompleted = await waitForPollInterval(
-        input.configuration.pollIntervalMilliseconds,
-        controller.signal,
-      );
-      if (!intervalCompleted) {
+      const decision = poller.decide(previousCycle.outcome);
+      const operation = `meta.inbound.${decision.outcome}_wait`;
+      input.metrics.recordStarted(operation);
+      input.logger.debug("worker.meta.inbound.poll_scheduled", "succeeded", {
+        cycle_outcome: decision.outcome,
+        consecutive_idle_cycles: decision.consecutiveIdleCycles,
+        next_poll_interval_ms: decision.delayMilliseconds,
+      });
+      const waitStartedAt = performance.now();
+      const waitResult = await poller.wait(decision, controller.signal);
+      input.metrics.recordCompleted({
+        operation,
+        outcome: waitResult === "aborted" ? "cancelled" : "succeeded",
+        durationMilliseconds: elapsedMilliseconds(waitStartedAt),
+      });
+      if (waitResult === "aborted") {
         break;
       }
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
+      previousCycle = await executeCycle();
+      input.onOperationalStateChange(previousCycle.operational);
     }
   };
 
@@ -385,14 +398,17 @@ export function createMetaInboundProcessor(
         throw new TypeError("Meta inbound processor cannot be started twice");
       }
       started = true;
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
-      loopPromise = runLoop();
-      return operational;
+      const initialCycle = await executeCycle();
+      input.onOperationalStateChange(initialCycle.operational);
+      loopPromise = runLoop(initialCycle);
+      return initialCycle.operational;
     },
     async stop() {
       controller.abort();
       await loopPromise;
+    },
+    wake() {
+      poller.wake();
     },
   });
 }

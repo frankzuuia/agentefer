@@ -6,7 +6,7 @@ import {
 import { type ModelSelector } from "@agentefer/config";
 import { type OperationalMetrics, type StructuredLogger } from "@agentefer/observability";
 
-import { waitForPollInterval } from "./meta-inbound-processor.js";
+import { createAdaptivePoller, type PollingCycleOutcome } from "./adaptive-polling.js";
 import {
   WhatsAppAiRpcError,
   type ClaimedAgentTurn,
@@ -19,6 +19,8 @@ import { WhatsAppGraphError, type WhatsAppGraphClient } from "./whatsapp-graph.j
 export type WhatsAppAiProcessorConfiguration = Readonly<{
   workerId: string;
   pollIntervalMilliseconds: number;
+  maximumIdlePollIntervalMilliseconds: number;
+  idleBackoffJitterPercent: number;
   leaseSeconds: number;
   maxAttempts: number;
   retryDelaySeconds: number;
@@ -39,6 +41,7 @@ export type WhatsAppAiCycleResult = Readonly<{
 export type WhatsAppAiProcessor = Readonly<{
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  wake(): void;
 }>;
 
 export type CreateWhatsAppAiProcessorInput = Readonly<{
@@ -541,11 +544,20 @@ export function createWhatsAppAiProcessor(
   input: CreateWhatsAppAiProcessorInput,
 ): WhatsAppAiProcessor {
   const controller = new AbortController();
+  const poller = createAdaptivePoller({
+    configuration: {
+      baseIntervalMilliseconds: input.configuration.pollIntervalMilliseconds,
+      maximumIdleIntervalMilliseconds: input.configuration.maximumIdlePollIntervalMilliseconds,
+      jitterPercent: input.configuration.idleBackoffJitterPercent,
+    },
+  });
   let started = false;
   let preparationPending = true;
   let loopPromise: Promise<void> | undefined;
 
-  const executeCycle = async (): Promise<boolean> => {
+  const executeCycle = async (): Promise<
+    Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>
+  > => {
     const operation = "whatsapp.ai.cycle";
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
@@ -555,10 +567,10 @@ export function createWhatsAppAiProcessor(
         preparationPending = false;
       }
       const result = await drainWhatsAppAiOnce(input, controller.signal, false);
-      const outcome = controller.signal.aborted ? "cancelled" : "succeeded";
+      const metricOutcome = controller.signal.aborted ? "cancelled" : "succeeded";
       input.metrics.recordCompleted({
         operation,
-        outcome,
+        outcome: metricOutcome,
         durationMilliseconds: elapsedMilliseconds(startedAt),
       });
       if (!controller.signal.aborted) {
@@ -569,7 +581,18 @@ export function createWhatsAppAiProcessor(
           outbox_count: result.outboxCount,
         });
       }
-      return !controller.signal.aborted;
+      if (controller.signal.aborted) {
+        return Object.freeze({ operational: false, outcome: "failed" });
+      }
+      const outcome: PollingCycleOutcome =
+        result.recoveredTurnCount +
+          result.uncertainRecoveryCount +
+          result.turnCount +
+          result.outboxCount >
+        0
+          ? "active"
+          : "idle";
+      return Object.freeze({ operational: true, outcome });
     } catch (error) {
       if (controller.signal.aborted) {
         input.metrics.recordCompleted({
@@ -577,24 +600,39 @@ export function createWhatsAppAiProcessor(
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
-        return false;
+        return Object.freeze({ operational: false, outcome: "failed" });
       }
       recordFailure(input, operation, startedAt, error);
       input.logger.error("worker.whatsapp.ai.cycle_failed", error, rpcFailureAttributes(error));
-      return false;
+      return Object.freeze({ operational: false, outcome: "failed" });
     }
   };
 
-  const runLoop = async (): Promise<void> => {
+  const runLoop = async (
+    initialCycle: Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>,
+  ): Promise<void> => {
+    let previousCycle = initialCycle;
     while (!controller.signal.aborted) {
-      const intervalCompleted = await waitForPollInterval(
-        input.configuration.pollIntervalMilliseconds,
-        controller.signal,
-      );
-      if (!intervalCompleted) {
+      const decision = poller.decide(previousCycle.outcome);
+      const operation = `whatsapp.ai.${decision.outcome}_wait`;
+      input.metrics.recordStarted(operation);
+      input.logger.debug("worker.whatsapp.ai.poll_scheduled", "succeeded", {
+        cycle_outcome: decision.outcome,
+        consecutive_idle_cycles: decision.consecutiveIdleCycles,
+        next_poll_interval_ms: decision.delayMilliseconds,
+      });
+      const waitStartedAt = performance.now();
+      const waitResult = await poller.wait(decision, controller.signal);
+      input.metrics.recordCompleted({
+        operation,
+        outcome: waitResult === "aborted" ? "cancelled" : "succeeded",
+        durationMilliseconds: elapsedMilliseconds(waitStartedAt),
+      });
+      if (waitResult === "aborted") {
         break;
       }
-      input.onOperationalStateChange(await executeCycle());
+      previousCycle = await executeCycle();
+      input.onOperationalStateChange(previousCycle.operational);
     }
   };
 
@@ -604,14 +642,17 @@ export function createWhatsAppAiProcessor(
         throw new TypeError("WhatsApp AI processor cannot be started twice");
       }
       started = true;
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
-      loopPromise = runLoop();
-      return operational;
+      const initialCycle = await executeCycle();
+      input.onOperationalStateChange(initialCycle.operational);
+      loopPromise = runLoop(initialCycle);
+      return initialCycle.operational;
     },
     async stop() {
       controller.abort();
       await loopPromise;
+    },
+    wake() {
+      poller.wake();
     },
   });
 }

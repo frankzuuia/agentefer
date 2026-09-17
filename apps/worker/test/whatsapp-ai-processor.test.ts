@@ -211,6 +211,8 @@ const createInput = (
   configuration: {
     workerId: "worker-test",
     pollIntervalMilliseconds: 100,
+    maximumIdlePollIntervalMilliseconds: 100,
+    idleBackoffJitterPercent: 0,
     leaseSeconds: 120,
     maxAttempts: 8,
     retryDelaySeconds: 5,

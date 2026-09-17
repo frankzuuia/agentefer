@@ -1,6 +1,6 @@
 import { type OperationalMetrics, type StructuredLogger } from "@agentefer/observability";
 
-import { waitForPollInterval } from "./meta-inbound-processor.js";
+import { createAdaptivePoller, type PollingCycleOutcome } from "./adaptive-polling.js";
 import {
   FacebookPageError,
   type FacebookPageClient,
@@ -18,6 +18,8 @@ export type FacebookPublicationProcessorConfiguration = Readonly<{
   workerId: string;
   supabaseUrl: string;
   pollIntervalMilliseconds: number;
+  maximumIdlePollIntervalMilliseconds: number;
+  idleBackoffJitterPercent: number;
   leaseSeconds: number;
   retryDelaySeconds: number;
   batchSize: number;
@@ -34,6 +36,7 @@ export type FacebookPublicationCycleResult = Readonly<{
 export type FacebookPublicationProcessor = Readonly<{
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  wake(): void;
 }>;
 
 export type CreateFacebookPublicationProcessorInput = Readonly<{
@@ -43,6 +46,7 @@ export type CreateFacebookPublicationProcessorInput = Readonly<{
   logger: StructuredLogger;
   metrics: OperationalMetrics;
   onOperationalStateChange(operational: boolean): void;
+  onWorkObserved?(): void;
 }>;
 
 const elapsedMilliseconds = (startedAt: number): number =>
@@ -71,10 +75,7 @@ const objectPathSegments = (objectPath: string): readonly string[] => {
     segments.length < 2 ||
     segments.some(
       (segment) =>
-        segment.length < 1 ||
-        segment.length > 255 ||
-        segment === "." ||
-        segment === "..",
+        segment.length < 1 || segment.length > 255 || segment === "." || segment === "..",
     )
   ) {
     throw new FacebookPageError("invalid", { effectCertainty: "confirmed_not_applied" });
@@ -173,9 +174,7 @@ const recordUsageBestEffort = async (
       claim,
       source,
       ...(providerRequestId === undefined ? {} : { providerRequestId }),
-      ...(retryAfterAt === undefined
-        ? {}
-        : { retryAfterAt, blockedUntil: retryAfterAt }),
+      ...(retryAfterAt === undefined ? {} : { retryAfterAt, blockedUntil: retryAfterAt }),
       usageSnapshot,
       signal,
     });
@@ -360,10 +359,19 @@ export function createFacebookPublicationProcessor(
   input: CreateFacebookPublicationProcessorInput,
 ): FacebookPublicationProcessor {
   const controller = new AbortController();
+  const poller = createAdaptivePoller({
+    configuration: {
+      baseIntervalMilliseconds: input.configuration.pollIntervalMilliseconds,
+      maximumIdleIntervalMilliseconds: input.configuration.maximumIdlePollIntervalMilliseconds,
+      jitterPercent: input.configuration.idleBackoffJitterPercent,
+    },
+  });
   let started = false;
   let loopPromise: Promise<void> | undefined;
 
-  const executeCycle = async (): Promise<boolean> => {
+  const executeCycle = async (): Promise<
+    Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>
+  > => {
     const operation = "facebook.publication.cycle";
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
@@ -383,7 +391,22 @@ export function createFacebookPublicationProcessor(
           ready_notification_count: result.readyNotificationCount,
         });
       }
-      return !controller.signal.aborted;
+      if (controller.signal.aborted) {
+        return Object.freeze({ operational: false, outcome: "failed" });
+      }
+      const outcome: PollingCycleOutcome =
+        result.recoveredCount +
+          result.uncertainRecoveryCount +
+          result.publicationCount +
+          result.reconciledBatchCount +
+          result.readyNotificationCount >
+        0
+          ? "active"
+          : "idle";
+      if (outcome === "active") {
+        input.onWorkObserved?.();
+      }
+      return Object.freeze({ operational: true, outcome });
     } catch (error) {
       if (controller.signal.aborted) {
         input.metrics.recordCompleted({
@@ -391,24 +414,39 @@ export function createFacebookPublicationProcessor(
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
-        return false;
+        return Object.freeze({ operational: false, outcome: "failed" });
       }
       recordFailure(input, operation, startedAt, error);
       input.logger.error("worker.facebook.publication.cycle_failed", error);
-      return false;
+      return Object.freeze({ operational: false, outcome: "failed" });
     }
   };
 
-  const runLoop = async (): Promise<void> => {
+  const runLoop = async (
+    initialCycle: Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>,
+  ): Promise<void> => {
+    let previousCycle = initialCycle;
     while (!controller.signal.aborted) {
-      const intervalCompleted = await waitForPollInterval(
-        input.configuration.pollIntervalMilliseconds,
-        controller.signal,
-      );
-      if (!intervalCompleted) {
+      const decision = poller.decide(previousCycle.outcome);
+      const operation = `facebook.publication.${decision.outcome}_wait`;
+      input.metrics.recordStarted(operation);
+      input.logger.debug("worker.facebook.publication.poll_scheduled", "succeeded", {
+        cycle_outcome: decision.outcome,
+        consecutive_idle_cycles: decision.consecutiveIdleCycles,
+        next_poll_interval_ms: decision.delayMilliseconds,
+      });
+      const waitStartedAt = performance.now();
+      const waitResult = await poller.wait(decision, controller.signal);
+      input.metrics.recordCompleted({
+        operation,
+        outcome: waitResult === "aborted" ? "cancelled" : "succeeded",
+        durationMilliseconds: elapsedMilliseconds(waitStartedAt),
+      });
+      if (waitResult === "aborted") {
         break;
       }
-      input.onOperationalStateChange(await executeCycle());
+      previousCycle = await executeCycle();
+      input.onOperationalStateChange(previousCycle.operational);
     }
   };
 
@@ -418,14 +456,17 @@ export function createFacebookPublicationProcessor(
         throw new TypeError("Facebook publication processor cannot be started twice");
       }
       started = true;
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
-      loopPromise = runLoop();
-      return operational;
+      const initialCycle = await executeCycle();
+      input.onOperationalStateChange(initialCycle.operational);
+      loopPromise = runLoop(initialCycle);
+      return initialCycle.operational;
     },
     async stop() {
       controller.abort();
       await loopPromise;
+    },
+    wake() {
+      poller.wake();
     },
   });
 }

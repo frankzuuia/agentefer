@@ -159,6 +159,8 @@ const createHarness = (options: HarnessOptions = {}) => {
         workerId: "facebook-publication-contract-worker",
         supabaseUrl: "https://agenteferprojectref.supabase.co",
         pollIntervalMilliseconds: 60_000,
+        maximumIdlePollIntervalMilliseconds: 60_000,
+        idleBackoffJitterPercent: 0,
         leaseSeconds: 120,
         retryDelaySeconds: 5,
         batchSize: 25,

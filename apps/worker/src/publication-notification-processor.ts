@@ -9,7 +9,7 @@ import {
   type ClaimedPublicationBatchNotification,
   type FacebookPublicationRpcClient,
 } from "./facebook-publication-rpc.js";
-import { waitForPollInterval } from "./meta-inbound-processor.js";
+import { createAdaptivePoller, type PollingCycleOutcome } from "./adaptive-polling.js";
 
 const MAXIMUM_WHATSAPP_SUMMARY_CHARACTERS = 4_000;
 const SUMMARY_TASK = Object.freeze({
@@ -28,6 +28,8 @@ const SUMMARY_TASK = Object.freeze({
 export type PublicationNotificationProcessorConfiguration = Readonly<{
   workerId: string;
   pollIntervalMilliseconds: number;
+  maximumIdlePollIntervalMilliseconds: number;
+  idleBackoffJitterPercent: number;
   leaseSeconds: number;
   retryDelaySeconds: number;
   batchSize: number;
@@ -42,6 +44,7 @@ export type PublicationNotificationCycleResult = Readonly<{
 export type PublicationNotificationProcessor = Readonly<{
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  wake(): void;
 }>;
 
 export type CreatePublicationNotificationProcessorInput = Readonly<{
@@ -284,10 +287,19 @@ export function createPublicationNotificationProcessor(
   input: CreatePublicationNotificationProcessorInput,
 ): PublicationNotificationProcessor {
   const controller = new AbortController();
+  const poller = createAdaptivePoller({
+    configuration: {
+      baseIntervalMilliseconds: input.configuration.pollIntervalMilliseconds,
+      maximumIdleIntervalMilliseconds: input.configuration.maximumIdlePollIntervalMilliseconds,
+      jitterPercent: input.configuration.idleBackoffJitterPercent,
+    },
+  });
   let started = false;
   let loopPromise: Promise<void> | undefined;
 
-  const executeCycle = async (): Promise<boolean> => {
+  const executeCycle = async (): Promise<
+    Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>
+  > => {
     const operation = "facebook.publication.summary_cycle";
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
@@ -303,7 +315,11 @@ export function createPublicationNotificationProcessor(
           notification_count: result.notificationCount,
         });
       }
-      return !controller.signal.aborted;
+      if (controller.signal.aborted) {
+        return Object.freeze({ operational: false, outcome: "failed" });
+      }
+      const outcome: PollingCycleOutcome = result.notificationCount > 0 ? "active" : "idle";
+      return Object.freeze({ operational: true, outcome });
     } catch (error) {
       if (controller.signal.aborted) {
         input.metrics.recordCompleted({
@@ -311,7 +327,7 @@ export function createPublicationNotificationProcessor(
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
-        return false;
+        return Object.freeze({ operational: false, outcome: "failed" });
       }
       input.metrics.recordCompleted({
         operation,
@@ -320,20 +336,35 @@ export function createPublicationNotificationProcessor(
         durationMilliseconds: elapsedMilliseconds(startedAt),
       });
       input.logger.error("worker.facebook.publication.summary_cycle_failed", error);
-      return false;
+      return Object.freeze({ operational: false, outcome: "failed" });
     }
   };
 
-  const runLoop = async (): Promise<void> => {
+  const runLoop = async (
+    initialCycle: Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>,
+  ): Promise<void> => {
+    let previousCycle = initialCycle;
     while (!controller.signal.aborted) {
-      const intervalCompleted = await waitForPollInterval(
-        input.configuration.pollIntervalMilliseconds,
-        controller.signal,
-      );
-      if (!intervalCompleted) {
+      const decision = poller.decide(previousCycle.outcome);
+      const operation = `facebook.publication.summary.${decision.outcome}_wait`;
+      input.metrics.recordStarted(operation);
+      input.logger.debug("worker.facebook.publication.summary_poll_scheduled", "succeeded", {
+        cycle_outcome: decision.outcome,
+        consecutive_idle_cycles: decision.consecutiveIdleCycles,
+        next_poll_interval_ms: decision.delayMilliseconds,
+      });
+      const waitStartedAt = performance.now();
+      const waitResult = await poller.wait(decision, controller.signal);
+      input.metrics.recordCompleted({
+        operation,
+        outcome: waitResult === "aborted" ? "cancelled" : "succeeded",
+        durationMilliseconds: elapsedMilliseconds(waitStartedAt),
+      });
+      if (waitResult === "aborted") {
         break;
       }
-      input.onOperationalStateChange(await executeCycle());
+      previousCycle = await executeCycle();
+      input.onOperationalStateChange(previousCycle.operational);
     }
   };
 
@@ -343,14 +374,17 @@ export function createPublicationNotificationProcessor(
         throw new TypeError("Publication notification processor cannot be started twice");
       }
       started = true;
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
-      loopPromise = runLoop();
-      return operational;
+      const initialCycle = await executeCycle();
+      input.onOperationalStateChange(initialCycle.operational);
+      loopPromise = runLoop(initialCycle);
+      return initialCycle.operational;
     },
     async stop() {
       controller.abort();
       await loopPromise;
+    },
+    wake() {
+      poller.wake();
     },
   });
 }

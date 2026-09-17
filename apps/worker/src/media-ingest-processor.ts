@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { type OperationalMetrics, type StructuredLogger } from "@agentefer/observability";
 
+import { createAdaptivePoller, type PollingCycleOutcome } from "./adaptive-polling.js";
 import {
   MediaIngestRpcError,
   type ClaimedMediaIngest,
@@ -22,6 +23,8 @@ import {
 export type MediaIngestProcessorConfiguration = Readonly<{
   workerId: string;
   pollIntervalMilliseconds: number;
+  maximumIdlePollIntervalMilliseconds: number;
+  idleBackoffJitterPercent: number;
   leaseSeconds: number;
   maxAttempts: number;
   retryDelaySeconds: number;
@@ -36,11 +39,13 @@ export type CreateMediaIngestProcessorInput = Readonly<{
   logger: StructuredLogger;
   metrics: OperationalMetrics;
   onOperationalStateChange(operational: boolean): void;
+  onWorkObserved?(): void;
 }>;
 
 export type MediaIngestProcessor = Readonly<{
   start(): Promise<boolean>;
   stop(): Promise<void>;
+  wake(): void;
 }>;
 
 export type MediaIngestCycleResult = Readonly<{
@@ -311,11 +316,22 @@ export function createMediaIngestProcessor(
   input: CreateMediaIngestProcessorInput,
 ): MediaIngestProcessor {
   const controller = new AbortController();
+  const poller = createAdaptivePoller({
+    configuration: {
+      baseIntervalMilliseconds: input.configuration.pollIntervalMilliseconds,
+      maximumIdleIntervalMilliseconds: input.configuration.maximumIdlePollIntervalMilliseconds,
+      jitterPercent: input.configuration.idleBackoffJitterPercent,
+    },
+  });
   let started = false;
   let loopPromise: Promise<void> | undefined;
 
-  const executeCycle = async (): Promise<boolean> => {
+  const executeCycle = async (): Promise<
+    Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>
+  > => {
+    const operation = "media.ingest.cycle";
     const startedAt = performance.now();
+    input.metrics.recordStarted(operation);
     try {
       const result = await drainMediaIngestOnce(input, controller.signal);
       if (!controller.signal.aborted) {
@@ -326,18 +342,25 @@ export function createMediaIngestProcessor(
       const wasCancelled = controller.signal.aborted;
       if (wasCancelled) {
         input.metrics.recordCompleted({
-          operation: "media.ingest.cycle",
+          operation,
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
       } else {
         input.metrics.recordCompleted({
-          operation: "media.ingest.cycle",
+          operation,
           outcome: "succeeded",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
       }
-      return !wasCancelled;
+      if (wasCancelled) {
+        return Object.freeze({ operational: false, outcome: "failed" });
+      }
+      const outcome: PollingCycleOutcome = result.processedCount > 0 ? "active" : "idle";
+      if (outcome === "active") {
+        input.onWorkObserved?.();
+      }
+      return Object.freeze({ operational: true, outcome });
     } catch (error) {
       if (!controller.signal.aborted) {
         input.logger.error("worker.media.ingest_cycle_failed", error);
@@ -345,39 +368,47 @@ export function createMediaIngestProcessor(
       const wasCancelled = controller.signal.aborted;
       if (wasCancelled) {
         input.metrics.recordCompleted({
-          operation: "media.ingest.cycle",
+          operation,
           outcome: "cancelled",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
       } else {
         input.metrics.recordCompleted({
-          operation: "media.ingest.cycle",
+          operation,
           outcome: "failed",
           errorCategory: "internal",
           durationMilliseconds: elapsedMilliseconds(startedAt),
         });
       }
-      return false;
+      return Object.freeze({ operational: false, outcome: "failed" });
     }
   };
 
-  const runLoop = async (): Promise<void> => {
+  const runLoop = async (
+    initialCycle: Readonly<{ operational: boolean; outcome: PollingCycleOutcome }>,
+  ): Promise<void> => {
+    let previousCycle = initialCycle;
     while (!wasAborted(controller.signal)) {
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, input.configuration.pollIntervalMilliseconds);
-        controller.signal.addEventListener(
-          "abort",
-          () => {
-            clearTimeout(timer);
-            resolve();
-          },
-          { once: true },
-        );
+      const decision = poller.decide(previousCycle.outcome);
+      const operation = `media.ingest.${decision.outcome}_wait`;
+      input.metrics.recordStarted(operation);
+      input.logger.debug("worker.media.ingest.poll_scheduled", "succeeded", {
+        cycle_outcome: decision.outcome,
+        consecutive_idle_cycles: decision.consecutiveIdleCycles,
+        next_poll_interval_ms: decision.delayMilliseconds,
       });
-      const abortRequested = wasAborted(controller.signal);
-      if (!abortRequested) {
-        input.onOperationalStateChange(await executeCycle());
+      const waitStartedAt = performance.now();
+      const waitResult = await poller.wait(decision, controller.signal);
+      input.metrics.recordCompleted({
+        operation,
+        outcome: waitResult === "aborted" ? "cancelled" : "succeeded",
+        durationMilliseconds: elapsedMilliseconds(waitStartedAt),
+      });
+      if (waitResult === "aborted") {
+        break;
       }
+      previousCycle = await executeCycle();
+      input.onOperationalStateChange(previousCycle.operational);
     }
   };
 
@@ -387,14 +418,17 @@ export function createMediaIngestProcessor(
         throw new TypeError("Media ingest processor cannot be started twice");
       }
       started = true;
-      const operational = await executeCycle();
-      input.onOperationalStateChange(operational);
-      loopPromise = runLoop();
-      return operational;
+      const initialCycle = await executeCycle();
+      input.onOperationalStateChange(initialCycle.operational);
+      loopPromise = runLoop(initialCycle);
+      return initialCycle.operational;
     },
     async stop() {
       controller.abort();
       await loopPromise;
+    },
+    wake() {
+      poller.wake();
     },
   });
 }

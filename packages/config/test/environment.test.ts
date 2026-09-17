@@ -196,6 +196,8 @@ describe("worker environment", () => {
       enabled: true,
       rpcTimeoutMilliseconds: 5_000,
       pollIntervalMilliseconds: 1_000,
+      maximumIdlePollIntervalMilliseconds: 5_000,
+      idleBackoffJitterPercent: 10,
       leaseSeconds: 120,
       maxAttempts: 8,
       retryDelaySeconds: 5,
@@ -205,6 +207,8 @@ describe("worker environment", () => {
       enabled: true,
       rpcTimeoutMilliseconds: 5_000,
       pollIntervalMilliseconds: 1_000,
+      maximumIdlePollIntervalMilliseconds: 60_000,
+      idleBackoffJitterPercent: 10,
       leaseSeconds: 155,
       maxAttempts: 8,
       retryDelaySeconds: 5,
@@ -214,6 +218,8 @@ describe("worker environment", () => {
       enabled: false,
       rpcTimeoutMilliseconds: 5_000,
       pollIntervalMilliseconds: 1_000,
+      maximumIdlePollIntervalMilliseconds: 60_000,
+      idleBackoffJitterPercent: 10,
       leaseSeconds: 120,
       retryDelaySeconds: 5,
       batchSize: 25,
@@ -375,12 +381,60 @@ describe("worker environment", () => {
       enabled: false,
       rpcTimeoutMilliseconds: 250,
       pollIntervalMilliseconds: 100,
+      maximumIdlePollIntervalMilliseconds: 5_000,
+      idleBackoffJitterPercent: 10,
       leaseSeconds: 15,
       maxAttempts: 100,
       retryDelaySeconds: 0,
       batchSize: 100,
     });
     expect(configuration.whatsappAi.enabled).toBe(false);
+  });
+
+  it("applies independently bounded adaptive idle backoff controls", () => {
+    const configuration = parseWorkerEnvironment({
+      ...validWorkerEnvironment(),
+      WORKER_META_POLL_INTERVAL_MS: "250",
+      WORKER_META_IDLE_BACKOFF_MAX_MS: "3000",
+      WORKER_ASYNC_IDLE_BACKOFF_MAX_MS: "45000",
+      WORKER_IDLE_BACKOFF_JITTER_PERCENT: "17",
+    });
+
+    expect(configuration.metaInbound).toMatchObject({
+      pollIntervalMilliseconds: 250,
+      maximumIdlePollIntervalMilliseconds: 3_000,
+      idleBackoffJitterPercent: 17,
+    });
+    expect(configuration.whatsappAi).toMatchObject({
+      pollIntervalMilliseconds: 250,
+      maximumIdlePollIntervalMilliseconds: 45_000,
+      idleBackoffJitterPercent: 17,
+    });
+  });
+
+  it.each([
+    ["WORKER_META_IDLE_BACKOFF_MAX_MS", "99"],
+    ["WORKER_ASYNC_IDLE_BACKOFF_MAX_MS", "60001"],
+    ["WORKER_IDLE_BACKOFF_JITTER_PERCENT", "51"],
+  ] as const)("rejects an unsafe adaptive polling boundary for %s", (variable, value) => {
+    expect(() =>
+      parseWorkerEnvironment({
+        ...validWorkerEnvironment(),
+        [variable]: value,
+      }),
+    ).toThrow(variable);
+  });
+
+  it("rejects an idle maximum shorter than the configured base interval", () => {
+    expect(() =>
+      parseWorkerEnvironment({
+        ...validWorkerEnvironment(),
+        WORKER_META_POLL_INTERVAL_MS: "5000",
+        WORKER_META_IDLE_BACKOFF_MAX_MS: "1000",
+      }),
+    ).toThrow(
+      "WORKER_META_IDLE_BACKOFF_MAX_MS: must not be less than WORKER_META_POLL_INTERVAL_MS",
+    );
   });
 
   it.each([

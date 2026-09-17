@@ -102,6 +102,8 @@ const createHarness = (provider: CognitiveProvider) => {
     configuration: {
       workerId: "publication-summary-contract-worker",
       pollIntervalMilliseconds: 60_000,
+      maximumIdlePollIntervalMilliseconds: 60_000,
+      idleBackoffJitterPercent: 0,
       leaseSeconds: 900,
       retryDelaySeconds: 5,
       batchSize: 25,
