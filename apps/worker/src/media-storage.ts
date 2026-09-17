@@ -370,9 +370,11 @@ export const createMediaStorageClient = (
     throw new MediaStorageError("invalid");
   }
   const origin = validatedStorageOrigin(input.supabaseUrl);
-  const authorization = (): Readonly<Record<string, string>> => ({
+  // `sb_secret_` keys are opaque API keys, not JWT bearer tokens. Storage must receive
+  // the server credential through `apikey`; putting it in Authorization makes Storage
+  // attempt JWT validation and rejects the upload before any bytes are persisted.
+  const serviceApiKey = (): Readonly<Record<string, string>> => ({
     apikey: input.secretKey.reveal(),
-    authorization: `Bearer ${input.secretKey.reveal()}`,
   });
 
   return Object.freeze({
@@ -387,7 +389,7 @@ export const createMediaStorageClient = (
         response = await fetch(endpoint, {
           method: "POST",
           headers: {
-            ...authorization(),
+            ...serviceApiKey(),
             "cache-control": "max-age=31536000, immutable",
             "content-type": object.mimeType,
             "x-upsert": "false",
@@ -419,7 +421,7 @@ export const createMediaStorageClient = (
       try {
         response = await fetch(endpoint, {
           method: "GET",
-          headers: { ...authorization(), accept: object.mimeType },
+          headers: { ...serviceApiKey(), accept: object.mimeType },
           cache: "no-store",
           redirect: "error",
           signal: boundedSignal(input.timeoutMilliseconds, signal),
@@ -456,7 +458,7 @@ export const createMediaStorageClient = (
         response = await fetch(endpoint, {
           method: "POST",
           headers: {
-            ...authorization(),
+            ...serviceApiKey(),
             accept: "application/json",
             "content-type": "application/json",
           },
