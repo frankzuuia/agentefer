@@ -54,18 +54,19 @@ señales internas, fallo transitorio y apagado. El contrato se valida con:
 npm run verify:acceptance-contract
 ```
 
-## Gate de seguridad pendiente
+## Gate de seguridad
 
-`npm run audit` no está verde por dependencias existentes fuera de este bloque:
+El gate quedó cerrado en un bloque separado de dependencias. `npm run audit` y
+`npm run audit --omit=dev` reportan cero vulnerabilidades después de actualizar:
 
-- crítica: `next@16.2.12`;
-- altas: `sharp@0.35.3` y `js-yaml@4.3.1`;
-- moderada: Vitest/@vitest-mocker.
+- `next`/`eslint-config-next` a `16.3.5`;
+- `sharp` a `0.35.4` y sus artefactos opcionales revisados;
+- `vitest` y `@vitest/coverage-v8` a `4.1.11`;
+- `js-yaml` fijado por override a `4.3.2`.
 
-No se aplicó `npm audit fix --force`, porque cambiaría dependencias compartidas y
-podría alterar el catálogo que ya tenía cambios ajenos. Este hallazgo bloquea un
-despliegue enterprise hasta resolverlo en un bloque de actualización y regresión
-de dependencias separado.
+La política de licencias conserva las obligaciones LGPL de los binarios opcionales
+de Sharp y pasó `npm run verify:dependency-policy`. No se usó
+`npm audit fix --force`.
 
 ## Procedimiento reproducible
 

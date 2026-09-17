@@ -49,13 +49,13 @@
     },
     {
       "prefix": "@img/sharp-libvips-",
-      "version": "1.3.2",
+      "version": "1.3.3",
       "licenses": ["LGPL-3.0-or-later"],
       "reason": "Sharp optional libvips binaries; LGPL notices and relinking obligations remain a B8 release gate."
     },
     {
       "prefix": "@img/sharp-",
-      "version": "0.35.3",
+      "version": "0.35.4",
       "licenses": ["Apache-2.0 AND LGPL-3.0-or-later", "Apache-2.0 AND LGPL-3.0-or-later AND MIT"],
       "reason": "Sharp Windows/WASM binaries; third-party notices and applicable LGPL obligations remain a B8 release gate."
     }
