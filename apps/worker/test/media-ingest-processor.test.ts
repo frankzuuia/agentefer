@@ -234,7 +234,7 @@ describe("WhatsApp media ingest processor", () => {
       traceId: "trace-id",
     });
     expect(registrationInputs.map((input) => input.derivationSpec)).toEqual([
-      { kind: "source_original", source: "whatsapp_cloud_api" },
+      {},
       { kind: "analysis_webp", source: "sharp", quality: 85, effort: 4 },
     ]);
   });

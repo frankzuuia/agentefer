@@ -169,7 +169,7 @@ const persistNormalizedImage = async (
     byteSize: normalized.originalBytes.byteLength,
     widthPixels: normalized.widthPixels,
     heightPixels: normalized.heightPixels,
-    derivationSpec: Object.freeze({ kind: "source_original", source: "whatsapp_cloud_api" }),
+    derivationSpec: Object.freeze({}),
     correlationId: claim.correlationId,
     ...(claim.traceId === undefined ? {} : { traceId: claim.traceId }),
     signal,
