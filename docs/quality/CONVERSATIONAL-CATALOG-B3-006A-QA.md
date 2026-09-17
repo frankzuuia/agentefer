@@ -2,8 +2,9 @@
 
 ## Estado
 
-Implementación de alta conversacional versionada en AgenteFer/develop. No aplicada ni desplegada.
-Supabase autorizado: `hprdctmblmfcoagugvyp`. Todos los ensayos SQL terminan en rollback.
+Implementación de alta conversacional versionada en AgenteFer/develop. Migración aplicada sólo en
+el proyecto de pruebas `hprdctmblmfcoagugvyp`; no desplegada en servicios productivos.
+El postflight remoto ejecutó 88 aserciones con fixtures transaccionales y rollback.
 No publicaciones reales, catálogo comercial de prueba persistido ni cambios OAuth en este bloque.
 El procedimiento master-architect exigió especificación y trazabilidad antes de implementar;
 las puertas pendientes impiden certificar producción o desplegar sin excepción explícita.
@@ -25,8 +26,8 @@ las puertas pendientes impiden certificar producción o desplegar sin excepción
 
 | Comprobación | Resultado | Alcance |
 | --- | --- | --- |
-| `test:coverage` | 1,122 pruebas, 45 archivos, cero fallos | Regresión local; no equivale a E2E externo |
-| Cobertura global | líneas 91.97%, sentencias 91.89%, ramas 87.08%, funciones 94.48% | Umbrales existentes 90/90/85/90 |
+| `test:coverage` | 1,141 pruebas, 46 archivos, cero fallos | Regresión local; no equivale a E2E externo |
+| Cobertura global | líneas 91.09%, sentencias 91.04%, ramas 86.59%, funciones 93.84% | Umbrales existentes 90/90/85/90 |
 | `catalog-private-media.ts` | 100% líneas, sentencias, ramas y funciones | Validador puro: 38 pruebas |
 | `media-storage.ts` | 98.78% líneas, 97.79% ramas | 23 nuevas pruebas puras; regresión de transporte existente |
 | `admin-catalog-gateway.ts` | 79.13% líneas, 67.29% ramas | Firma por lote 708–747 SIN cobertura de transporte real: gate abierto |
@@ -35,8 +36,8 @@ las puertas pendientes impiden certificar producción o desplegar sin excepción
 | Mutación SQL | 6/6 detectadas | Misma confirmación, revisión, replay, Base64, dueño, composición |
 | Mutación TS dirigida | 172/179 detectadas, 96.09% | API 95.61%; worker 96.92%; umbral 90, sin excluir supervivientes |
 | Contraprueba estática directa | 3/3 cambios incorrectos detectados | Proceso Vitest independiente por cambio; restauración y 38/38 pruebas verdes |
-| Gherkin | 20 archivos, 392 escenarios compilados | Sintaxis/contratos, NO ejecución E2E de todos los escenarios |
-| Dependencias | cero vulnerabilidades en `npm audit`, total y producción | Sin cambios de dependencias |
+| Gherkin | 21 archivos, 398 escenarios compilados | Sintaxis/contratos, NO ejecución E2E de todos los escenarios |
+| Dependencias | cero vulnerabilidades en `npm audit`, total y producción | Actualización separada auditada |
 | Formato, lint, typecheck, build | verdes | Ejecución local, no CI remoto |
 | Patrones de secretos | cero coincidencias en 16 archivos cambiados al ejecutar | Heurística sin valores en salida; no sustituye escaneo especializado |
 | Complejidad ESLint | API 24, worker 14 | Controles operativos explícitos; no árboles de intención comercial |
@@ -67,6 +68,8 @@ npm run test:mutation:b3-006a
 npm run verify:database-contract
 npm run verify:acceptance-contract
 npm run verify:documentation-contract
+npm run database:types:linked
+npm run test:database:linked:b3-006a -- postflight
 npm run test:database:linked:b3-006a -- regression
 npm run test:database:linked:b3-006a -- mutations
 git diff --check
@@ -81,9 +84,8 @@ HTTP existentes del repositorio; no se presentaron como integración real de Sup
 
 ## Puertas que siguen abiertas
 
-- Aplicación controlada únicamente en pruebas, tipos regenerados desde el esquema aplicado,
-  CI completo y validación posterior. La comprobación estática actual conserva contratos públicos;
-  los tipos privados generados todavía corresponden al esquema anterior.
+- CI completo y validación posterior en el entorno de despliegue siguen pendientes. La migración
+  ya está aplicada en pruebas, el postflight remoto pasó 88/88 y `database.types.ts` fue sincronizado.
 - Foto real del dueño→ingesta durable→WebP→firma→visión→preguntas únicamente faltantes→resumen→
   confirmación posterior→catálogo. Probar cambio de tema y más de 24 mensajes sin perder borrador.
 - Firma por lote real, expiración, rechazo de objetos ajenos, falta de objeto y recuperación de Storage.
@@ -113,10 +115,11 @@ sin atribuir falsamente esas detecciones al ejecutor Stryker ni modificar su inf
 
 ## Próxima prueba y recuperación
 
-Requiere autorización explícita de excepción limitada para instalar la candidata en el entorno
-de pruebas y cerrar los E2E que necesitan código aplicado. Alcance: Frank-Pruebas en AgenteFer,
-sin main, sin publicación Facebook y sin recursos externos al proyecto. Informar que no es un
-despliegue certificado, verificar copia/recuperación y registrar migración y SHA antes de operar.
+El siguiente paso requiere rotar las claves que fueron expuestas por una consulta de diagnóstico
+del CLI y configurar credenciales administradas fuera del repositorio para cerrar los E2E de
+Storage/visión/WhatsApp. Alcance: Frank-Pruebas en AgenteFer, sin main, sin publicación Facebook
+y sin recursos externos al proyecto. Informar que no es un despliegue certificado, verificar
+copia/recuperación y registrar migración y SHA antes de operar.
 No borrar tablas ni revertir migraciones con pérdida de datos. Ante fallo, detener las tools nuevas,
 volver a una política auditada compatible y corregir hacia delante; conservar borradores/auditoría.
 

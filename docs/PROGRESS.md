@@ -9,8 +9,9 @@ Regla: una tarea solo pasa a completada con entregable real y evidencia de valid
 Especificación: [B3-006A](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).
 Evidencia: [QA B3-006A](quality/CONVERSATIONAL-CATALOG-B3-006A-QA.md).
 
-Implementación versionada en `develop`, sin despliegue productivo de este bloque. Ensayo transaccional
-en Supabase AgenteFer: 1,397 aserciones de 28 suites, rollback, cero fallos. No es certificación E2E.
+Implementación versionada en `develop`, con migración aplicada sólo en el proyecto de pruebas y sin
+despliegue productivo de este bloque. Postflight remoto: 88/88 aserciones con rollback de fixtures;
+regresión transaccional: 1,397 aserciones de 28 suites, cero fallos. No es certificación E2E.
 
 - [ ] B3-006A-D: A01–A03/A07–A10/A13/A14, borradores persistentes, revisión, autorización e idempotencia.
 - [ ] B3-006A-R: A04–A06/A12/A16/A18, aplicación atómica catálogo/precios/composición/stock y sin FB.
@@ -20,8 +21,8 @@ en Supabase AgenteFer: 1,397 aserciones de 28 suites, rollback, cero fallos. No 
 
 - [x] D/R/T: contratos, helpers, aislamiento y dispatcher implementados; ensayo SQL con 88 aserciones propias y 6/6 mutaciones detectadas.
 - [x] M parcial: validadores de URL API/worker con pruebas puras; 100% líneas/ramas del validador API. Transporte de firma por lote pendiente de integración real.
-- [x] Q parcial: 1,122 pruebas, 91.97% líneas globales; mutación de los validadores 96.09%. No sustituye cobertura de rutas críticas pendientes.
-- [ ] Q cierre: E2E foto/LLM/WhatsApp/panel móvil, concurrencia entre sesiones, firma y permisos reales; regenerar tipos tras aplicar en pruebas y obtener evidencia CI completa.
+- [x] Q parcial: 1,141 pruebas, 91.09% líneas globales; mutación de los validadores 96.09%. No sustituye cobertura de rutas críticas pendientes.
+- [ ] Q cierre: E2E foto/LLM/WhatsApp/panel móvil, concurrencia entre sesiones, firma y permisos reales; CI completa y tráfico real aún pendientes.
 
 ## Leyenda
 

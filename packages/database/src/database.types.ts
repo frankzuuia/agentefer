@@ -10117,8 +10117,61 @@ export type Database = {
           },
         ];
       };
+      catalog_ingestion_commands: {
+        Row: {
+          arguments_hash: string;
+          created_at: string;
+          draft_id: string;
+          execution_key: string;
+          organization_id: string;
+          result: Json;
+          run_id: string;
+        };
+        Insert: {
+          arguments_hash: string;
+          created_at?: string;
+          draft_id: string;
+          execution_key: string;
+          organization_id: string;
+          result: Json;
+          run_id: string;
+        };
+        Update: {
+          arguments_hash?: string;
+          created_at?: string;
+          draft_id?: string;
+          execution_key?: string;
+          organization_id?: string;
+          result?: Json;
+          run_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "catalog_ingestion_commands_organization_id_draft_id_fkey";
+            columns: ["organization_id", "draft_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_ingestion_drafts";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "catalog_ingestion_commands_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "catalog_ingestion_commands_organization_id_run_id_fkey";
+            columns: ["organization_id", "run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       catalog_ingestion_drafts: {
         Row: {
+          application_result: Json | null;
           applied_product_id: string | null;
           applied_variant_id: string | null;
           category_id: string | null;
@@ -10126,6 +10179,7 @@ export type Database = {
           created_at: string;
           created_by_user_id: string | null;
           id: string;
+          last_source_message_id: string | null;
           organization_id: string;
           proposal: Json;
           revision: number;
@@ -10136,6 +10190,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          application_result?: Json | null;
           applied_product_id?: string | null;
           applied_variant_id?: string | null;
           category_id?: string | null;
@@ -10143,6 +10198,7 @@ export type Database = {
           created_at?: string;
           created_by_user_id?: string | null;
           id?: string;
+          last_source_message_id?: string | null;
           organization_id: string;
           proposal?: Json;
           revision?: number;
@@ -10153,6 +10209,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          application_result?: Json | null;
           applied_product_id?: string | null;
           applied_variant_id?: string | null;
           category_id?: string | null;
@@ -10160,6 +10217,7 @@ export type Database = {
           created_at?: string;
           created_by_user_id?: string | null;
           id?: string;
+          last_source_message_id?: string | null;
           organization_id?: string;
           proposal?: Json;
           revision?: number;
@@ -10208,6 +10266,13 @@ export type Database = {
           {
             foreignKeyName: "catalog_ingestion_drafts_source_message_fk";
             columns: ["organization_id", "source_message_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "ingestion_last_source_message_fk";
+            columns: ["organization_id", "last_source_message_id"];
             isOneToOne: false;
             referencedRelation: "messages";
             referencedColumns: ["organization_id", "id"];
@@ -16389,12 +16454,117 @@ export type Database = {
         Args: { target_organization_id: string; target_variant_id: string };
         Returns: undefined;
       };
+      catalog_apply_draft_for_owner: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      catalog_ingestion_attributes: {
+        Args: {
+          actor: string;
+          attributes: Json;
+          category: string;
+          evidence: string;
+          product: string;
+          tenant: string;
+          variant: string;
+        };
+        Returns: undefined;
+      };
+      catalog_ingestion_context_for_owner: {
+        Args: {
+          target_arguments: Json;
+          target_organization_id: string;
+          target_run_id: string;
+        };
+        Returns: Json;
+      };
+      catalog_ingestion_execute: {
+        Args: {
+          arguments: Json;
+          execution: string;
+          handler: string;
+          run: string;
+          tenant: string;
+        };
+        Returns: Json;
+      };
+      catalog_ingestion_owner_run: {
+        Args: { target_organization_id: string; target_run_id: string };
+        Returns: {
+          actor_channel_identity_id: string | null;
+          actor_kind: string;
+          actor_user_id: string | null;
+          budget_status: string;
+          cache_key_hash: string | null;
+          cache_mode: string;
+          channel_connection_id: string | null;
+          completed_at: string | null;
+          continuation_sequence: number;
+          conversation_id: string | null;
+          conversation_snapshot_id: string | null;
+          correlation_id: string;
+          cost_currency: string | null;
+          created_at: string;
+          fallback_models: Json;
+          id: string;
+          last_termination_reason: string | null;
+          max_cost_amount: number | null;
+          max_parallel_tools: number;
+          max_provider_attempts: number;
+          max_tool_rounds: number;
+          model: string;
+          organization_id: string;
+          policy_version_id: string;
+          provider: string;
+          provider_attempt_count: number;
+          provider_state_hash: string | null;
+          provider_state_reference: string | null;
+          reasoning_effort: string | null;
+          run_key: string;
+          run_kind: string;
+          source_inbound_event_id: string | null;
+          started_at: string | null;
+          status: string;
+          tool_round_count: number;
+          trace_id: string | null;
+          trigger_message_id: string | null;
+          turn_timeout_ms: number;
+          unknown_cost_behavior: string;
+          updated_at: string;
+          vision_model: string | null;
+          vision_provider: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "agent_runs";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       catalog_offer_for_agent: {
         Args: { target_arguments: Json; target_organization_id: string };
         Returns: Json;
       };
+      catalog_proposal_json_safe: {
+        Args: { depth?: number; value: Json };
+        Returns: boolean;
+      };
       catalog_recent_for_owner_agent: {
         Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
+      catalog_save_draft_for_owner: {
+        Args: {
+          target_arguments: Json;
+          target_execution_key: string;
+          target_organization_id: string;
+          target_run_id: string;
+        };
         Returns: Json;
       };
       catalog_search_for_agent: {
@@ -16543,6 +16713,10 @@ export type Database = {
       customer_assistant_read_tools_ready: {
         Args: { target_organization_id: string };
         Returns: boolean;
+      };
+      ensure_customer_assistant_ingestion_tools: {
+        Args: { target_organization_id: string };
+        Returns: string;
       };
       ensure_customer_assistant_policy: {
         Args: { target_organization_id: string };
