@@ -243,7 +243,7 @@ describe("media Storage HTTP transport", () => {
       expect(request.headers.apikey).toBe(secret);
       expect(request.headers["content-type"]).toBe("image/webp");
       expect(request.headers["x-upsert"]).toBe("false");
-      expect(request.headers["cache-control"]).toBe("max-age=31536000, immutable");
+      expect(request.headers["cache-control"]).toBe("max-age=31536000");
       requestBody = await readBytes(request);
       response.statusCode = 200;
       response.end('{"Key":"registered"}');
@@ -308,7 +308,10 @@ describe("media Storage HTTP transport", () => {
 
     await expect(
       createClient(server.origin).uploadObject(descriptor(), Uint8Array.from([1])),
-    ).rejects.toMatchObject({ kind });
+    ).rejects.toMatchObject({
+      kind,
+      httpDiagnostic: { operation: "upload", status },
+    });
   });
 
   it("downloads a private object with exact MIME and bounded bytes", async () => {

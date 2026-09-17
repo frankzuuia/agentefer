@@ -32,10 +32,22 @@ export type ResolvedMediaObject = Readonly<{
 export type MediaStorageFailureKind =
   "invalid" | "rejected" | "conflict" | "retryable" | "uncertain" | "cancelled" | "timeout";
 
+export type MediaStorageHttpOperation = "upload" | "download" | "sign";
+
+export type MediaStorageHttpDiagnostic = Readonly<{
+  operation: MediaStorageHttpOperation;
+  status: number;
+}>;
+
 export class MediaStorageError extends OperationalError {
   readonly kind: MediaStorageFailureKind;
+  readonly httpDiagnostic: MediaStorageHttpDiagnostic | undefined;
 
-  constructor(kind: MediaStorageFailureKind, cause?: unknown) {
+  constructor(
+    kind: MediaStorageFailureKind,
+    cause?: unknown,
+    httpDiagnostic?: MediaStorageHttpDiagnostic,
+  ) {
     const attributes = {
       invalid: {
         code: "MEDIA_STORAGE_INVALID",
@@ -84,6 +96,7 @@ export class MediaStorageError extends OperationalError {
     super({ ...attributes[kind], cause });
     this.name = "MediaStorageError";
     this.kind = kind;
+    this.httpDiagnostic = httpDiagnostic;
   }
 }
 
@@ -261,6 +274,15 @@ const failureForStatus = (status: number): MediaStorageFailureKind => {
   return "invalid";
 };
 
+const failureForResponse = (
+  operation: MediaStorageHttpOperation,
+  response: Response,
+): MediaStorageError =>
+  new MediaStorageError(failureForStatus(response.status), undefined, {
+    operation,
+    status: response.status,
+  });
+
 const boundedSignal = (
   timeoutMilliseconds: number,
   signal: AbortSignal | undefined,
@@ -390,7 +412,7 @@ export const createMediaStorageClient = (
           method: "POST",
           headers: {
             ...serviceApiKey(),
-            "cache-control": "max-age=31536000, immutable",
+            "cache-control": "max-age=31536000",
             "content-type": object.mimeType,
             "x-upsert": "false",
           },
@@ -405,7 +427,7 @@ export const createMediaStorageClient = (
 
       if (!response.ok) {
         await response.body?.cancel();
-        throw new MediaStorageError(failureForStatus(response.status));
+        throw failureForResponse("upload", response);
       }
       await response.body?.cancel();
       return object;
@@ -432,7 +454,7 @@ export const createMediaStorageClient = (
 
       if (!response.ok) {
         await response.body?.cancel();
-        throw new MediaStorageError(failureForStatus(response.status));
+        throw failureForResponse("download", response);
       }
       const responseMimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
       if (responseMimeType !== object.mimeType) {
@@ -473,7 +495,7 @@ export const createMediaStorageClient = (
 
       if (!response.ok) {
         await response.body?.cancel();
-        throw new MediaStorageError(failureForStatus(response.status));
+        throw failureForResponse("sign", response);
       }
       const decoded = await decodeControlResponse(response);
       const signedPath = isRecord(decoded) ? decoded.signedURL : undefined;

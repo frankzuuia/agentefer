@@ -30,6 +30,12 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Y no la envía como Authorization Bearer
       Y Storage puede aplicar la identidad de servicio sin intentar validar un JWT inexistente
 
+    Escenario: Storage rechaza una carga con contrato inválido
+      Dado una carga de catálogo autorizada
+      Cuando Storage responde con un estado HTTP no exitoso
+      Entonces la telemetría registra únicamente la operación y el estado HTTP
+      Y no registra la llave, el contenido de la respuesta ni los bytes de la fotografía
+
   Regla: Cada organización queda aislada también dentro de Storage
 
     Escenario: Un miembro intenta leer el original de otra organización

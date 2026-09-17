@@ -254,6 +254,13 @@ const processClaim = async (
       return;
     }
     const failure = classifyFailure(error);
+    const storageDiagnostic =
+      error instanceof MediaStorageError && error.httpDiagnostic !== undefined
+        ? {
+            storage_operation: error.httpDiagnostic.operation,
+            storage_http_status: error.httpDiagnostic.status,
+          }
+        : {};
     await input.rpcClient.fail({
       organizationId: claim.organizationId,
       requestId: claim.requestId,
@@ -270,6 +277,7 @@ const processClaim = async (
       request_id: claim.requestId,
       attempt_number: claim.attemptNumber,
       retryable: failure.retryable,
+      ...storageDiagnostic,
     });
   }
 };
