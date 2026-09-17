@@ -392,12 +392,16 @@ export const createMediaStorageClient = (
     throw new MediaStorageError("invalid");
   }
   const origin = validatedStorageOrigin(input.supabaseUrl);
-  // `sb_secret_` keys are opaque API keys, not JWT bearer tokens. Storage must receive
-  // the server credential through `apikey`; putting it in Authorization makes Storage
-  // attempt JWT validation and rejects the upload before any bytes are persisted.
-  const serviceApiKey = (): Readonly<Record<string, string>> => ({
-    apikey: input.secretKey.reveal(),
-  });
+  // Storage authenticates direct requests independently from PostgREST. Mirror the
+  // official client contract: send the configured server credential in both headers.
+  // The gateway resolves opaque `sb_secret_` credentials before Storage evaluates RLS.
+  const serviceApiHeaders = (): Readonly<Record<string, string>> => {
+    const secretKey = input.secretKey.reveal();
+    return {
+      apikey: secretKey,
+      authorization: `Bearer ${secretKey}`,
+    };
+  };
 
   return Object.freeze({
     async uploadObject(descriptor, body, signal) {
@@ -411,7 +415,7 @@ export const createMediaStorageClient = (
         response = await fetch(endpoint, {
           method: "POST",
           headers: {
-            ...serviceApiKey(),
+            ...serviceApiHeaders(),
             "cache-control": "max-age=31536000",
             "content-type": object.mimeType,
             "x-upsert": "false",
@@ -443,7 +447,7 @@ export const createMediaStorageClient = (
       try {
         response = await fetch(endpoint, {
           method: "GET",
-          headers: { ...serviceApiKey(), accept: object.mimeType },
+          headers: { ...serviceApiHeaders(), accept: object.mimeType },
           cache: "no-store",
           redirect: "error",
           signal: boundedSignal(input.timeoutMilliseconds, signal),
@@ -480,7 +484,7 @@ export const createMediaStorageClient = (
         response = await fetch(endpoint, {
           method: "POST",
           headers: {
-            ...serviceApiKey(),
+            ...serviceApiHeaders(),
             accept: "application/json",
             "content-type": "application/json",
           },

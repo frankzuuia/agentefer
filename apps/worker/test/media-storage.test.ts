@@ -239,7 +239,7 @@ describe("media Storage HTTP transport", () => {
       expect(request.url).toBe(
         `/storage/v1/object/agentefer-catalog-private/${organizationId}/${mediaAssetId}/analysis_webp/${contentSha256Hex}.webp`,
       );
-      expect(request.headers.authorization).toBeUndefined();
+      expect(request.headers.authorization).toBe(`Bearer ${secret}`);
       expect(request.headers.apikey).toBe(secret);
       expect(request.headers["content-type"]).toBe("image/webp");
       expect(request.headers["x-upsert"]).toBe("false");
@@ -321,7 +321,7 @@ describe("media Storage HTTP transport", () => {
         `/storage/v1/object/authenticated/agentefer-catalog-private/${organizationId}/${mediaAssetId}/whatsapp_jpeg/${contentSha256Hex}.jpg`,
       );
       expect(request.headers.accept).toBe("image/jpeg");
-      expect(request.headers.authorization).toBeUndefined();
+      expect(request.headers.authorization).toBe(`Bearer ${secret}`);
       expect(request.headers.apikey).toBe(secret);
       response.writeHead(200, { "content-type": "image/jpeg" });
       response.write(Uint8Array.from([255, 216]));
@@ -447,7 +447,7 @@ describe("media Storage HTTP transport", () => {
       expect(request.url).toBe(
         `/storage/v1/object/sign/agentefer-catalog-private/${organizationId}/${mediaAssetId}/analysis_webp/${contentSha256Hex}.webp`,
       );
-      expect(request.headers.authorization).toBeUndefined();
+      expect(request.headers.authorization).toBe(`Bearer ${secret}`);
       expect(request.headers.apikey).toBe(secret);
       expect(request.headers.accept).toBe("application/json");
       expect(request.headers["content-type"]).toBe("application/json");

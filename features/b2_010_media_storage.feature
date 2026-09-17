@@ -23,12 +23,12 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Y la URL no se persiste en ninguna tabla
       Y una nueva solicitud puede emitir otra URL para el mismo path inmutable
 
-    Escenario: El backend usa una llave secreta moderna sin convertirla en token de usuario
+    Escenario: El backend autentica llamadas directas de Storage con una llave secreta moderna
       Dado una llave de servidor opaca de Supabase
       Cuando el backend sube, lee o firma un objeto de catálogo
-      Entonces envía la llave únicamente en el encabezado apikey
-      Y no la envía como Authorization Bearer
-      Y Storage puede aplicar la identidad de servicio sin intentar validar un JWT inexistente
+      Entonces envía la llave en el encabezado apikey
+      Y replica la llave como Authorization Bearer para la autenticación directa de Storage
+      Y Storage puede resolver la identidad de servicio antes de aplicar sus políticas
 
     Escenario: Storage rechaza una carga con contrato inválido
       Dado una carga de catálogo autorizada
