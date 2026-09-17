@@ -2,6 +2,11 @@ import { type SensitiveValue } from "@agentefer/config";
 
 import { AdminMetaGatewayError } from "./admin-meta-gateway.js";
 import { parseMetaEndpointKey } from "./meta-webhook-protocol.js";
+import {
+  PRIVATE_CATALOG_BUCKET,
+  PRIVATE_CATALOG_SIGN_PREFIX,
+  resolveCatalogSignedUrls,
+} from "./catalog-private-media.js";
 
 const MAXIMUM_RESPONSE_BYTES = 1_048_576;
 const MAXIMUM_CATALOG_ITEMS = 24;
@@ -368,20 +373,38 @@ const createMediaUrl = (
   objectPath: string,
 ): string => {
   const objectSegments = objectPath.split("/");
+  const privatePreview =
+    bucketId === PRIVATE_CATALOG_BUCKET && objectSegments[2] === "analysis_webp";
   if (
-    bucketId !== "agentefer-catalog-public" ||
+    (!privatePreview && bucketId !== "agentefer-catalog-public") ||
     objectSegments.length !== 4 ||
     objectSegments[0] !== organizationId ||
     parseMetaEndpointKey(objectSegments[1]) === undefined ||
-    objectSegments[2] !== "storefront_webp" ||
+    (!privatePreview && objectSegments[2] !== "storefront_webp") ||
     !objectPath.endsWith(".webp") ||
     objectPath.includes("..") ||
     objectPath.includes("\\")
   ) {
     throw new AdminMetaGatewayError("dependency");
   }
+  if (privatePreview) {
+    const hash = objectSegments[3]?.slice(0, -5) ?? "";
+    if (
+      hash.length !== 64 ||
+      Array.from(hash).some((character) => !"0123456789abcdef".includes(character))
+    ) {
+      throw new AdminMetaGatewayError("dependency");
+    }
+  }
   const url = new URL(baseUrl);
-  const segments = ["storage", "v1", "object", "public", bucketId, ...objectSegments];
+  const segments = [
+    "storage",
+    "v1",
+    "object",
+    privatePreview ? "sign" : "public",
+    bucketId,
+    ...objectSegments,
+  ];
   url.pathname = `/${segments.map((segment) => encodeURIComponent(segment)).join("/")}`;
   url.search = "";
   return url.toString();
@@ -667,7 +690,67 @@ export function createAdminCatalogGateway(
         target_cursor_updated_at: pageInput.cursorUpdatedAt ?? null,
         target_cursor_variant_id: pageInput.cursorVariantId ?? null,
       });
-      return parsePage(value, baseUrl, pageInput.organizationId);
+      const page = parsePage(value, baseUrl, pageInput.organizationId);
+      // get_facebook_catalog_admin_page has already authorized the authenticated owner.
+      const paths = [
+        ...new Set(
+          page.items.flatMap((item) =>
+            item.media.flatMap((media) => {
+              const url = new URL(media.url);
+              return url.pathname.startsWith(PRIVATE_CATALOG_SIGN_PREFIX)
+                ? [decodeURIComponent(url.pathname.slice(PRIVATE_CATALOG_SIGN_PREFIX.length))]
+                : [];
+            }),
+          ),
+        ),
+      ];
+      if (paths.length === 0) return page;
+      const endpoint = new URL(`/storage/v1/object/sign/${PRIVATE_CATALOG_BUCKET}`, baseUrl);
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            apikey: input.secretKey.reveal(),
+            authorization: `Bearer ${input.secretKey.reveal()}`,
+            "content-type": "application/json",
+            accept: "application/json",
+          },
+          body: JSON.stringify({ paths, expiresIn: 300 }),
+          cache: "no-store",
+          redirect: "error",
+          signal: AbortSignal.timeout(input.timeoutMilliseconds),
+        });
+      } catch {
+        throw new AdminMetaGatewayError("dependency");
+      }
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new AdminMetaGatewayError("dependency");
+      }
+      const signed = resolveCatalogSignedUrls(await decodeJsonResponse(response), paths, baseUrl);
+      return Object.freeze({
+        ...page,
+        items: Object.freeze(
+          page.items.map((item) =>
+            Object.freeze({
+              ...item,
+              media: Object.freeze(
+                item.media.map((media) => {
+                  const url = new URL(media.url);
+                  if (!url.pathname.startsWith(PRIVATE_CATALOG_SIGN_PREFIX)) return media;
+                  const path = decodeURIComponent(
+                    url.pathname.slice(PRIVATE_CATALOG_SIGN_PREFIX.length),
+                  );
+                  const signedUrl = signed.get(path);
+                  if (signedUrl === undefined) throw new AdminMetaGatewayError("dependency");
+                  return Object.freeze({ ...media, url: signedUrl });
+                }),
+              ),
+            }),
+          ),
+        ),
+      });
     },
     setOfferStatus(actionInput) {
       return executeAction("admin_set_catalog_offer_status", {

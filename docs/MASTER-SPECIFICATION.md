@@ -432,6 +432,12 @@ No hay desconexión conceptual entre canal, API, cola, worker, LLM, tools, DB y 
 2. Falta confirmar cuenta/permisos Meta y políticas comerciales pendientes.
 3. Falta definir esquema SQL/RLS detallado y probarlo contra Supabase real.
 
+## Addendum B3-006A — alta conversacional aprobada 2026-09-07
+
+Especificación, escenarios A01–A20, contratos, límites y validación:
+[Alta conversacional persistente](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).
+Reutiliza BL-002/008/009/010/011/019/020/025. Construir no implica aplicar ni desplegar.
+
 ## Addendum de implementación B4-003A — 2026-08-26
 
 El estado histórico anterior corresponde a la especificación v0.1. El adaptador entrante WhatsApp

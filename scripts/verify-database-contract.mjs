@@ -56,6 +56,7 @@ assert.deepEqual(
     "20260906180000_b4_008_facebook_business_login.sql",
     "20260906221500_b4_008a_facebook_business_login_authorization_alignment.sql",
     "20260907110000_b4_009_facebook_login_modes.sql",
+    "20260907130000_b3_006a_conversational_catalog.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -280,6 +281,10 @@ const mediaStorageDatabaseTest = await readFile(
 );
 const mediaIngestDatabaseTest = await readFile(
   path.join(testDirectory, "b3_005_media_ingest_requests_test.sql"),
+  "utf8",
+);
+const conversationalCatalogDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_006a_conversational_catalog_test.sql"),
   "utf8",
 );
 const visionModelRoutingDatabaseTest = await readFile(
@@ -2304,6 +2309,7 @@ const productionDatabaseTests = [
   ["B3-002A actor resolution", whatsappActorResolutionDatabaseTest],
   ["B2-010 media storage", mediaStorageDatabaseTest],
   ["B3-005 media ingest requests", mediaIngestDatabaseTest],
+  ["B3-006A conversational catalog", conversationalCatalogDatabaseTest],
   ["B3-005 vision model routing", visionModelRoutingDatabaseTest],
   ["B4-005/B4-006 publication orchestration", ownerPublicationToolsDatabaseTest],
   ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
@@ -2366,7 +2372,7 @@ for (const migrationEntry of migrationEntries) {
     forcedRlsTableNames.add(match[1]);
   }
 }
-assert.equal(privateTableNames.size, 103, "the private table inventory must remain reviewed");
+assert.equal(privateTableNames.size, 104, "the private table inventory must remain reviewed");
 assert.deepEqual(
   [...forcedRlsTableNames].sort(),
   [...privateTableNames].sort(),

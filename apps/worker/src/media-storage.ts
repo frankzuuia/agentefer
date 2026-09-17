@@ -87,6 +87,39 @@ export class MediaStorageError extends OperationalError {
   }
 }
 
+/** Bind provider signatures to the authorized private object without exposing response data. */
+export function resolvePrivateMediaSignedUrl(
+  signedPath: unknown,
+  origin: URL,
+  expectedPath: string,
+): URL {
+  if (typeof signedPath !== "string" || signedPath.length < 1 || signedPath.length > 8192) {
+    throw new MediaStorageError("uncertain");
+  }
+  let signedUrl: URL;
+  try {
+    signedUrl = new URL(
+      signedPath.startsWith("/object/sign/") ? `/storage/v1${signedPath}` : signedPath,
+      origin,
+    );
+  } catch {
+    throw new MediaStorageError("uncertain");
+  }
+  if (
+    signedUrl.origin !== origin.origin ||
+    signedUrl.pathname !== expectedPath ||
+    signedUrl.username !== "" ||
+    signedUrl.password !== "" ||
+    signedUrl.hash !== "" ||
+    !signedUrl.searchParams.get("token") ||
+    [...signedUrl.searchParams.keys()].some((key) => key !== "token") ||
+    signedUrl.searchParams.getAll("token").length !== 1
+  ) {
+    throw new MediaStorageError("uncertain");
+  }
+  return signedUrl;
+}
+
 export type MediaStorageClient = Readonly<{
   uploadObject(
     descriptor: MediaObjectDescriptor,
@@ -442,15 +475,8 @@ export const createMediaStorageClient = (
       }
       const decoded = await decodeControlResponse(response);
       const signedPath = isRecord(decoded) ? decoded.signedURL : undefined;
-      if (typeof signedPath !== "string" || signedPath.length < 1 || signedPath.length > 8192) {
-        throw new MediaStorageError("uncertain");
-      }
-      const signedUrl = new URL(signedPath, origin);
       const expectedPath = createObjectEndpoint(origin, "sign", object).pathname;
-      if (signedUrl.origin !== origin.origin || signedUrl.pathname !== expectedPath) {
-        throw new MediaStorageError("uncertain");
-      }
-      return signedUrl;
+      return resolvePrivateMediaSignedUrl(signedPath, origin, expectedPath);
     },
 
     createPublicObjectUrl(descriptor) {

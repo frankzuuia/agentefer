@@ -1,8 +1,27 @@
 # AgenteFer — progreso y plan de ejecución trazable
 
-Estado global: Bloque 1 y B2-001–B2-009 completos y certificados. Vault B4-001 y el ingreso autenticado B4-002 están aplicados y certificados en Supabase AgenteFer; todavía no existe despliegue HTTPS, conexión Meta real ni datos reales del negocio.  
+Estado histórico del bloque inicial: Bloque 1 y B2-001–B2-009 completos y certificados. Las actualizaciones fechadas siguientes registran la evolución posterior de infraestructura y Meta; ese estado inicial no describe el despliegue actual.  
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
+
+## B3-006A — alta conversacional (bloque aprobado 2026-09-07)
+
+Especificación: [B3-006A](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).
+Evidencia: [QA B3-006A](quality/CONVERSATIONAL-CATALOG-B3-006A-QA.md).
+
+Implementación versionada en `develop`, sin despliegue productivo de este bloque. Ensayo transaccional
+en Supabase AgenteFer: 1,397 aserciones de 28 suites, rollback, cero fallos. No es certificación E2E.
+
+- [ ] B3-006A-D: A01–A03/A07–A10/A13/A14, borradores persistentes, revisión, autorización e idempotencia.
+- [ ] B3-006A-R: A04–A06/A12/A16/A18, aplicación atómica catálogo/precios/composición/stock y sin FB.
+- [ ] B3-006A-T: A01–A14/A19, registro/política/dispatcher/contexto y guía cognitiva sin respuestas fijas; nuevos turnos del dueño adoptan política vigente conservando snapshots anteriores.
+- [ ] B3-006A-M: A10/A15/A17/A20, galería y previsualización WebP privada del dueño con firma temporal en lote; corregida resolución de firma para visión, pendiente Storage real.
+- [ ] B3-006A-Q: A01–A20, pgTAP/Gherkin/regresión/mutación/seguridad y E2E real con evidencia.
+
+- [x] D/R/T: contratos, helpers, aislamiento y dispatcher implementados; ensayo SQL con 88 aserciones propias y 6/6 mutaciones detectadas.
+- [x] M parcial: validadores de URL API/worker con pruebas puras; 100% líneas/ramas del validador API. Transporte de firma por lote pendiente de integración real.
+- [x] Q parcial: 1,122 pruebas, 91.97% líneas globales; mutación de los validadores 96.09%. No sustituye cobertura de rutas críticas pendientes.
+- [ ] Q cierre: E2E foto/LLM/WhatsApp/panel móvil, concurrencia entre sesiones, firma y permisos reales; regenerar tipos tras aplicar en pruebas y obtener evidencia CI completa.
 
 ## Leyenda
 
