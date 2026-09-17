@@ -3,11 +3,14 @@ import { spawnSync } from "node:child_process";
 import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildLinkedMigrationPgtapCollector } from "../packages/database/dist/linked-pgtap.js";
+import {
+  buildLinkedMigrationPgtapCollector,
+  buildLinkedPgtapCollector,
+} from "../packages/database/dist/linked-pgtap.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const mode = process.argv[2] ?? "rehearsal";
-assert.ok(["rehearsal", "mutations", "regression"].includes(mode));
+assert.ok(["rehearsal", "mutations", "regression", "postflight"].includes(mode));
 const npmExecutable = process.env.npm_execpath;
 assert.ok(npmExecutable, "invoke through npm run test:database:linked:b3-006a");
 const source = await readFile(
@@ -27,7 +30,11 @@ async function validate(label, migration, mutant = false, testSource = test) {
     "hprdctmblmfcoagugvyp",
   );
   const file = path.join(root, "tmp", `b3-006a-${process.pid}.sql`);
-  await writeFile(file, buildLinkedMigrationPgtapCollector(migration, testSource), "utf8");
+  const collector =
+    migration.trim().length === 0
+      ? buildLinkedPgtapCollector(testSource)
+      : buildLinkedMigrationPgtapCollector(migration, testSource);
+  await writeFile(file, collector, "utf8");
   const started = performance.now();
   let result;
   try {
@@ -85,7 +92,11 @@ async function validate(label, migration, mutant = false, testSource = test) {
   process.stdout.write(`${label}: ${assertions} assertions, ${failures.length} failures\n`);
   assert.equal(failures.length > 0, mutant, failures.join("\n"));
 }
-await validate("baseline", source);
+if (mode === "postflight") {
+  await validate("postflight", "");
+} else {
+  await validate("baseline", source);
+}
 if (mode === "regression") {
   for (const file of (await readdir(path.join(root, "supabase/tests")))
     .filter((name) => name.endsWith(".sql") && name !== "b3_006a_conversational_catalog_test.sql")
