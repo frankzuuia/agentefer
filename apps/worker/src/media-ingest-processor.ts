@@ -259,6 +259,9 @@ const processClaim = async (
         ? {
             storage_operation: error.httpDiagnostic.operation,
             storage_http_status: error.httpDiagnostic.status,
+            ...(error.httpDiagnostic.providerErrorCode === undefined
+              ? {}
+              : { storage_provider_error_code: error.httpDiagnostic.providerErrorCode }),
           }
         : {};
     await input.rpcClient.fail({

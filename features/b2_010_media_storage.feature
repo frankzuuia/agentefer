@@ -34,6 +34,7 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Dado una carga de catálogo autorizada
       Cuando Storage responde con un estado HTTP no exitoso
       Entonces la telemetría registra únicamente la operación y el estado HTTP
+      Y puede registrar sólo un identificador seguro y acotado del proveedor
       Y no registra la llave, el contenido de la respuesta ni los bytes de la fotografía
 
   Regla: Cada organización queda aislada también dentro de Storage

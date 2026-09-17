@@ -314,6 +314,102 @@ describe("media Storage HTTP transport", () => {
     });
   });
 
+  it("retains only a safe Storage error identifier and never provider prose", async () => {
+    const server = await startServer((_request, response) => {
+      response.statusCode = 400;
+      response.end(
+        JSON.stringify({
+          error: "NoContentProvided",
+          message: "private provider prose must never become worker telemetry",
+        }),
+      );
+    });
+
+    const failure = await createClient(server.origin)
+      .uploadObject(descriptor(), Uint8Array.from([1]))
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toMatchObject({
+      kind: "invalid",
+      httpDiagnostic: {
+        operation: "upload",
+        status: 400,
+        providerErrorCode: "NoContentProvided",
+      },
+    });
+    expect(failure).toBeInstanceOf(MediaStorageError);
+    expect((failure as MediaStorageError).cause).toBeUndefined();
+    expect(JSON.stringify(failure)).not.toContain("private provider prose");
+  });
+
+  it("drops unsafe Storage error identifiers", async () => {
+    const server = await startServer((_request, response) => {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ error: "path /private/object.jpg" }));
+    });
+
+    await expect(
+      createClient(server.origin).uploadObject(descriptor(), Uint8Array.from([1])),
+    ).rejects.toMatchObject({
+      kind: "invalid",
+      httpDiagnostic: { operation: "upload", status: 400 },
+    });
+  });
+
+  it.each([
+    ["lowercase boundary", JSON.stringify({ error: "az" }), "az"],
+    ["uppercase boundary", JSON.stringify({ error: "AZ" }), "AZ"],
+    ["numeric boundary", JSON.stringify({ error: "09" }), "09"],
+    ["separator boundary", JSON.stringify({ error: "_-" }), "_-"],
+    ["maximum safe length", JSON.stringify({ error: "x".repeat(96) }), "x".repeat(96)],
+    ["empty identifier", JSON.stringify({ error: "" }), undefined],
+    ["oversized identifier", JSON.stringify({ error: "x".repeat(97) }), undefined],
+    ["identifier with an unsafe path separator", JSON.stringify({ error: "bad/path" }), undefined],
+    ["non-text identifier", JSON.stringify({ error: 42 }), undefined],
+    ["array response", JSON.stringify([]), undefined],
+    ["null response", JSON.stringify(null), undefined],
+    ["non-JSON response", "provider detail is not exposed", undefined],
+  ] as const)(
+    "handles a %s provider diagnostic without exposing it",
+    async (_caseName, payload, code) => {
+      const server = await startServer((_request, response) => {
+        response.statusCode = 400;
+        response.end(payload);
+      });
+
+      const failure = await createClient(server.origin)
+        .uploadObject(descriptor(), Uint8Array.from([1]))
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(MediaStorageError);
+      expect((failure as MediaStorageError).httpDiagnostic).toEqual({
+        operation: "upload",
+        status: 400,
+        ...(code === undefined ? {} : { providerErrorCode: code }),
+      });
+    },
+  );
+
+  it("preserves the HTTP diagnostic when Storage returns an oversized error body", async () => {
+    const server = await startServer((_request, response) => {
+      response.statusCode = 400;
+      response.end("x".repeat(65_537));
+    });
+
+    await expect(
+      createClient(server.origin).uploadObject(descriptor(), Uint8Array.from([1])),
+    ).rejects.toMatchObject({
+      kind: "invalid",
+      httpDiagnostic: { operation: "upload", status: 400 },
+    });
+  });
+
   it("downloads a private object with exact MIME and bounded bytes", async () => {
     const server = await startServer(async (request, response) => {
       expect(request.method).toBe("GET");

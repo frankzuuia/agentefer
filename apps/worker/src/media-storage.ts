@@ -37,6 +37,7 @@ export type MediaStorageHttpOperation = "upload" | "download" | "sign";
 export type MediaStorageHttpDiagnostic = Readonly<{
   operation: MediaStorageHttpOperation;
   status: number;
+  providerErrorCode?: string;
 }>;
 
 export class MediaStorageError extends OperationalError {
@@ -274,15 +275,6 @@ const failureForStatus = (status: number): MediaStorageFailureKind => {
   return "invalid";
 };
 
-const failureForResponse = (
-  operation: MediaStorageHttpOperation,
-  response: Response,
-): MediaStorageError =>
-  new MediaStorageError(failureForStatus(response.status), undefined, {
-    operation,
-    status: response.status,
-  });
-
 const boundedSignal = (
   timeoutMilliseconds: number,
   signal: AbortSignal | undefined,
@@ -361,6 +353,50 @@ const decodeControlResponse = async (response: Response): Promise<unknown> => {
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const isSafeProviderErrorCode = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length > 0 &&
+  value.length <= 96 &&
+  Array.from(value).every(
+    (character) =>
+      (character >= "a" && character <= "z") ||
+      (character >= "A" && character <= "Z") ||
+      (character >= "0" && character <= "9") ||
+      character === "_" ||
+      character === "-",
+  );
+
+/**
+ * Storage responses are untrusted. Retain only its bounded machine identifier;
+ * never surface provider prose, object paths, request details, or response bytes.
+ */
+const readSafeProviderErrorCode = async (response: Response): Promise<string | undefined> => {
+  try {
+    const decoded = await decodeControlResponse(response);
+    const candidate = isRecord(decoded) ? decoded.error : undefined;
+    return isSafeProviderErrorCode(candidate) ? candidate : undefined;
+  } catch {
+    try {
+      await response.body?.cancel();
+    } catch {
+      // The original Storage error remains authoritative when its body cannot be safely consumed.
+    }
+    return undefined;
+  }
+};
+
+const failureForResponse = async (
+  operation: MediaStorageHttpOperation,
+  response: Response,
+): Promise<MediaStorageError> => {
+  const providerErrorCode = await readSafeProviderErrorCode(response);
+  return new MediaStorageError(failureForStatus(response.status), undefined, {
+    operation,
+    status: response.status,
+    ...(providerErrorCode === undefined ? {} : { providerErrorCode }),
+  });
+};
+
 const validatedStorageOrigin = (value: string): URL => {
   const origin = new URL(value);
   const localHttp =
@@ -430,8 +466,7 @@ export const createMediaStorageClient = (
       }
 
       if (!response.ok) {
-        await response.body?.cancel();
-        throw failureForResponse("upload", response);
+        throw await failureForResponse("upload", response);
       }
       await response.body?.cancel();
       return object;
@@ -457,8 +492,7 @@ export const createMediaStorageClient = (
       }
 
       if (!response.ok) {
-        await response.body?.cancel();
-        throw failureForResponse("download", response);
+        throw await failureForResponse("download", response);
       }
       const responseMimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
       if (responseMimeType !== object.mimeType) {
@@ -498,8 +532,7 @@ export const createMediaStorageClient = (
       }
 
       if (!response.ok) {
-        await response.body?.cancel();
-        throw failureForResponse("sign", response);
+        throw await failureForResponse("sign", response);
       }
       const decoded = await decodeControlResponse(response);
       const signedPath = isRecord(decoded) ? decoded.signedURL : undefined;
