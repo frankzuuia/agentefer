@@ -117,6 +117,7 @@ export type MediaIngestRpcClient = Readonly<{
       workerId: string;
       leaseToken: string;
       mediaAssetId: string;
+      contentSha256Hex: string;
     }> &
       RpcSignal,
   ): Promise<
@@ -428,7 +429,8 @@ export const createMediaIngestRpcClient = (
       });
     },
     async complete(inputValue) {
-      const operation = "complete_whatsapp_media_ingest";
+      const operation = "complete_whatsapp_media_ingest_v2";
+      const contentSha256Hex = validateHex(inputValue.contentSha256Hex, 64);
       const response = await postRpc(
         operation,
         {
@@ -437,6 +439,7 @@ export const createMediaIngestRpcClient = (
           target_worker_id: inputValue.workerId,
           target_lease_token: inputValue.leaseToken,
           target_media_asset_id: inputValue.mediaAssetId,
+          target_content_sha256: `\\x${contentSha256Hex}`,
         },
         inputValue.signal,
       );

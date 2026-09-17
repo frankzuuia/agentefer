@@ -241,6 +241,7 @@ const processClaim = async (
       workerId: input.configuration.workerId,
       leaseToken: claim.leaseToken,
       mediaAssetId,
+      contentSha256Hex: normalized.originalSha256Hex,
       signal,
     });
     input.logger.info("worker.media.ingest_completed", "succeeded", {

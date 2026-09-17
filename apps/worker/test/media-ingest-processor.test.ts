@@ -151,7 +151,7 @@ describe("WhatsApp media ingest processor", () => {
       .png()
       .toBuffer();
     const uploads: { descriptor: MediaObjectDescriptor; body: Uint8Array }[] = [];
-    const completed: string[] = [];
+    const completed: Readonly<Record<string, unknown>>[] = [];
     const registered: MediaObjectDescriptor[] = [];
     const beginInputs: Readonly<Record<string, unknown>>[] = [];
     const registrationInputs: Readonly<Record<string, unknown>>[] = [];
@@ -182,7 +182,7 @@ describe("WhatsApp media ingest processor", () => {
         });
       },
       complete: (input) => {
-        completed.push(input.mediaAssetId);
+        completed.push(input);
         return Promise.resolve({
           requestId: ids.request,
           status: "succeeded",
@@ -205,7 +205,12 @@ describe("WhatsApp media ingest processor", () => {
         new AbortController().signal,
       ),
     ).resolves.toEqual({ processedCount: 1 });
-    expect(completed).toEqual([ids.asset]);
+    expect(completed).toEqual([
+      expect.objectContaining({
+        mediaAssetId: ids.asset,
+        contentSha256Hex: createHash("sha256").update(png).digest("hex"),
+      }),
+    ]);
     expect(uploads.map(({ descriptor }) => descriptor.renditionKind)).toEqual([
       "source_original",
       "analysis_webp",

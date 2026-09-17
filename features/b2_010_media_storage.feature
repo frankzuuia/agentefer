@@ -44,6 +44,13 @@ Característica: Almacenamiento durable y ligero de imágenes de catálogo
       Y verifica el hash del objeto existente antes de registrar o completar el asset
       Y ningún otro error HTTP 400 se convierte en conflicto
 
+    Escenario: El dueño reenvía una foto cuyo contenido ya existe
+      Dado un asset verificado de la misma organización con una procedencia de mensaje anterior
+      Cuando el worker calcula el mismo SHA-256 para un nuevo mensaje con lease válido
+      Entonces conserva la procedencia original del asset
+      Y completa el nuevo request usando el asset verificado y ese SHA-256
+      Y rechaza un asset cuyo SHA-256 no corresponde a la foto reenviada
+
   Regla: Cada organización queda aislada también dentro de Storage
 
     Escenario: Un miembro intenta leer el original de otra organización

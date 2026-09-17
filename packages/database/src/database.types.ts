@@ -7250,6 +7250,22 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      complete_whatsapp_media_ingest_v2: {
+        Args: {
+          target_content_sha256: string;
+          target_lease_token: string;
+          target_media_asset_id: string;
+          target_organization_id: string;
+          target_request_id: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          media_asset_id: string;
+          request_id: string;
+          status: string;
+          was_replayed: boolean;
+        }[];
+      };
       configure_facebook_business_login: {
         Args: {
           target_actor_user_id: string;

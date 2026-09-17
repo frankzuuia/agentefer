@@ -151,7 +151,7 @@ describe("media ingest Supabase RPC contract", () => {
         ]);
         return;
       }
-      if (request.url?.endsWith("complete_whatsapp_media_ingest") === true) {
+      if (request.url?.endsWith("complete_whatsapp_media_ingest_v2") === true) {
         respond(response, [
           {
             request_id: ids.request,
@@ -212,6 +212,7 @@ describe("media ingest Supabase RPC contract", () => {
         workerId: "media-worker",
         leaseToken: ids.lease,
         mediaAssetId: ids.asset,
+        contentSha256Hex: hash,
       }),
     ).resolves.toMatchObject({ status: "succeeded" });
     await expect(
@@ -234,6 +235,10 @@ describe("media ingest Supabase RPC contract", () => {
           target_bucket_id: "agentefer-catalog-private",
           target_object_path: `${ids.organization}/${ids.asset}/analysis_webp/${hash}.webp`,
         }),
+        expect.objectContaining({
+          target_request_id: ids.request,
+          target_content_sha256: `\\x${hash}`,
+        }),
       ]),
     );
   });
@@ -255,6 +260,7 @@ describe("media ingest Supabase RPC contract", () => {
         workerId: "media-worker",
         leaseToken: ids.lease,
         mediaAssetId: ids.asset,
+        contentSha256Hex: "d".repeat(64),
       }),
     ).rejects.toMatchObject({ kind: "invalid" } satisfies Partial<MediaIngestRpcError>);
   });
@@ -344,6 +350,16 @@ describe("media ingest Supabase RPC contract", () => {
           heightPixels: 1,
           sourceMessageId: ids.message,
           correlationId: "correlation",
+        }),
+      ).rejects.toMatchObject({ kind: "invalid" });
+      await expect(
+        client.complete({
+          organizationId: ids.organization,
+          requestId: ids.request,
+          workerId: "media-worker",
+          leaseToken: ids.lease,
+          mediaAssetId: ids.asset,
+          contentSha256Hex,
         }),
       ).rejects.toMatchObject({ kind: "invalid" });
     }

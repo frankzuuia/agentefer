@@ -57,6 +57,7 @@ assert.deepEqual(
     "20260906221500_b4_008a_facebook_business_login_authorization_alignment.sql",
     "20260907110000_b4_009_facebook_login_modes.sql",
     "20260907130000_b3_006a_conversational_catalog.sql",
+    "20260917211500_b3_005_content_addressed_media_completion.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -177,6 +178,10 @@ const mediaStorageMigration = await readFile(
 );
 const mediaIngestMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[30]),
+  "utf8",
+);
+const contentAddressedMediaCompletionMigration = await readFile(
+  path.join(migrationDirectory, "20260917211500_b3_005_content_addressed_media_completion.sql"),
   "utf8",
 );
 const visionModelRoutingMigration = await readFile(
@@ -418,6 +423,7 @@ for (const [name, migration] of [
   ["B3-002A WhatsApp actor resolution", whatsappActorResolutionMigration],
   ["B2-010 media storage", mediaStorageMigration],
   ["B3-005 media ingest requests", mediaIngestMigration],
+  ["B3-005 content-addressed media completion", contentAddressedMediaCompletionMigration],
   ["B3-005 vision model routing", visionModelRoutingMigration],
   ["B4-005/B4-006 publication orchestration", publicationOrchestrationMigration],
   ["B4-005/B4-006 owner publication tools", ownerPublicationToolsMigration],
@@ -466,6 +472,17 @@ assert.equal(
   4,
   "all four B2-001 API views must preserve caller RLS",
 );
+for (const statement of [
+  "create function api.complete_whatsapp_media_ingest_v2(",
+  "target_content_sha256 bytea",
+  "asset_record.content_sha256 is distinct from target_content_sha256",
+  "grant execute on function api.complete_whatsapp_media_ingest_v2",
+]) {
+  assert.ok(
+    contentAddressedMediaCompletionMigration.includes(statement),
+    `B3-005 content-addressed completion migration must include: ${statement}`,
+  );
+}
 assert.equal(
   foundationMigration.split("force row level security;").length - 1,
   4,
@@ -2568,6 +2585,7 @@ for (const generatedMediaIngestContract of [
   "media_ingest_requests: {",
   "claim_whatsapp_media_ingest: {",
   "complete_whatsapp_media_ingest: {",
+  "complete_whatsapp_media_ingest_v2: {",
   "fail_whatsapp_media_ingest: {",
   "get_whatsapp_media_visual_inputs: {",
   "declared_sha256_hex: string | null;",
