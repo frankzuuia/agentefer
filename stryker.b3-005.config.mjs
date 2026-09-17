@@ -11,6 +11,9 @@ export default {
     "apps/worker/src/media-ingest-rpc.ts:427-470",
     "apps/worker/src/whatsapp-media.ts:265-335",
     "apps/worker/src/whatsapp-media.ts:339-440",
+    "apps/worker/src/whatsapp-ai-processor.ts:73-121",
+    "packages/ai/src/provider.ts:213-301",
+    "packages/ai/src/provider.ts:631-643",
   ],
   jsonReporter: {
     fileName: "reports/mutation/b3-005-whatsapp-multimodal.json",
@@ -21,6 +24,7 @@ export default {
     "apps/worker/test/whatsapp-media.test.ts",
     "apps/worker/test/whatsapp-ai-rpc.test.ts",
     "apps/worker/test/whatsapp-ai-processor.test.ts",
+    "packages/ai/test/provider.test.ts",
   ],
   vitest: {
     ...baseConfiguration.vitest,

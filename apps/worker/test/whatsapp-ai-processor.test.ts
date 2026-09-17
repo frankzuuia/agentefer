@@ -368,6 +368,111 @@ describe("WhatsApp cognitive and outbox processor", () => {
     ]);
   });
 
+  it("keeps unavailable historical images from blocking a verified trigger image", async () => {
+    const historicalImageMessageId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const triggerImageMessageId = uuids.inboundMessage;
+    const imageClaim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      triggerMessageId: triggerImageMessageId,
+      conversationHistory: [
+        {
+          messageId: historicalImageMessageId,
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "old-meta-media" } },
+        },
+        {
+          messageId: triggerImageMessageId,
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "current-meta-media" } },
+        },
+      ],
+    };
+    const rpc = createRpcContract({
+      turns: [imageClaim],
+      mediaVisualInputs: [
+        {
+          messageId: triggerImageMessageId,
+          mediaAssetId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          analysisSha256Hex: "b".repeat(64),
+          mimeType: "image/webp",
+        },
+      ],
+    });
+    let providerRequest: Parameters<CognitiveProvider["executeTurn"]>[0] | undefined;
+    const provider: CognitiveProvider = {
+      executeTurn: (request) => {
+        providerRequest = request;
+        return Promise.resolve(result("completed"));
+      },
+    };
+    const mediaStorageClient: MediaStorageClient = {
+      uploadObject: () => Promise.reject(new Error("unused")),
+      downloadPrivateObject: () => Promise.reject(new Error("unused")),
+      createSignedPrivateUrl: () =>
+        Promise.resolve(new URL("https://storage.test/current-analysis.webp")),
+      createPublicObjectUrl: () => new URL("https://storage.test/public.webp"),
+    };
+
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider, mediaStorageClient }),
+      new AbortController().signal,
+    );
+
+    expect(rpc.evidence.mediaVisualInputRequests).toEqual([
+      [historicalImageMessageId, triggerImageMessageId],
+    ]);
+    expect(providerRequest?.conversation).toEqual([
+      {
+        direction: "inbound",
+        contentKind: "media",
+        content: { type: "image", image: { id: "old-meta-media" } },
+      },
+      {
+        direction: "inbound",
+        contentKind: "media",
+        content: { type: "image", image: { id: "current-meta-media" } },
+        imageInputs: [{ imageUrl: "https://storage.test/current-analysis.webp", detail: "high" }],
+      },
+    ]);
+    expect(rpc.evidence.completed).toEqual(["Respuesta real"]);
+    expect(rpc.evidence.agentFailures).toEqual([]);
+  });
+
+  it("retries instead of completing a trigger image turn before its WebP is ready", async () => {
+    const imageClaim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      triggerMessageId: uuids.inboundMessage,
+      conversationHistory: [
+        {
+          messageId: uuids.inboundMessage,
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "pending-meta-media" } },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [imageClaim], mediaVisualInputs: [] });
+    const provider: CognitiveProvider = {
+      executeTurn: () => Promise.reject(new Error("provider must not receive an unverified image")),
+    };
+
+    await drainWhatsAppAiOnce(
+      createInput({ rpc: rpc.client, provider }),
+      new AbortController().signal,
+    );
+
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(rpc.evidence.agentFailures).toMatchObject([
+      {
+        errorCode: "media_visual_input_missing",
+        disposition: "retry_provider",
+        terminationReason: "provider_error",
+      },
+    ]);
+  });
+
   it("stores output-limit text as a continuation checkpoint", async () => {
     const rpc = createRpcContract({ turns: [agentClaim()] });
     await drainWhatsAppAiOnce(

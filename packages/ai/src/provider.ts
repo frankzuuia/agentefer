@@ -210,36 +210,61 @@ const serializeConversationContent = (item: CognitiveConversationItem): string =
   readConversationTextBody(item) ??
   JSON.stringify({ content_kind: item.contentKind, content: item.content });
 
-const imageInputParts = (
-  item: CognitiveConversationItem,
-): readonly Readonly<Record<string, unknown>>[] => {
-  const imageInputs = item.imageInputs ?? [];
-  return imageInputs.map((imageInput) => {
-    let imageUrl: URL;
-    try {
-      imageUrl = new URL(imageInput.imageUrl);
-    } catch (error) {
-      throw new CognitiveProviderError({
-        code: "provider_image_url_invalid",
-        retryable: false,
-        cause: error,
-      });
-    }
-    if (
-      (imageUrl.protocol !== "https:" && imageUrl.protocol !== "http:") ||
-      imageUrl.username !== "" ||
-      imageUrl.password !== "" ||
-      imageInput.imageUrl.length > 8192
-    ) {
-      throw new CognitiveProviderError({ code: "provider_image_url_invalid", retryable: false });
-    }
-    return Object.freeze({
-      type: "input_image",
-      image_url: imageInput.imageUrl,
-      ...(imageInput.detail === undefined ? {} : { detail: imageInput.detail }),
+const validatedImageInput = (
+  imageInput: NonNullable<CognitiveConversationItem["imageInputs"]>[number],
+): Readonly<{ imageUrl: string; detail?: "low" | "high" | "auto" }> => {
+  let imageUrl: URL;
+  try {
+    imageUrl = new URL(imageInput.imageUrl);
+  } catch (error) {
+    throw new CognitiveProviderError({
+      code: "provider_image_url_invalid",
+      retryable: false,
+      cause: error,
     });
+  }
+  if (
+    (imageUrl.protocol !== "https:" && imageUrl.protocol !== "http:") ||
+    imageUrl.username !== "" ||
+    imageUrl.password !== "" ||
+    imageInput.imageUrl.length > 8192
+  ) {
+    throw new CognitiveProviderError({ code: "provider_image_url_invalid", retryable: false });
+  }
+  return Object.freeze({
+    imageUrl: imageInput.imageUrl,
+    ...(imageInput.detail === undefined ? {} : { detail: imageInput.detail }),
   });
 };
+
+const imageInputParts = (
+  item: CognitiveConversationItem,
+): readonly Readonly<Record<string, unknown>>[] =>
+  (item.imageInputs ?? []).map((imageInput) => {
+    const validated = validatedImageInput(imageInput);
+    return Object.freeze({
+      type: "input_image",
+      image_url: validated.imageUrl,
+      ...(validated.detail === undefined ? {} : { detail: validated.detail }),
+    });
+  });
+
+const miniMaxImageInputParts = (
+  item: CognitiveConversationItem,
+): readonly Readonly<Record<string, unknown>>[] =>
+  (item.imageInputs ?? []).map((imageInput) => {
+    const validated = validatedImageInput(imageInput);
+    return Object.freeze({
+      type: "image_url",
+      image_url: Object.freeze({
+        url: validated.imageUrl,
+        detail:
+          validated.detail === undefined || validated.detail === "auto"
+            ? "default"
+            : validated.detail,
+      }),
+    });
+  });
 
 const openAiConversationItem = (
   item: CognitiveConversationItem,
@@ -255,6 +280,23 @@ const openAiConversationItem = (
   return Object.freeze({
     role: item.direction === "inbound" ? "user" : "assistant",
     content: Object.freeze([{ type: "input_text", text: serializedContent }, ...imageParts]),
+  });
+};
+
+const miniMaxConversationItem = (
+  item: CognitiveConversationItem,
+): Readonly<Record<string, unknown>> => {
+  const serializedContent = serializeConversationContent(item);
+  const imageParts = miniMaxImageInputParts(item);
+  if (imageParts.length === 0) {
+    return Object.freeze({
+      role: item.direction === "inbound" ? "user" : "assistant",
+      content: serializedContent,
+    });
+  }
+  return Object.freeze({
+    role: item.direction === "inbound" ? "user" : "assistant",
+    content: Object.freeze([{ type: "text", text: serializedContent }, ...imageParts]),
   });
 };
 
@@ -586,7 +628,10 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
     async executeTurn(request) {
       const tools = request.tools ?? [];
       const toolHistory = request.toolHistory ?? [];
-      if (request.conversation.some((item) => (item.imageInputs ?? []).length > 0)) {
+      if (
+        request.model !== "MiniMax-M3" &&
+        request.conversation.some((item) => (item.imageInputs ?? []).length > 0)
+      ) {
         throw new CognitiveProviderError({
           code: "minimax_image_input_unsupported",
           retryable: false,
@@ -594,10 +639,7 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
       }
       const messages: Record<string, unknown>[] = [
         { role: "system", content: request.systemPrompt },
-        ...request.conversation.map((item) => ({
-          role: item.direction === "inbound" ? "user" : "assistant",
-          content: serializeConversationContent(item),
-        })),
+        ...request.conversation.map((item) => miniMaxConversationItem(item)),
       ];
       for (const exchange of toolHistory) {
         if (exchange.provider !== "minimax" || !isRecord(exchange.providerState)) {

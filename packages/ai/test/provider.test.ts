@@ -1176,7 +1176,105 @@ describe("provider-neutral conversation serialization", () => {
     });
   });
 
-  it("fails closed when MiniMax receives an image input", async () => {
+  it("sends MiniMax M3 image inputs as Chat Completions image_url parts", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      expect(request.url).toBe("/v1/chat/completions");
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_m3_image_input",
+        choices: [{ finish_reason: "stop", message: { content: "Ya vi el producto." } }],
+      });
+    });
+
+    await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Analiza.",
+      conversation: [
+        {
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "meta-media" } },
+          imageInputs: [{ imageUrl: "https://storage.example/signed.webp", detail: "high" }],
+        },
+      ],
+      continuationParts: [],
+    });
+
+    expect(capturedBody).toEqual({
+      model: "MiniMax-M3",
+      messages: [
+        { role: "system", content: "Analiza." },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                content_kind: "media",
+                content: { type: "image", image: { id: "meta-media" } },
+              }),
+            },
+            {
+              type: "image_url",
+              image_url: { url: "https://storage.example/signed.webp", detail: "high" },
+            },
+          ],
+        },
+      ],
+      reasoning_split: true,
+    });
+  });
+
+  it("maps MiniMax M3 image detail to the documented default", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_m3_image_detail",
+        choices: [{ finish_reason: "stop", message: { content: "Ya vi ambas imágenes." } }],
+      });
+    });
+
+    await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Analiza.",
+      conversation: [
+        {
+          direction: "inbound",
+          contentKind: "media",
+          content: { type: "image", image: { id: "meta-media" } },
+          imageInputs: [
+            { imageUrl: "https://storage.example/auto.webp", detail: "auto" },
+            { imageUrl: "https://storage.example/default.webp" },
+          ],
+        },
+      ],
+      continuationParts: [],
+    });
+
+    expect(capturedBody).toMatchObject({
+      messages: [
+        { role: "system", content: "Analiza." },
+        {
+          role: "user",
+          content: [
+            expect.anything(),
+            {
+              type: "image_url",
+              image_url: { url: "https://storage.example/auto.webp", detail: "default" },
+            },
+            {
+              type: "image_url",
+              image_url: { url: "https://storage.example/default.webp", detail: "default" },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("fails closed when a MiniMax model without image support receives an image input", async () => {
     await expect(
       createMiniMaxProvider({ apiKey, baseUrl: "https://api.minimax.example/" }).executeTurn({
         model: "MiniMax-M2.7",

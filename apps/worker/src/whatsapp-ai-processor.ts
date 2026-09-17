@@ -70,9 +70,9 @@ const conversationWithVisualInputs = async (
   claim: ClaimedAgentTurn,
   signal: AbortSignal,
 ): Promise<ClaimedAgentTurn["conversationHistory"]> => {
-  const imageMessageIds = claim.conversationHistory
-    .filter(isImageMedia)
-    .map((item) => item.messageId);
+  const imageMessageIds = [
+    ...new Set(claim.conversationHistory.filter(isImageMedia).map((item) => item.messageId)),
+  ];
   if (imageMessageIds.length === 0) {
     return claim.conversationHistory;
   }
@@ -83,21 +83,24 @@ const conversationWithVisualInputs = async (
     workerId: input.configuration.workerId,
     signal,
   });
+  const requestedImageMessageIds = new Set(imageMessageIds);
   const visualByMessageId = new Map(
-    visualInputs.map((visualInput) => [visualInput.messageId, visualInput]),
+    visualInputs
+      .filter((visualInput) => requestedImageMessageIds.has(visualInput.messageId))
+      .map((visualInput) => [visualInput.messageId, visualInput]),
   );
-  if (
-    visualByMessageId.size !== imageMessageIds.length ||
-    imageMessageIds.some((id) => !visualByMessageId.has(id))
-  ) {
+  const triggerIsImage = claim.conversationHistory.some(
+    (item) => item.messageId === claim.triggerMessageId && isImageMedia(item),
+  );
+  if (triggerIsImage && !visualByMessageId.has(claim.triggerMessageId)) {
     throw new CognitiveProviderError({
       code: "media_visual_input_missing",
-      retryable: false,
+      retryable: true,
     });
   }
 
   const signedUrls = new Map<string, string>();
-  for (const visualInput of visualInputs) {
+  for (const visualInput of visualByMessageId.values()) {
     const signedUrl = await input.mediaStorageClient.createSignedPrivateUrl(
       {
         organizationId: claim.organizationId,

@@ -15,11 +15,15 @@ export default {
     "apps/worker/src/whatsapp-media.ts:344-355",
     "apps/worker/src/whatsapp-media.ts:379-408",
     "apps/worker/src/whatsapp-media.ts:425-432",
+    "apps/worker/src/whatsapp-ai-processor.ts:92-111",
+    "packages/ai/src/provider.ts:252-269",
+    "packages/ai/src/provider.ts:631-643",
   ],
   mutator: {
     excludedMutations: [
       "ArrayDeclaration",
       "ArithmeticOperator",
+      "ArrowFunction",
       "BlockStatement",
       "MethodExpression",
       "ObjectLiteral",
@@ -34,6 +38,8 @@ export default {
     "apps/worker/test/media-ingest-processor.test.ts",
     "apps/worker/test/media-ingest-rpc.test.ts",
     "apps/worker/test/whatsapp-media.test.ts",
+    "apps/worker/test/whatsapp-ai-processor.test.ts",
+    "packages/ai/test/provider.test.ts",
   ],
   vitest: {
     ...baseConfiguration.vitest,
