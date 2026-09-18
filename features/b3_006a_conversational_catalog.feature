@@ -79,3 +79,11 @@ Feature: B3-006A Owner creates a catalog through conversation
     When the worker prepares an authorized image for the vision model
     Then it resolves the URL from the Storage API root
     And another origin or object or an invalid signature is rejected
+
+  Scenario: B3-006E The catalog summary prompt forbids markdown tables because WhatsApp does not render them
+    Given the customer_assistant.system prompt is loaded for an owner turn
+    When the prompt is inspected
+    Then it includes an explicit instruction that WhatsApp does not render pipe tables or blockquotes
+    And it instructs the agent to use bullets, numbered lists, or line breaks instead
+    And the formatting rule is idempotent across consecutive migrations
+    And the catalog apply_draft flow remains unchanged

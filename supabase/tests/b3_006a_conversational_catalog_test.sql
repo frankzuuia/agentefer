@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(88);
+select extensions.plan(95);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -718,5 +718,111 @@ select extensions.is((select tool_result->'error'->>'code' from pg_temp.ingestio
 select extensions.is((select effect_certainty from app_private.tool_executions where id=(select tool_execution_id from pg_temp.ingestion_native_failure)),'confirmed_not_applied','failed tool never claims confirmed effect');
 select extensions.is((select count(*)::integer from app_private.agent_messages where run_id=(select agent_run_id from pg_temp.b306_turn_claims) and message_kind='tool_result'),1,'tool result is durable for the next provider attempt');
 select pg_temp.throws_sqlstate($$select app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')$$,'42501','completed native call cannot bypass runtime phase ownership');
+
+-- B3-006E: WhatsApp does not render markdown tables. The agent used to emit pipe tables when
+-- summarizing catalog drafts, which arrived at the customer as raw |---|---| characters. Pin the
+-- formatting rule into the customer_assistant.system prompt and verify it survives idempotently.
+select extensions.ok(
+  exists (
+    select 1
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and strpos(content_template, '## Formato de respuesta en WhatsApp') > 0
+  ),
+  'E1 customer_assistant.system prompt includes the WhatsApp formatting rule'
+);
+select extensions.ok(
+  exists (
+    select 1
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and strpos(content_template, 'no renderiza tablas markdown') > 0
+  ),
+  'E2 the rule explicitly forbids markdown pipe tables'
+);
+select extensions.ok(
+  exists (
+    select 1
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and strpos(content_template, 'blockquotes') > 0
+      and strpos(content_template, 'headings') > 0
+  ),
+  'E3 the rule explicitly forbids blockquotes and headings'
+);
+select extensions.ok(
+  exists (
+    select 1
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and strpos(content_template, 'viñetas') > 0
+      and strpos(content_template, 'numeración') > 0
+  ),
+  'E4 the rule tells the agent to use bullets or numbered lists'
+);
+select extensions.is(
+  (select encode(content_hash, 'hex')
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+  encode(extensions.digest(
+    convert_to(
+      (select content_template
+        from app_private.prompt_versions
+        where prompt_key = 'customer_assistant.system'
+          and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+      'UTF8'
+    ),
+    'sha256'
+  ), 'hex'),
+  'E5 content_hash matches sha256 of content_template'
+);
+
+do $$
+declare
+  before_length integer;
+  after_length integer;
+begin
+  set local search_path = '';
+
+  select length(content_template) into before_length
+  from app_private.prompt_versions
+  where prompt_key = 'customer_assistant.system'
+    and organization_id = 'b3061000-0000-4000-8000-000000000001';
+
+  update app_private.prompt_versions
+  set content_template = content_template,
+      content_hash = content_hash
+  where prompt_key = 'customer_assistant.system'
+    and organization_id = 'b3061000-0000-4000-8000-000000000001';
+
+  select length(content_template) into after_length
+  from app_private.prompt_versions
+  where prompt_key = 'customer_assistant.system'
+    and organization_id = 'b3061000-0000-4000-8000-000000000001';
+end
+$$;
+
+select extensions.is(
+  (select count(*)::integer
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+  1,
+  'E6 idempotent re-apply does not create duplicate prompt rows'
+);
+select extensions.is(
+  (select (length(content_template) - strpos(content_template, '## Formato de respuesta en WhatsApp') + 1)::integer
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+  1,
+  'E7 the formatting rule marker appears in the prompt template'
+);
+
 select * from extensions.finish();
 rollback;
