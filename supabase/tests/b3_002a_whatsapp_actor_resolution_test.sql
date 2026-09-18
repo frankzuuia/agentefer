@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(28);
+select extensions.plan(35);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -61,6 +61,14 @@ select extensions.ok(
     'EXECUTE'
   ),
   'service role cannot bypass the WhatsApp claim boundary with the private resolver'
+);
+select extensions.ok(
+  not has_function_privilege(
+    'service_role',
+    'app_private.claim_whatsapp_agent_turn_authorized_base(text,text,text,text,text,text,integer,uuid)',
+    'EXECUTE'
+  ),
+  'service role cannot bypass the session-context wrapper through its private delegate'
 );
 
 set local role postgres;
@@ -320,6 +328,18 @@ select extensions.is(
   'contact',
   'an observed account is a contact before explicit member linking'
 );
+select extensions.ok(
+  (select system_prompt like '%actor_kind=contact%' from pg_temp.b302_turn_claims),
+  'a freshly created contact turn reaches the provider with its verified contact capability'
+);
+select extensions.ok(
+  (select system_prompt like '%membership_role=none%' from pg_temp.b302_turn_claims),
+  'a contact session cannot inherit a membership role'
+);
+select extensions.ok(
+  position('b3022000-0000-4000-8000-000000000001' in (select system_prompt from pg_temp.b302_turn_claims)) = 0,
+  'the provider session context never leaks the contact identifier'
+);
 
 insert into pg_temp.b302_tool_context
 select * from api.get_agent_turn_tool_context(
@@ -563,6 +583,18 @@ select extensions.ok(
     where run_value.id = (select agent_run_id from pg_temp.b302_turn_claims)
   ),
   'the verified owner run freezes an enforced member snapshot lane'
+);
+select extensions.ok(
+  (select system_prompt like '%actor_kind=member%' from pg_temp.b302_turn_claims),
+  'the provider receives only the backend-verified member capability'
+);
+select extensions.ok(
+  (select system_prompt like '%membership_role=owner%' from pg_temp.b302_turn_claims),
+  'the provider receives the active owner role needed to answer capability questions'
+);
+select extensions.ok(
+  position('b3020000-0000-4000-8000-000000000001' in (select system_prompt from pg_temp.b302_turn_claims)) = 0,
+  'the provider session context never leaks the member user identifier'
 );
 
 select api.complete_whatsapp_agent_turn(

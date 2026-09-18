@@ -4,6 +4,31 @@ create extension if not exists pgtap with schema extensions;
 
 select extensions.plan(16);
 
+create function pg_temp.throws_sqlstate(
+  statement text,
+  expected_sqlstate text,
+  description text
+)
+returns text
+language plpgsql
+security invoker
+set search_path = extensions, pg_catalog
+as $$
+declare
+  actual_sqlstate text;
+begin
+  execute statement;
+  return extensions.fail(description || ' (the statement did not fail)');
+exception
+  when others then
+    get stacked diagnostics actual_sqlstate = returned_sqlstate;
+    return extensions.is(actual_sqlstate, expected_sqlstate, description);
+end;
+$$;
+
+grant execute on function pg_temp.throws_sqlstate(text, text, text)
+  to anon, authenticated, service_role;
+
 select extensions.has_table('app_private', 'media_ingest_requests', 'media ingest requests table exists');
 select extensions.col_not_null('app_private', 'media_ingest_requests', 'provider_media_id', 'provider media id is required');
 select extensions.col_not_null('app_private', 'media_ingest_requests', 'status', 'media request status is required');

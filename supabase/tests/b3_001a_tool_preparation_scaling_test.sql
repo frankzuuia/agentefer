@@ -120,17 +120,20 @@ select extensions.ok(
 select extensions.ok(
   pg_get_functiondef(
     'api.claim_whatsapp_agent_turn(text,text,text,text,text,text,integer,uuid)'::regprocedure
+  ) like '%app_private.claim_whatsapp_agent_turn_authorized_base%'
+  and pg_get_functiondef(
+    'app_private.claim_whatsapp_agent_turn_authorized_base(text,text,text,text,text,text,integer,uuid)'::regprocedure
   ) like '%ensure_customer_assistant_read_tools%'
   and pg_get_functiondef(
-    'api.claim_whatsapp_agent_turn(text,text,text,text,text,text,integer,uuid)'::regprocedure
+    'app_private.claim_whatsapp_agent_turn_authorized_base(text,text,text,text,text,text,integer,uuid)'::regprocedure
   ) like '%customer_assistant.read_tools_prepare_failed%'
   and pg_get_functiondef(
-    'api.claim_whatsapp_agent_turn(text,text,text,text,text,text,integer,uuid)'::regprocedure
+    'app_private.claim_whatsapp_agent_turn_authorized_base(text,text,text,text,text,text,integer,uuid)'::regprocedure
   ) like '%interval ''5 minutes''%'
   and pg_get_functiondef(
-    'api.claim_whatsapp_agent_turn(text,text,text,text,text,text,integer,uuid)'::regprocedure
+    'app_private.claim_whatsapp_agent_turn_authorized_base(text,text,text,text,text,text,integer,uuid)'::regprocedure
   ) like '%failure_event.organization_id = message_value.organization_id%',
-  'claim prepares before enqueue and isolates recent bootstrap failures by tenant'
+  'the private claim delegate prepares before enqueue while the public wrapper remains the only session-context boundary'
 );
 
 select * from extensions.finish();

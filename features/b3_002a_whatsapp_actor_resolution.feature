@@ -20,6 +20,19 @@ Característica: Identidad segura del asistente comercial en WhatsApp
       Entonces el run congela al actor como member con el user_id real de Fer
       Y conserva las herramientas comerciales disponibles para atender y vender
 
+    Escenario: El owner recibe su capacidad verificada sin datos personales
+      Dado que el número de WhatsApp pertenece a una identidad member verificada
+      Y su membresía owner continúa activa en la misma organización
+      Cuando el worker reclama su siguiente turno
+      Entonces el modelo recibe actor_kind member y membership_role owner desde el backend
+      Y puede explicar ese rol de acceso sin exponer nombre teléfono ni identificadores internos
+
+    Escenario: Un cliente nuevo recibe un turno sin heredar privilegios
+      Dado que un número nuevo tiene una identidad contact observada por el proveedor
+      Cuando llega su primer mensaje y el worker reclama el turno
+      Entonces el worker recibe el turno recién creado
+      Y el modelo recibe actor_kind contact y membership_role none sin identificadores privados
+
   Regla: La autorización se deriva de relaciones internas y nunca del texto del mensaje
 
     Escenario: Un cliente afirma ser el dueño en el mensaje
