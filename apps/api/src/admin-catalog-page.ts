@@ -522,8 +522,23 @@ input:focus, select:focus, button:focus-visible {
 .sheet-handle { width: 42px; height: 5px; margin-top: 9px; border-radius: 999px; background: #d0d5dd; }
 .sheet-close { position: absolute; right: 8px; top: 4px; width: 44px; padding: 0; border: 0; color: #475467; background: transparent; font-size: 28px; }
 .sheet-content { max-height: calc(88dvh - 132px); overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 18px; }
-.sheet-hero { aspect-ratio: 16 / 10; overflow: hidden; border-radius: 15px; background: #eaecf0; }
-.sheet-hero img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.sheet-hero {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 15px;
+  background: #eaecf0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sheet-hero img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
 .thumbnail-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px 1px 4px; scrollbar-width: thin; }
 .thumbnail-button { flex: 0 0 58px; width: 58px; height: 58px; overflow: hidden; padding: 0; border: 2px solid transparent; border-radius: 10px; background: #eaecf0; }
 .thumbnail-button.active { border-color: var(--brand); }
