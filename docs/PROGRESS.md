@@ -456,6 +456,38 @@ App/Página/WABA/número/permisos.
   E2E autenticado con datos/Página reales, efecto real autorizado en Facebook y CI remoto.
 - Edición de descripción/precio/foto principal y eliminación/despublicación en cascada no se exponen
   todavía; requieren el siguiente bloque de RPC/tools y pruebas, sin botones falsos.
+
+## Bloque CE — administración real de productos
+
+- [x] CE-01/02: mutación compartida de nombre, descripción y precio con owner, idempotencia,
+  versión y auditoría.
+- [x] CE-03: activar borrador sin Meta; pausar oferta y respetar estado de variantes y
+  publicaciones.
+- [x] CE-04: galería vinculada a medios verificados; principal, alta por WhatsApp y retiro lógico
+  seguros.
+- [x] CE-05: preparar versión aprobada y encolar publicación individual tras autorización explícita,
+  con precio elegido o sin precio.
+- [x] CE-06: tool calling nativo para las mismas operaciones, con identidad owner verificada por
+  conversación y organización.
+- [x] CE-A01–A09: pgTAP, integración API/worker, Gherkin, QA móvil, mutación y seguridad locales.
+
+Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
+`docs/architecture/CATALOG-OWNER-EDITING.md`.
+
+- Panel: edición de nombres/descripciones, precios versionados, estado activo/pausado, selección y
+  retiro de fotos, y publicación Facebook separada; activar nunca publica implícitamente.
+- WhatsApp owner: tools nativas para contexto, edición y publicación. Un cliente no recibe estas
+  herramientas y la base vuelve a validar owner, organización e idempotencia.
+- Imágenes: cola durable con lease y reintentos promueve el WebP privado verificado a una ruta
+  pública inmutable; PostgreSQL conserva únicamente metadatos, hash y ruta.
+- Aceptación: 22 archivos, 421 escenarios ejecutables y cero errores Gherkin.
+- Contrato DB: 48 migraciones ordenadas, 105 tablas con RLS forzado y 1,386 aserciones pgTAP.
+- Rehearsal enlazado: migraciones `006f`–`006h`, 14/14 pgTAP y rollback confirmado en AgenteFer.
+- QA: 1,223/1,223 pruebas; cobertura 91.19% statements, 86.94% ramas, 93.98% funciones y
+  91.25% líneas; mutation 91.53% panel y 95.56% storefront; lint/typecheck/build/runtime verdes;
+  auditoría de dependencias con cero vulnerabilidades.
+- Estado: **implementación local certificada; aplicación remota, tipos regenerados, deploy
+  EasyPanel y E2E autenticado pendientes**.
 - Estado: **calidad local certificada; no hubo despliegue de base ni publicación externa**.
 - CI remoto inicial `33271706383`: cancelado por el timeout histórico de 20 minutos durante el gate
   completo, no por una aserción. El presupuesto de `Verify` se elevó a 60 minutos con una nueva

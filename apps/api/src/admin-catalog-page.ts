@@ -563,6 +563,18 @@ input:focus, select:focus, button:focus-visible {
   background: white;
 }
 .sheet-actions .wide-action { grid-column: 1 / -1; }
+.edit-panel { border-top: 1px solid var(--border); padding: 12px 0; }
+.edit-panel summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+.edit-panel form { display: grid; gap: 10px; padding: 8px 0 4px; }
+.edit-panel label { display: grid; gap: 5px; font-size: 13px; font-weight: 650; }
+.edit-panel input, .edit-panel textarea, .edit-panel select {
+  width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: 10px; font: inherit; color: var(--ink); background: white;
+}
+.edit-panel textarea { min-height: 96px; resize: vertical; }
+.edit-panel .button { min-height: 44px; }
+.edit-panel .help { margin: 0; color: var(--muted); font-size: 12px; }
+.edit-panel .edit-inline { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 
 .toast {
   position: fixed;
@@ -781,6 +793,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     sheetActions.replaceChildren();
 
     const media = primaryMedia(item);
+    let selectedMediaId = media && media.id;
     const hero = create("div", "sheet-hero");
     if (media) {
       const image = create("img");
@@ -805,6 +818,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
         image.alt = entry.altText || "";
         button.append(image);
         button.addEventListener("click", () => {
+          selectedMediaId = entry.id;
           const heroImage = hero.querySelector("img");
           if (heroImage) {
             heroImage.src = entry.url;
@@ -840,8 +854,114 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     }
     sheetContent.append(prices);
 
+    const commandFor = (operation, changes) => ({
+      type: "edit", organizationId: state.organizationId, variantId: item.variantId,
+      operation, changes, idempotencyKey: crypto.randomUUID(),
+    });
+    const editor = create("details", "edit-panel");
+    editor.append(create("summary", "", "Editar nombre y descripción"));
+    const textForm = create("form");
+    const addTextField = (labelText, key, value, multiline) => {
+      const label = create("label", "", labelText);
+      const field = create(multiline ? "textarea" : "input");
+      field.name = key;
+      field.value = value || "";
+      field.maxLength = multiline ? 10000 : 240;
+      if (!multiline) field.required = true;
+      label.append(field);
+      textForm.append(label);
+      return field;
+    };
+    const productNameField = addTextField("Nombre del producto", "productName", item.productName, false);
+    const variantNameField = addTextField("Nombre de la presentación", "variantName", item.variantName, false);
+    const productDescriptionField = addTextField("Descripción general", "productDescription", item.productDescription, true);
+    const variantDescriptionField = addTextField("Descripción de esta presentación", "variantDescription", item.variantDescription, true);
+    const saveText = create("button", "button primary", "Guardar cambios");
+    saveText.type = "submit";
+    textForm.append(saveText);
+    textForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runCommand(commandFor("edit_text", {
+        productName: productNameField.value.trim(), variantName: variantNameField.value.trim(),
+        productDescription: productDescriptionField.value.trim() || null,
+        variantDescription: variantDescriptionField.value.trim() || null,
+      }), "Datos del producto actualizados.");
+    });
+    editor.append(textForm);
+    sheetContent.append(editor);
+
+    const priceEditor = create("details", "edit-panel");
+    priceEditor.append(create("summary", "", "Cambiar precios"));
+    if (item.prices.length === 0) {
+      priceEditor.append(create("p", "help", "No hay presentaciones con precio para modificar."));
+    }
+    item.prices.forEach((price) => {
+      const form = create("form");
+      const caption = create("p", "help", price.unitName + " · " + price.quantityMin + " " + (price.currencyCode || ""));
+      const amountLabel = create("label", "", "Precio en " + price.currencyCode);
+      const amount = create("input");
+      amount.type = "number"; amount.min = "0"; amount.step = "any";
+      amount.value = price.amount || "";
+      amountLabel.append(amount);
+      const onRequestLabel = create("label", "", "Publicar sin precio (a consultar)");
+      const onRequest = create("input");
+      onRequest.type = "checkbox"; onRequest.checked = price.pricingStatus === "on_request";
+      onRequest.style.width = "auto"; onRequest.style.minHeight = "auto";
+      onRequestLabel.append(onRequest);
+      const syncAmount = () => { amount.disabled = onRequest.checked; amount.required = !onRequest.checked; };
+      onRequest.addEventListener("change", syncAmount); syncAmount();
+      const save = create("button", "button secondary", "Guardar este precio");
+      save.type = "submit";
+      form.append(caption, amountLabel, onRequestLabel, save);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const changes = onRequest.checked
+          ? { priceTierId: price.id, pricingStatus: "on_request" }
+          : { priceTierId: price.id, pricingStatus: "priced", amount: Number(amount.value) };
+        runCommand(commandFor("set_price", changes), "Precio actualizado.");
+      });
+      priceEditor.append(form);
+    });
+    sheetContent.append(priceEditor);
+
+    const photoEditor = create("details", "edit-panel");
+    photoEditor.append(create("summary", "", "Administrar fotos"));
+    photoEditor.append(create("p", "help", "Toca una miniatura para elegirla. Quitar una foto la desvincula de este producto; no borra el archivo original."));
+    const photoActions = create("div", "edit-inline");
+    const choosePrimary = create("button", "button secondary", "Hacer principal");
+    choosePrimary.type = "button"; choosePrimary.disabled = !selectedMediaId;
+    choosePrimary.addEventListener("click", () => runCommand(
+      commandFor("set_primary_photo", { productMediaId: selectedMediaId }), "Imagen principal actualizada."));
+    const removePhoto = create("button", "button danger", "Quitar foto");
+    removePhoto.type = "button"; removePhoto.disabled = !selectedMediaId;
+    removePhoto.addEventListener("click", () => {
+      if (!window.confirm("¿Quitar esta foto del producto? El archivo original se conserva.")) return;
+      runCommand(commandFor("remove_photo", { productMediaId: selectedMediaId }), "Foto retirada del producto.");
+    });
+    photoActions.append(choosePrimary, removePhoto);
+    photoEditor.append(photoActions);
+    sheetContent.append(photoEditor);
+
     const facebook = create("section", "detail-block");
     facebook.append(create("h3", "", "Facebook"));
+    const publicPhotoReady = item.media.some((entry) => entry.publicReady);
+    const withoutPriceLabel = create("label", "edit-panel", "Publicar sin precio (a consultar)");
+    const withoutPrice = create("input");
+    withoutPrice.type = "checkbox";
+    withoutPrice.style.width = "auto";
+    withoutPrice.style.minHeight = "auto";
+    withoutPriceLabel.append(withoutPrice);
+    const priceChoice = create("select");
+    if (state.connectionId && item.variantStatus === "active" && item.prices.length > 1) {
+      const priceChoiceLabel = create("label", "edit-panel", "Precio que aparecerá en Facebook");
+      item.prices.forEach((price) => {
+        const option = create("option", "", price.unitName + " · " + formatPrice(price));
+        option.value = price.id;
+        priceChoice.append(option);
+      });
+      priceChoiceLabel.append(priceChoice);
+      facebook.append(priceChoiceLabel);
+    }
     if (!state.connectionId) {
       facebook.append(create("p", "product-meta", "Selecciona una página para ver y operar su publicación."));
     } else if (!item.facebook) {
@@ -864,19 +984,20 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
         facebook.append(create("div", "error-panel", "El efecto externo es incierto. El worker verificará Meta antes de permitir otro intento."));
       }
     }
+    if (state.connectionId && item.variantStatus === "active") {
+      facebook.append(withoutPriceLabel);
+      if (!publicPhotoReady) {
+        facebook.append(create("p", "product-meta", "La foto aún no tiene una versión WebP pública aprobada. Facebook se habilitará al completarla."));
+      }
+    }
     sheetContent.append(facebook);
 
-    const toggle = create("button", item.variantStatus === "paused" ? "button secondary" : "button danger", item.variantStatus === "paused" ? "Activar" : "Pausar");
+    const toggle = create("button", item.variantStatus === "active" ? "button danger" : "button secondary", item.variantStatus === "active" ? "Pausar" : "Activar en catálogo");
     toggle.type = "button";
-    toggle.disabled = item.variantStatus !== "active" && item.variantStatus !== "paused";
-    toggle.addEventListener("click", () => runCommand({
-      type: "set_status",
-      organizationId: state.organizationId,
-      variantId: item.variantId,
-      status: item.variantStatus === "paused" ? "active" : "paused",
-      reason: item.variantStatus === "paused" ? "Activación solicitada desde el panel móvil" : "Pausa solicitada desde el panel móvil",
-      idempotencyKey: crypto.randomUUID(),
-    }, "Estado actualizado."));
+    toggle.disabled = item.variantStatus === "archived";
+    toggle.addEventListener("click", () => runCommand(commandFor("set_status", {
+      status: item.variantStatus === "active" ? "paused" : "active",
+    }), item.variantStatus === "active" ? "Producto pausado." : "Activo en catálogo; Facebook sigue separado."));
     sheetActions.append(toggle);
 
     if (item.facebook && item.facebook.availableActions.includes("retry") && item.facebook.latestJobId) {
@@ -887,14 +1008,20 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
         publicationJobId: item.facebook.latestJobId, idempotencyKey: crypto.randomUUID(),
       }, "Reintento encolado."));
       sheetActions.append(retry);
-    } else if (item.facebook && (item.facebook.availableActions.includes("publish") || item.facebook.availableActions.includes("refresh"))) {
-      const operation = item.facebook.availableActions.includes("publish") ? "publish" : "refresh";
+    } else if (state.connectionId && item.variantStatus === "active" &&
+      (!item.facebook || item.facebook.availableActions.includes("publish") ||
+        item.facebook.availableActions.includes("refresh") || item.facebook.publicationStatus === "paused")) {
+      const operation = item.facebook && item.facebook.instanceId ? "refresh" : "publish";
       const publish = create("button", "button primary", operation === "publish" ? "Publicar" : "Actualizar FB");
       publish.type = "button";
-      publish.disabled = !state.connectionId;
+      publish.disabled = !publicPhotoReady;
       publish.addEventListener("click", () => runCommand({
         type: "publish", organizationId: state.organizationId, variantId: item.variantId,
-        socialConnectionId: state.connectionId, operation: operation, idempotencyKey: crypto.randomUUID(),
+        socialConnectionId: state.connectionId, operation: operation,
+        withoutPrice: withoutPrice.checked, idempotencyKey: crypto.randomUUID(),
+        ...(!withoutPrice.checked && item.prices.length
+          ? { sourcePriceTierId: item.prices.length === 1 ? item.prices[0].id : priceChoice.value }
+          : {}),
       }, operation === "publish" ? "Publicación encolada." : "Actualización encolada."));
       sheetActions.append(publish);
     }

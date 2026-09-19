@@ -58,6 +58,13 @@ assert.deepEqual(
     "20260907110000_b4_009_facebook_login_modes.sql",
     "20260907130000_b3_006a_conversational_catalog.sql",
     "20260917211500_b3_005_content_addressed_media_completion.sql",
+    "20260917230000_b3_006b_verified_session_context.sql",
+    "20260917231500_b3_006c_private_claim_delegate.sql",
+    "20260917233000_b3_006d_claim_context_visibility.sql",
+    "20260918184403_b3_006e_whatsapp_response_format.sql",
+    "20260919160000_b3_006f_catalog_owner_edit.sql",
+    "20260919170000_b3_006g_catalog_owner_facebook_publish.sql",
+    "20260919180000_b3_006h_catalog_storefront_jobs.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -290,6 +297,14 @@ const mediaIngestDatabaseTest = await readFile(
 );
 const conversationalCatalogDatabaseTest = await readFile(
   path.join(testDirectory, "b3_006a_conversational_catalog_test.sql"),
+  "utf8",
+);
+const catalogOwnerEditDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_006f_catalog_owner_edit_test.sql"),
+  "utf8",
+);
+const catalogStorefrontJobsDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_006h_catalog_storefront_jobs_test.sql"),
   "utf8",
 );
 const visionModelRoutingDatabaseTest = await readFile(
@@ -2327,6 +2342,8 @@ const productionDatabaseTests = [
   ["B2-010 media storage", mediaStorageDatabaseTest],
   ["B3-005 media ingest requests", mediaIngestDatabaseTest],
   ["B3-006A conversational catalog", conversationalCatalogDatabaseTest],
+  ["B3-006F catalog owner edit", catalogOwnerEditDatabaseTest],
+  ["B3-006H catalog storefront jobs", catalogStorefrontJobsDatabaseTest],
   ["B3-005 vision model routing", visionModelRoutingDatabaseTest],
   ["B4-005/B4-006 publication orchestration", ownerPublicationToolsDatabaseTest],
   ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
@@ -2389,7 +2406,7 @@ for (const migrationEntry of migrationEntries) {
     forcedRlsTableNames.add(match[1]);
   }
 }
-assert.equal(privateTableNames.size, 104, "the private table inventory must remain reviewed");
+assert.equal(privateTableNames.size, 105, "the private table inventory must remain reviewed");
 assert.deepEqual(
   [...forcedRlsTableNames].sort(),
   [...privateTableNames].sort(),
@@ -2397,7 +2414,7 @@ assert.deepEqual(
 );
 
 for (const statement of [
-  "select extensions.plan(28);",
+  "select extensions.plan(35);",
   "an observed account is a contact before explicit member linking",
   "a role-gated policy binding cannot include contact actors",
   "identity-link audit metadata does not persist the provider phone subject",

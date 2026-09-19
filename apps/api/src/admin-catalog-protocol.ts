@@ -5,7 +5,22 @@ const CATALOG_STATUSES = ["all", "draft", "active", "paused", "archived"] as con
 const PUBLICATION_OPERATIONS = ["publish", "refresh"] as const;
 const OFFER_STATUSES = ["active", "paused"] as const;
 const BATCH_ACTIONS = ["pause", "resume"] as const;
-const COMMAND_TYPES = ["set_status", "publish", "publish_all", "retry", "batch_state"] as const;
+const EDIT_OPERATIONS = [
+  "set_status",
+  "edit_text",
+  "set_price",
+  "set_primary_photo",
+  "remove_photo",
+  "add_photo",
+] as const;
+const COMMAND_TYPES = [
+  "set_status",
+  "edit",
+  "publish",
+  "publish_all",
+  "retry",
+  "batch_state",
+] as const;
 
 export type AdminCatalogQuery = Readonly<{
   organizationId: string;
@@ -18,6 +33,14 @@ export type AdminCatalogQuery = Readonly<{
 }>;
 
 export type AdminCatalogCommand =
+  | Readonly<{
+      type: "edit";
+      organizationId: string;
+      variantId: string;
+      operation: (typeof EDIT_OPERATIONS)[number];
+      changes: Readonly<Record<string, unknown>>;
+      idempotencyKey: string;
+    }>
   | Readonly<{
       type: "set_status";
       organizationId: string;
@@ -32,6 +55,8 @@ export type AdminCatalogCommand =
       variantId: string;
       socialConnectionId: string;
       operation: "publish" | "refresh";
+      withoutPrice: boolean;
+      sourcePriceTierId?: string;
       idempotencyKey: string;
     }>
   | Readonly<{
@@ -176,6 +201,78 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
     return undefined;
   }
   switch (type) {
+    case "edit": {
+      if (
+        !hasOnlyKeys(value, [
+          "type",
+          "organizationId",
+          "variantId",
+          "operation",
+          "changes",
+          "idempotencyKey",
+        ])
+      ) {
+        return undefined;
+      }
+      const variantId = readUuid(value, "variantId");
+      const operation = readEnum(value, "operation", EDIT_OPERATIONS);
+      const changes = value.changes;
+      if (variantId === undefined || operation === undefined || !isRecord(changes))
+        return undefined;
+      const keys = Object.keys(changes);
+      const photoId = readUuid(changes, "productMediaId");
+      const priceId = readUuid(changes, "priceTierId");
+      const assetId = readUuid(changes, "mediaAssetId");
+      const valid =
+        (operation === "set_status" &&
+          keys.length === 1 &&
+          readEnum(changes, "status", OFFER_STATUSES) !== undefined) ||
+        (operation === "edit_text" &&
+          keys.length > 0 &&
+          hasOnlyKeys(changes, [
+            "productName",
+            "productDescription",
+            "variantName",
+            "variantDescription",
+          ]) &&
+          keys.every((key) =>
+            key === "productDescription" || key === "variantDescription"
+              ? changes[key] === null ||
+                changes[key] === "" ||
+                readBoundedText(changes, key, 1, 10000) !== undefined
+              : readBoundedText(changes, key, 1, 240) !== undefined,
+          )) ||
+        (operation === "set_price" &&
+          priceId !== undefined &&
+          hasOnlyKeys(changes, ["priceTierId", "pricingStatus", "amount"]) &&
+          (changes.pricingStatus === "on_request"
+            ? changes.amount === undefined || changes.amount === null
+            : changes.pricingStatus === "priced" &&
+              typeof changes.amount === "number" &&
+              Number.isFinite(changes.amount) &&
+              changes.amount >= 0 &&
+              changes.amount <= 999_999_999_999.99)) ||
+        ((operation === "set_primary_photo" || operation === "remove_photo") &&
+          keys.length === 1 &&
+          photoId !== undefined) ||
+        (operation === "add_photo" &&
+          assetId !== undefined &&
+          hasOnlyKeys(changes, ["mediaAssetId", "scope", "altText", "allowPublic"]) &&
+          (changes.scope === "product" || changes.scope === "variant") &&
+          typeof changes.allowPublic === "boolean" &&
+          (changes.altText === undefined ||
+            readBoundedText(changes, "altText", 1, 2000) !== undefined));
+      return valid
+        ? Object.freeze({
+            type,
+            organizationId,
+            variantId,
+            operation,
+            changes: Object.freeze({ ...changes }),
+            idempotencyKey,
+          })
+        : undefined;
+    }
     case "set_status": {
       if (
         !hasOnlyKeys(value, [
@@ -204,6 +301,8 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
           "variantId",
           "socialConnectionId",
           "operation",
+          "withoutPrice",
+          "sourcePriceTierId",
           "idempotencyKey",
         ])
       ) {
@@ -212,7 +311,15 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
       const variantId = readUuid(value, "variantId");
       const socialConnectionId = readUuid(value, "socialConnectionId");
       const operation = readEnum(value, "operation", PUBLICATION_OPERATIONS);
-      return variantId === undefined || socialConnectionId === undefined || operation === undefined
+      const withoutPrice = value.withoutPrice === undefined ? false : value.withoutPrice;
+      const sourcePriceTierId =
+        value.sourcePriceTierId === undefined ? null : readUuid(value, "sourcePriceTierId");
+      return variantId === undefined ||
+        socialConnectionId === undefined ||
+        operation === undefined ||
+        typeof withoutPrice !== "boolean" ||
+        sourcePriceTierId === undefined ||
+        (withoutPrice && sourcePriceTierId !== null)
         ? undefined
         : Object.freeze({
             type,
@@ -220,6 +327,8 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
             variantId,
             socialConnectionId,
             operation,
+            withoutPrice,
+            ...(sourcePriceTierId === null ? {} : { sourcePriceTierId }),
             idempotencyKey,
           });
     }

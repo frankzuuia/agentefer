@@ -17,6 +17,8 @@ import { createFacebookPageClient } from "./facebook-page.js";
 import { createFacebookPublicationProcessor } from "./facebook-publication-processor.js";
 import { createFacebookPublicationRpcClient } from "./facebook-publication-rpc.js";
 import { createMediaIngestProcessor } from "./media-ingest-processor.js";
+import { createCatalogStorefrontProcessor } from "./catalog-storefront-processor.js";
+import { createCatalogStorefrontRpcClient } from "./catalog-storefront-rpc.js";
 import { createMediaIngestRpcClient } from "./media-ingest-rpc.js";
 import { createMediaStorageClient } from "./media-storage.js";
 import { createMetaInboundProcessor } from "./meta-inbound-processor.js";
@@ -45,6 +47,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
   const healthServer = createWorkerHealthServer({ readiness });
   let metaInboundOperational = !configuration.metaInbound.enabled;
   let mediaIngestOperational = !configuration.whatsappAi.enabled;
+  let catalogStorefrontOperational = !configuration.whatsappAi.enabled;
   let whatsappAiOperational = !configuration.whatsappAi.enabled;
   let facebookPublicationOperational = !configuration.facebookPublication.enabled;
   let publicationNotificationOperational = !configuration.facebookPublication.enabled;
@@ -52,6 +55,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
     if (
       metaInboundOperational &&
       mediaIngestOperational &&
+      catalogStorefrontOperational &&
       whatsappAiOperational &&
       facebookPublicationOperational &&
       publicationNotificationOperational
@@ -149,7 +153,45 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
           synchronizeReadiness();
         },
         onWorkObserved() {
+          catalogStorefrontProcessor?.wake();
           whatsappAiProcessor?.wake();
+        },
+      })
+    : undefined;
+  const catalogStorefrontProcessor = configuration.whatsappAi.enabled
+    ? createCatalogStorefrontProcessor({
+        configuration: {
+          workerId: `storefront-${randomUUID()}`,
+          pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.whatsappAi.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.whatsappAi.idleBackoffJitterPercent,
+          leaseSeconds: configuration.whatsappAi.leaseSeconds,
+          maxAttempts: configuration.whatsappAi.maxAttempts,
+          retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
+          batchSize: configuration.whatsappAi.batchSize,
+        },
+        rpcClient: createCatalogStorefrontRpcClient({
+          supabaseUrl: configuration.supabase.url,
+          secretKey: configuration.supabase.secretKey,
+          timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
+        }),
+        mediaRpcClient: createMediaIngestRpcClient({
+          supabaseUrl: configuration.supabase.url,
+          secretKey: configuration.supabase.secretKey,
+          timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
+        }),
+        storageClient: createMediaStorageClient({
+          supabaseUrl: configuration.supabase.url,
+          secretKey: configuration.supabase.secretKey,
+          timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
+          maximumDownloadBytes: 10_485_760,
+        }),
+        logger,
+        metrics,
+        onOperationalStateChange(operational) {
+          catalogStorefrontOperational = operational;
+          synchronizeReadiness();
         },
       })
     : undefined;
@@ -255,6 +297,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       await whatsappAiProcessor?.stop();
       await publicationNotificationProcessor?.stop();
       await facebookPublicationProcessor?.stop();
+      await catalogStorefrontProcessor?.stop();
       await mediaIngestProcessor?.stop();
       await metaInboundProcessor?.stop();
       await closeWorkerHealthServer(healthServer);
@@ -270,6 +313,8 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       metaInboundProcessor === undefined ? true : await metaInboundProcessor.start();
     mediaIngestOperational =
       mediaIngestProcessor === undefined ? true : await mediaIngestProcessor.start();
+    catalogStorefrontOperational =
+      catalogStorefrontProcessor === undefined ? true : await catalogStorefrontProcessor.start();
     whatsappAiOperational =
       whatsappAiProcessor === undefined ? true : await whatsappAiProcessor.start();
     facebookPublicationOperational =
@@ -287,6 +332,8 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       meta_inbound_operational: metaInboundOperational,
       media_ingest_enabled: mediaIngestProcessor !== undefined,
       media_ingest_operational: mediaIngestOperational,
+      catalog_storefront_enabled: catalogStorefrontProcessor !== undefined,
+      catalog_storefront_operational: catalogStorefrontOperational,
       whatsapp_ai_enabled: configuration.whatsappAi.enabled,
       whatsapp_ai_operational: whatsappAiOperational,
       facebook_publication_enabled: configuration.facebookPublication.enabled,
@@ -301,6 +348,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
     await whatsappAiProcessor?.stop();
     await publicationNotificationProcessor?.stop();
     await facebookPublicationProcessor?.stop();
+    await catalogStorefrontProcessor?.stop();
     await mediaIngestProcessor?.stop();
     await metaInboundProcessor?.stop();
     if (healthServer.listening) {

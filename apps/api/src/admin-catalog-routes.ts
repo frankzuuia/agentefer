@@ -145,15 +145,17 @@ const handleCommand = async (
       }
       const actor = { actorUserId: identity.userId } as const;
       const result =
-        command.type === "set_status"
-          ? await input.catalogGateway.setOfferStatus({ ...command, ...actor })
-          : command.type === "publish"
-            ? await input.catalogGateway.publish({ ...command, ...actor })
-            : command.type === "publish_all"
-              ? await input.catalogGateway.publishAll({ ...command, ...actor })
-              : command.type === "retry"
-                ? await input.catalogGateway.retry({ ...command, ...actor })
-                : await input.catalogGateway.setBatchState({ ...command, ...actor });
+        command.type === "edit"
+          ? await input.catalogGateway.edit({ ...command, ...actor })
+          : command.type === "set_status"
+            ? await input.catalogGateway.setOfferStatus({ ...command, ...actor })
+            : command.type === "publish"
+              ? await input.catalogGateway.publish({ ...command, ...actor })
+              : command.type === "publish_all"
+                ? await input.catalogGateway.publishAll({ ...command, ...actor })
+                : command.type === "retry"
+                  ? await input.catalogGateway.retry({ ...command, ...actor })
+                  : await input.catalogGateway.setBatchState({ ...command, ...actor });
       input.metrics.recordCompleted({
         operation: COMMAND_OPERATION,
         outcome: "succeeded",

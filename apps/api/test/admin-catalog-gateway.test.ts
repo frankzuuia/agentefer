@@ -360,11 +360,19 @@ describe("admin catalog Supabase gateway over real TCP", () => {
     const gateway = createGateway(baseUrl);
     const shared = { organizationId, actorUserId: userId, idempotencyKey: "b407-command-0001" };
     await gateway.setOfferStatus({ ...shared, variantId, status: "paused", reason: "Pausa" });
+    await gateway.edit({
+      ...shared,
+      variantId,
+      operation: "set_price",
+      changes: { priceTierId: jobId, pricingStatus: "priced", amount: 11_500 },
+    });
     await gateway.publish({
       ...shared,
       variantId,
       socialConnectionId: connectionId,
       operation: "publish",
+      withoutPrice: false,
+      sourcePriceTierId: jobId,
     });
     await gateway.publishAll({ ...shared, socialConnectionId: connectionId, operation: "refresh" });
     await gateway.retry({ ...shared, publicationJobId: jobId });
@@ -377,12 +385,21 @@ describe("admin catalog Supabase gateway over real TCP", () => {
 
     expect(requests.map((request) => request.path)).toEqual([
       "/rest/v1/rpc/admin_set_catalog_offer_status",
-      "/rest/v1/rpc/admin_enqueue_facebook_publication",
+      "/rest/v1/rpc/admin_edit_catalog_offer",
+      "/rest/v1/rpc/admin_publish_catalog_offer",
       "/rest/v1/rpc/admin_enqueue_facebook_catalog",
       "/rest/v1/rpc/admin_retry_facebook_publication",
       "/rest/v1/rpc/admin_set_facebook_batch_state",
     ]);
     expect(requests.every((request) => request.body.target_actor_user_id === userId)).toBe(true);
+    expect(requests[1]?.body).toMatchObject({
+      target_operation: "set_price",
+      target_changes: { priceTierId: jobId, pricingStatus: "priced", amount: 11_500 },
+    });
+    expect(requests[2]?.body).toMatchObject({
+      target_without_price: false,
+      target_source_price_tier_id: jobId,
+    });
     expect(
       requests.every((request) => request.body.target_idempotency_key === shared.idempotencyKey),
     ).toBe(true);

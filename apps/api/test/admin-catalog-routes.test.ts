@@ -170,6 +170,11 @@ describe("admin catalog routes", () => {
     expect(ADMIN_CATALOG_JAVASCRIPT).not.toContain("IntersectionObserver");
     expect(ADMIN_CATALOG_JAVASCRIPT).not.toContain("localStorage");
     expect(ADMIN_CATALOG_JAVASCRIPT).not.toContain("sessionStorage");
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("edit_text"');
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_price"');
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_primary_photo"');
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("remove_photo"');
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_status"');
   });
 
   it("serves a redacted callback bridge that removes the authorization query", async () => {
@@ -491,6 +496,19 @@ describe("admin catalog routes", () => {
 
   it.each([
     [
+      "edit",
+      "/rest/v1/rpc/admin_edit_catalog_offer",
+      {
+        type: "edit",
+        organizationId,
+        variantId,
+        operation: "edit_text",
+        changes: { productName: "Combo Roadtrack actualizado" },
+        idempotencyKey: "b407-route-command-0001",
+      },
+      { target_variant_id: variantId, target_operation: "edit_text" },
+    ],
+    [
       "set_status",
       "/rest/v1/rpc/admin_set_catalog_offer_status",
       {
@@ -505,7 +523,7 @@ describe("admin catalog routes", () => {
     ],
     [
       "publish",
-      "/rest/v1/rpc/admin_enqueue_facebook_publication",
+      "/rest/v1/rpc/admin_publish_catalog_offer",
       {
         type: "publish",
         organizationId,
@@ -514,7 +532,7 @@ describe("admin catalog routes", () => {
         operation: "publish",
         idempotencyKey: "b407-route-command-0001",
       },
-      { target_variant_id: variantId },
+      { target_variant_id: variantId, target_without_price: false },
     ],
     [
       "publish_all",

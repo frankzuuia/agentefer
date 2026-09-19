@@ -438,6 +438,13 @@ Especificación, escenarios A01–A20, contratos, límites y validación:
 [Alta conversacional persistente](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).
 Reutiliza BL-002/008/009/010/011/019/020/025. Construir no implica aplicar ni desplegar.
 
+## Addendum CE — administración del catálogo
+
+Reglas CE-01 a CE-06, escenarios CE-A01 a CE-A09, autorización, datos, fallas y validación:
+[Catálogo administrable desde panel y WhatsApp](architecture/CATALOG-OWNER-EDITING.md).
+Reutiliza BL-002/008/009/010/011/019/020/025. La activación de catálogo y la publicación
+en Facebook son comandos separados.
+
 ## Addendum de implementación B4-003A — 2026-08-26
 
 El estado histórico anterior corresponde a la especificación v0.1. El adaptador entrante WhatsApp

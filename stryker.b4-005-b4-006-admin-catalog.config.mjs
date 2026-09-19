@@ -4,13 +4,12 @@ import baseConfiguration from "./stryker.config.mjs";
 export default {
   ...baseConfiguration,
   mutate: [
-    "apps/api/src/admin-catalog-gateway.ts:364-404",
-    "apps/api/src/admin-catalog-gateway.ts:553-571",
-    "apps/api/src/admin-catalog-gateway.ts:630-647",
+    "apps/api/src/admin-catalog-gateway.ts:690-694",
+    "apps/api/src/admin-catalog-gateway.ts:770-800",
     "apps/api/src/admin-catalog-protocol.ts:114-166",
-    "apps/api/src/admin-catalog-protocol.ts:168-290",
+    "apps/api/src/admin-catalog-protocol.ts:168-271",
     "apps/api/src/admin-catalog-routes.ts:73-88",
-    "apps/api/src/admin-catalog-routes.ts:129-173",
+    "apps/api/src/admin-catalog-routes.ts:129-156",
   ],
   mutator: {
     excludedMutations: [

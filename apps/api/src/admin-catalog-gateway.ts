@@ -89,6 +89,7 @@ export type AdminCatalogMedia = Readonly<{
   url: string;
   width: number;
   height: number;
+  publicReady: boolean;
 }>;
 
 export type AdminCatalogFacebook = Readonly<{
@@ -167,12 +168,24 @@ export type AdminCatalogSetStatusInput = Readonly<{
   idempotencyKey: string;
 }>;
 
+export type AdminCatalogEditInput = Readonly<{
+  organizationId: string;
+  actorUserId: string;
+  variantId: string;
+  operation:
+    "set_status" | "edit_text" | "set_price" | "set_primary_photo" | "remove_photo" | "add_photo";
+  changes: Readonly<Record<string, unknown>>;
+  idempotencyKey: string;
+}>;
+
 export type AdminCatalogPublishInput = Readonly<{
   organizationId: string;
   actorUserId: string;
   variantId: string;
   socialConnectionId: string;
   operation: AdminCatalogPublicationOperation;
+  withoutPrice: boolean;
+  sourcePriceTierId?: string;
   idempotencyKey: string;
 }>;
 
@@ -204,6 +217,7 @@ export type AdminCatalogActionResult = Readonly<Record<string, unknown>>;
 
 export type AdminCatalogGateway = Readonly<{
   getPage(input: AdminCatalogPageInput): Promise<AdminCatalogPage>;
+  edit(input: AdminCatalogEditInput): Promise<AdminCatalogActionResult>;
   setOfferStatus(input: AdminCatalogSetStatusInput): Promise<AdminCatalogActionResult>;
   publish(input: AdminCatalogPublishInput): Promise<AdminCatalogActionResult>;
   publishAll(input: AdminCatalogPublishAllInput): Promise<AdminCatalogActionResult>;
@@ -452,6 +466,7 @@ const parseMedia = (value: unknown, baseUrl: URL, organizationId: string): Admin
     ordinal: readInteger(value, "ordinal", 99),
     ...(altText === undefined ? {} : { altText }),
     url: createMediaUrl(baseUrl, organizationId, bucketId, objectPath),
+    publicReady: bucketId === "agentefer-catalog-public",
     width: readInteger(value, "width", 100_000),
     height: readInteger(value, "height", 100_000),
   });
@@ -762,13 +777,25 @@ export function createAdminCatalogGateway(
         target_idempotency_key: actionInput.idempotencyKey,
       });
     },
+    edit(actionInput) {
+      return executeAction("admin_edit_catalog_offer", {
+        target_organization_id: actionInput.organizationId,
+        target_actor_user_id: actionInput.actorUserId,
+        target_variant_id: actionInput.variantId,
+        target_operation: actionInput.operation,
+        target_changes: actionInput.changes,
+        target_idempotency_key: actionInput.idempotencyKey,
+      });
+    },
     publish(actionInput) {
-      return executeAction("admin_enqueue_facebook_publication", {
+      return executeAction("admin_publish_catalog_offer", {
         target_organization_id: actionInput.organizationId,
         target_actor_user_id: actionInput.actorUserId,
         target_variant_id: actionInput.variantId,
         target_social_connection_id: actionInput.socialConnectionId,
         target_operation: actionInput.operation,
+        target_without_price: actionInput.withoutPrice,
+        target_source_price_tier_id: actionInput.sourcePriceTierId ?? null,
         target_idempotency_key: actionInput.idempotencyKey,
       });
     },
