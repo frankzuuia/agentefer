@@ -491,8 +491,13 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
 - QA: 1,223/1,223 pruebas; cobertura 91.19% statements, 86.94% ramas, 93.98% funciones y
   91.25% líneas; mutation 91.53% panel y 95.56% storefront; lint/typecheck/build/runtime verdes;
   auditoría de dependencias con cero vulnerabilidades.
-- Estado: **base remota y tipos sincronizados; deploy EasyPanel y E2E autenticado pendientes. No
-  se ejecutó ninguna publicación externa en Facebook**.
+- Deploy EasyPanel: `agente-fer/api` y `agente-fer/worker` construidos desde
+  `7ec66754ef82ea447d85a647ce2031db2f3df6c4`; acciones finalizadas con éxito, contenedores sin
+  errores en las últimas 100 líneas y señales de readiness presentes. API `/health/live` y
+  `/health/ready` respondieron 200; el shell y `/admin/catalog/app.js` respondieron 200 con las
+  operaciones nuevas.
+- Estado: **base, tipos, API y worker desplegados; E2E autenticado pendiente porque la sesión del
+  navegador debe iniciarse nuevamente. No se ejecutó ninguna publicación externa en Facebook**.
 - CI remoto inicial `33271706383`: cancelado por el timeout histórico de 20 minutos durante el gate
   completo, no por una aserción. El presupuesto de `Verify` se elevó a 60 minutos con una nueva
   aserción en `verify-ci-policy`; la suite y los umbrales permanecen intactos.
