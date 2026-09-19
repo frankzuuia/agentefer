@@ -156,13 +156,25 @@ select extensions.ok(
 select extensions.ok(
   pg_get_functiondef(
     'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
-  ) like '%offer.status <> ''active''%',
+  ) like '%v.status=''active''%'
+  and pg_get_functiondef(
+    'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
+  ) like '%p.status=''active''%'
+  and pg_get_functiondef(
+    'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
+  ) like '%activate the catalog offer before Facebook%',
   'Facebook publication rejects non-active catalog offers'
 );
 select extensions.ok(
   pg_get_functiondef(
     'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
-  ) like '%rendition_kind = ''storefront_webp''%',
+  ) like '%o.rendition_kind=''storefront_webp''%'
+  and pg_get_functiondef(
+    'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
+  ) like '%o.status=''published''%'
+  and pg_get_functiondef(
+    'api.admin_publish_catalog_offer(uuid,uuid,uuid,uuid,text,boolean,uuid,text)'::regprocedure
+  ) like '%approved public WebP is not ready for Facebook%',
   'Facebook publication requires a public storefront rendition'
 );
 select extensions.ok(

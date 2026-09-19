@@ -789,6 +789,10 @@ select extensions.is(
     select count(*)::integer
     from app_private.inventory_commands
     where command_code = 'inventory.movement'
+      and organization_id in (
+        '51000000-0000-4000-8000-000000000010',
+        '52000000-0000-4000-8000-000000000010'
+      )
   ),
   2,
   'failed movement rolls its command claim back while successful tenant commands remain'

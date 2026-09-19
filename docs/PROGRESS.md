@@ -483,12 +483,16 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
 - Aceptación: 22 archivos, 421 escenarios ejecutables y cero errores Gherkin.
 - Contrato DB: 48 migraciones ordenadas, 105 tablas con RLS forzado y 1,386 aserciones pgTAP.
 - Rehearsal enlazado: migraciones `006f`–`006h`, 14/14 pgTAP y rollback confirmado en AgenteFer.
+- Aplicación remota: `006f`–`006h` aplicadas únicamente en AgenteFer; regresión enlazada completa
+  1,452/1,452 en 30 archivos, tipos TypeScript regenerados desde el esquema remoto y contrato
+  estático nuevamente verde.
+- Lint remoto: cero errores y cuatro warnings heredados por inicializaciones con cast implícito en
+  funciones anteriores de ingesta; quedan registrados como deuda de tipado de bajo riesgo.
 - QA: 1,223/1,223 pruebas; cobertura 91.19% statements, 86.94% ramas, 93.98% funciones y
   91.25% líneas; mutation 91.53% panel y 95.56% storefront; lint/typecheck/build/runtime verdes;
   auditoría de dependencias con cero vulnerabilidades.
-- Estado: **implementación local certificada; aplicación remota, tipos regenerados, deploy
-  EasyPanel y E2E autenticado pendientes**.
-- Estado: **calidad local certificada; no hubo despliegue de base ni publicación externa**.
+- Estado: **base remota y tipos sincronizados; deploy EasyPanel y E2E autenticado pendientes. No
+  se ejecutó ninguna publicación externa en Facebook**.
 - CI remoto inicial `33271706383`: cancelado por el timeout histórico de 20 minutos durante el gate
   completo, no por una aserción. El presupuesto de `Verify` se elevó a 60 minutos con una nueva
   aserción en `verify-ci-policy`; la suite y los umbrales permanecen intactos.

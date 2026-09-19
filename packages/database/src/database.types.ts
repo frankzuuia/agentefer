@@ -6744,6 +6744,17 @@ export type Database = {
           webhook_endpoint_id: string;
         }[];
       };
+      admin_edit_catalog_offer: {
+        Args: {
+          target_actor_user_id: string;
+          target_changes: Json;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_variant_id: string;
+        };
+        Returns: Json;
+      };
       admin_enqueue_facebook_catalog: {
         Args: {
           target_actor_user_id: string;
@@ -6762,6 +6773,19 @@ export type Database = {
           target_organization_id: string;
           target_social_connection_id: string;
           target_variant_id: string;
+        };
+        Returns: Json;
+      };
+      admin_publish_catalog_offer: {
+        Args: {
+          target_actor_user_id: string;
+          target_idempotency_key: string;
+          target_operation: string;
+          target_organization_id: string;
+          target_social_connection_id: string;
+          target_source_price_tier_id: string;
+          target_variant_id: string;
+          target_without_price: boolean;
         };
         Returns: Json;
       };
@@ -6976,6 +7000,24 @@ export type Database = {
           payload_safe: Json;
         }[];
       };
+      claim_catalog_storefront_job: {
+        Args: {
+          target_lease_seconds: number;
+          target_max_attempts: number;
+          target_worker_id: string;
+        };
+        Returns: {
+          analysis_byte_size: number;
+          analysis_height: number;
+          analysis_sha256_hex: string;
+          analysis_width: number;
+          attempt_number: number;
+          job_id: string;
+          lease_token: string;
+          media_asset_id: string;
+          organization_id: string;
+        }[];
+      };
       claim_facebook_page_oauth_exchange: {
         Args: { target_actor_user_id: string; target_state: string };
         Returns: {
@@ -7176,6 +7218,14 @@ export type Database = {
           payload: Json;
           phone_number_id: string;
         }[];
+      };
+      complete_catalog_storefront_job: {
+        Args: {
+          target_job_id: string;
+          target_lease_token: string;
+          target_worker_id: string;
+        };
+        Returns: boolean;
       };
       complete_facebook_page_oauth: {
         Args: {
@@ -7671,6 +7721,18 @@ export type Database = {
           tool_status: string;
           was_replayed: boolean;
         }[];
+      };
+      fail_catalog_storefront_job: {
+        Args: {
+          target_error_code: string;
+          target_job_id: string;
+          target_lease_token: string;
+          target_max_attempts: number;
+          target_retry_delay_seconds: number;
+          target_retryable: boolean;
+          target_worker_id: string;
+        };
+        Returns: string;
       };
       fail_facebook_page_oauth: {
         Args: {
@@ -10349,6 +10411,59 @@ export type Database = {
             columns: ["organization_id", "evidence_id"];
             isOneToOne: false;
             referencedRelation: "catalog_evidence";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      catalog_storefront_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          created_at: string;
+          error_code: string | null;
+          id: string;
+          lease_expires_at: string | null;
+          lease_token: string | null;
+          media_asset_id: string;
+          organization_id: string;
+          status: string;
+          updated_at: string;
+          worker_id: string | null;
+        };
+        Insert: {
+          attempt_count?: number;
+          available_at?: string;
+          created_at?: string;
+          error_code?: string | null;
+          id?: string;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          media_asset_id: string;
+          organization_id: string;
+          status?: string;
+          updated_at?: string;
+          worker_id?: string | null;
+        };
+        Update: {
+          attempt_count?: number;
+          available_at?: string;
+          created_at?: string;
+          error_code?: string | null;
+          id?: string;
+          lease_expires_at?: string | null;
+          lease_token?: string | null;
+          media_asset_id?: string;
+          organization_id?: string;
+          status?: string;
+          updated_at?: string;
+          worker_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "catalog_storefront_jobs_asset_fk";
+            columns: ["organization_id", "media_asset_id"];
+            isOneToOne: true;
+            referencedRelation: "media_assets";
             referencedColumns: ["organization_id", "id"];
           },
         ];
@@ -16574,6 +16689,10 @@ export type Database = {
         Args: { target_arguments: Json; target_organization_id: string };
         Returns: Json;
       };
+      catalog_recent_for_owner_agent_base: {
+        Args: { target_arguments: Json; target_organization_id: string };
+        Returns: Json;
+      };
       catalog_save_draft_for_owner: {
         Args: {
           target_arguments: Json;
@@ -16664,6 +16783,38 @@ export type Database = {
           was_replayed: boolean;
         }[];
       };
+      claim_whatsapp_agent_turn_authorized_base: {
+        Args: {
+          target_lease_seconds?: number;
+          target_model: string;
+          target_organization_id?: string;
+          target_provider: string;
+          target_reasoning_effort: string;
+          target_vision_model: string;
+          target_vision_provider: string;
+          target_worker_id: string;
+        };
+        Returns: {
+          agent_job_id: string;
+          agent_run_id: string;
+          attempt_number: number;
+          channel_connection_id: string;
+          continuation_parts: Json;
+          conversation_history: Json;
+          conversation_id: string;
+          correlation_id: string;
+          job_attempt_id: string;
+          lease_expires_at: string;
+          lease_token: string;
+          model: string;
+          organization_id: string;
+          provider: string;
+          reasoning_effort: string;
+          system_prompt: string;
+          trace_id: string;
+          trigger_message_id: string;
+        }[];
+      };
       complete_admin_catalog_command: {
         Args: {
           target_admin_catalog_command_id: string;
@@ -16729,6 +16880,10 @@ export type Database = {
       customer_assistant_read_tools_ready: {
         Args: { target_organization_id: string };
         Returns: boolean;
+      };
+      ensure_customer_assistant_catalog_edit_tools: {
+        Args: { target_organization_id: string };
+        Returns: string;
       };
       ensure_customer_assistant_ingestion_tools: {
         Args: { target_organization_id: string };

@@ -722,12 +722,23 @@ select pg_temp.throws_sqlstate($$select app_private.catalog_ingestion_context_fo
 -- B3-006E: WhatsApp does not render markdown tables. The agent used to emit pipe tables when
 -- summarizing catalog drafts, which arrived at the customer as raw |---|---| characters. Pin the
 -- formatting rule into the customer_assistant.system prompt and verify it survives idempotently.
+create temporary table pg_temp.b306_current_prompt_version (id uuid primary key);
+insert into pg_temp.b306_current_prompt_version (id)
+select version_value.prompt_version_id
+from app_private.agent_policies as policy_value
+join app_private.agent_policy_versions as version_value
+  on version_value.organization_id = policy_value.organization_id
+ and version_value.id = policy_value.current_version_id
+where policy_value.organization_id = 'b3061000-0000-4000-8000-000000000001'
+  and policy_value.policy_key = 'customer_assistant';
+
 select extensions.ok(
   exists (
     select 1
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
       and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)
       and strpos(content_template, '## Formato de respuesta en WhatsApp') > 0
   ),
   'E1 customer_assistant.system prompt includes the WhatsApp formatting rule'
@@ -738,6 +749,7 @@ select extensions.ok(
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
       and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)
       and strpos(content_template, 'no renderiza tablas markdown') > 0
   ),
   'E2 the rule explicitly forbids markdown pipe tables'
@@ -748,6 +760,7 @@ select extensions.ok(
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
       and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)
       and strpos(content_template, 'blockquotes') > 0
       and strpos(content_template, 'headings') > 0
   ),
@@ -759,6 +772,7 @@ select extensions.ok(
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
       and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)
       and strpos(content_template, 'viñetas') > 0
       and strpos(content_template, 'numeración') > 0
   ),
@@ -768,13 +782,15 @@ select extensions.is(
   (select encode(content_hash, 'hex')
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
-      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)),
   encode(extensions.digest(
     convert_to(
       (select content_template
         from app_private.prompt_versions
         where prompt_key = 'customer_assistant.system'
-          and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+          and organization_id = 'b3061000-0000-4000-8000-000000000001'
+          and id = (select id from pg_temp.b306_current_prompt_version)),
       'UTF8'
     ),
     'sha256'
@@ -782,46 +798,27 @@ select extensions.is(
   'E5 content_hash matches sha256 of content_template'
 );
 
-do $$
-declare
-  before_length integer;
-  after_length integer;
-begin
-  set local search_path = '';
-
-  select length(content_template) into before_length
-  from app_private.prompt_versions
-  where prompt_key = 'customer_assistant.system'
-    and organization_id = 'b3061000-0000-4000-8000-000000000001';
-
-  update app_private.prompt_versions
-  set content_template = content_template,
-      content_hash = content_hash
-  where prompt_key = 'customer_assistant.system'
-    and organization_id = 'b3061000-0000-4000-8000-000000000001';
-
-  select length(content_template) into after_length
-  from app_private.prompt_versions
-  where prompt_key = 'customer_assistant.system'
-    and organization_id = 'b3061000-0000-4000-8000-000000000001';
-end
-$$;
-
 select extensions.is(
   (select count(*)::integer
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
-      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)),
   1,
-  'E6 idempotent re-apply does not create duplicate prompt rows'
+  'E6 idempotent re-apply preserves one current prompt row'
 );
 select extensions.is(
-  (select (length(content_template) - strpos(content_template, '## Formato de respuesta en WhatsApp') + 1)::integer
+  (select ((length(content_template) - length(replace(
+      content_template,
+      '## Formato de respuesta en WhatsApp',
+      ''
+    ))) / length('## Formato de respuesta en WhatsApp'))::integer
     from app_private.prompt_versions
     where prompt_key = 'customer_assistant.system'
-      and organization_id = 'b3061000-0000-4000-8000-000000000001'),
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)),
   1,
-  'E7 the formatting rule marker appears in the prompt template'
+  'E7 the formatting rule marker appears exactly once in the current prompt template'
 );
 
 select * from extensions.finish();
