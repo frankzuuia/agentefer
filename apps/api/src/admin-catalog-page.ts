@@ -654,6 +654,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     facebookOAuthSessionId: null,
     facebookOAuthPages: [],
     facebookOAuthBusy: false,
+    uploadingPhoto: false,
   };
 
   const authView = byId("auth-view");
@@ -938,7 +939,17 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
       if (!window.confirm("¿Quitar esta foto del producto? El archivo original se conserva.")) return;
       runCommand(commandFor("remove_photo", { productMediaId: selectedMediaId }), "Foto retirada del producto.");
     });
-    photoActions.append(choosePrimary, removePhoto);
+    const addPhoto = create("button", "button primary", "Agregar foto");
+    addPhoto.type = "button";
+    addPhoto.disabled = !state.accessToken || !state.config || state.uploadingPhoto === true;
+    const photoFile = create("input", "visually-hidden");
+    photoFile.type = "file";
+    photoFile.accept = "image/jpeg,image/png,image/webp";
+    photoFile.addEventListener("change", () => { void handleAddPhoto(photoFile); });
+    addPhoto.addEventListener("click", () => photoFile.click());
+    const photoStatus = create("p", "help", "");
+    photoStatus.id = "photo-upload-status-" + item.variantId;
+    photoActions.append(addPhoto, photoFile, photoStatus);
     photoEditor.append(photoActions);
     sheetContent.append(photoEditor);
 
@@ -1329,6 +1340,158 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
       state.loading = false;
     }
     await loadPage();
+  };
+
+  const digestSha256Hex = async (bytes) => {
+    const buffer = await crypto.subtle.digest("SHA-256", bytes);
+    const view = new Uint8Array(buffer);
+    let hex = "";
+    for (let i = 0; i < view.length; i += 1) {
+      hex += view[i].toString(16).padStart(2, "0");
+    }
+    return hex;
+  };
+
+  const readImageDimensions = (file) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    };
+    image.onerror = (event) => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen seleccionada."));
+    };
+    image.src = url;
+  });
+
+  const uploadObjectToStorage = async (bucketId, objectPath, file, signal) => {
+    if (!state.config || !state.accessToken) {
+      throw new Error("La sesión expiró. Inicia sesión de nuevo.");
+    }
+    const url = state.config.supabaseUrl + "/storage/v1/object/" + bucketId + "/" + objectPath + "?upsert=false";
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: state.config.publishableKey,
+        authorization: "Bearer " + state.accessToken,
+        "content-type": file.type,
+        "x-upsert": "false",
+      },
+      body: file,
+      cache: "no-store",
+      redirect: "error",
+      signal,
+    });
+    if (!response.ok) {
+      const payload = await response.text().catch(() => "");
+      throw new Error("Storage rechazó la subida (" + response.status + "): " + (payload.slice(0, 160) || "sin detalle"));
+    }
+  };
+
+  const pollUploadStatus = async (uploadId, organizationId, signal) => {
+    const deadline = Date.now() + 30000;
+    let delay = 800;
+    while (Date.now() < deadline) {
+      if (signal.aborted) throw new Error("Cancelado.");
+      const payload = await apiFetch(
+        "/admin/catalog/products/images/upload-status?organizationId="
+          + encodeURIComponent(organizationId) + "&uploadId=" + encodeURIComponent(uploadId),
+        { signal },
+      );
+      const result = payload && payload.result ? payload.result : {};
+      const status = result.status || "pending";
+      if (status === "succeeded") return result;
+      if (status === "rejected" || status === "dead_letter") {
+        const code = result.lastErrorCode ? " (" + result.lastErrorCode + ")" : "";
+        throw new Error("El servidor rechazó la foto" + code + ".");
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 1.4, 4000);
+    }
+    throw new Error("La foto tardó demasiado en procesarse. Vuelve a intentar en unos segundos.");
+  };
+
+  const handleAddPhoto = async (input) => {
+    if (state.uploadingPhoto || state.loading) return;
+    const file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    if (!state.accessToken || !state.config) {
+      showToast("Inicia sesión para subir fotos.", true);
+      return;
+    }
+    if (!state.organizationId) {
+      showToast("Selecciona un negocio antes de subir.", true);
+      return;
+    }
+    const variantId = state.selectedItem ? state.selectedItem.variantId : null;
+    if (!variantId) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      showToast("La foto debe ser JPG, PNG o WebP.", true);
+      return;
+    }
+    if (file.size > 26214400) {
+      showToast("La foto supera 25MB.", true);
+      return;
+    }
+    const statusEl = byId("photo-upload-status-" + variantId);
+    state.uploadingPhoto = true;
+    if (statusEl) statusEl.textContent = "Leyendo dimensiones…";
+    try {
+      const [bytes, dimensions] = await Promise.all([
+        file.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+        readImageDimensions(file),
+      ]);
+      if (statusEl) statusEl.textContent = "Calculando hash…";
+      const sha256Hex = await digestSha256Hex(bytes);
+      const idempotencyKey = crypto.randomUUID();
+      if (statusEl) statusEl.textContent = "Pidiendo espacio al servidor…";
+      const prepared = await apiFetch(
+        "/admin/catalog/products/" + encodeURIComponent(variantId) + "/images/prepare-upload",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            organizationId: state.organizationId,
+            sourceSha256Hex: sha256Hex,
+            sourceMimeType: file.type,
+            sourceByteSize: file.size,
+            sourceWidthPixels: dimensions.width,
+            sourceHeightPixels: dimensions.height,
+            scope: "variant",
+            allowPublic: false,
+            altText: null,
+            idempotencyKey,
+          }),
+        },
+      );
+      const preparedResult = prepared && prepared.result ? prepared.result : {};
+      if (!preparedResult.sourceBucketId || !preparedResult.sourceObjectPath) {
+        throw new Error("El servidor no devolvió una ruta de subida.");
+      }
+      if (statusEl) statusEl.textContent = "Subiendo archivo original…";
+      await uploadObjectToStorage(
+        preparedResult.sourceBucketId,
+        preparedResult.sourceObjectPath,
+        file,
+        AbortSignal.timeout(60000),
+      );
+      if (statusEl) statusEl.textContent = "Procesando imagen…";
+      await pollUploadStatus(preparedResult.uploadId, state.organizationId, AbortSignal.timeout(60000));
+      if (statusEl) statusEl.textContent = "";
+      if (productSheet.open) productSheet.close();
+      showToast("Foto agregada al producto.", false);
+      resetPagination();
+      await loadPage();
+    } catch (error) {
+      if (statusEl) statusEl.textContent = "";
+      const message = error && error.message ? error.message : "No se pudo subir la foto.";
+      showToast(message, true);
+    } finally {
+      state.uploadingPhoto = false;
+    }
   };
 
   const loadOrganizations = async () => {

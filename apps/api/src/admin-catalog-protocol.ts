@@ -13,6 +13,8 @@ const EDIT_OPERATIONS = [
   "remove_photo",
   "add_photo",
 ] as const;
+const IMAGE_SCOPES = ["product", "variant"] as const;
+const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const COMMAND_TYPES = [
   "set_status",
   "edit",
@@ -80,6 +82,24 @@ export type AdminCatalogCommand =
       reason: string;
       idempotencyKey: string;
     }>;
+
+export type AdminCatalogPrepareImageUploadBody = Readonly<{
+  organizationId: string;
+  sourceSha256Hex: string;
+  sourceMimeType: "image/jpeg" | "image/png" | "image/webp";
+  sourceByteSize: number;
+  sourceWidthPixels: number;
+  sourceHeightPixels: number;
+  scope: "product" | "variant";
+  allowPublic: boolean;
+  altText?: string | null;
+  idempotencyKey: string;
+}>;
+
+export type AdminCatalogImageUploadStatusQuery = Readonly<{
+  organizationId: string;
+  uploadId: string;
+}>;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -398,4 +418,88 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
           });
     }
   }
+};
+
+const HEX_SHA256_PATTERN = /^[0-9a-f]{64}$/;
+
+export const parseAdminCatalogPrepareImageUploadBody = (
+  value: unknown,
+): AdminCatalogPrepareImageUploadBody | undefined => {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, [
+      "organizationId",
+      "sourceSha256Hex",
+      "sourceMimeType",
+      "sourceByteSize",
+      "sourceWidthPixels",
+      "sourceHeightPixels",
+      "scope",
+      "allowPublic",
+      "altText",
+      "idempotencyKey",
+    ])
+  ) {
+    return undefined;
+  }
+  const organizationId = readUuid(value, "organizationId");
+  const sourceSha256Hex = readBoundedText(value, "sourceSha256Hex", 64, 64);
+  const sourceMimeType = readEnum(value, "sourceMimeType", IMAGE_MIME_TYPES);
+  const sourceByteSize = Number(value.sourceByteSize);
+  const sourceWidthPixels = Number(value.sourceWidthPixels);
+  const sourceHeightPixels = Number(value.sourceHeightPixels);
+  const scope = readEnum(value, "scope", IMAGE_SCOPES);
+  const allowPublic = value.allowPublic;
+  const altText =
+    value.altText === undefined || value.altText === null || value.altText === ""
+      ? null
+      : readBoundedText(value, "altText", 1, 2000);
+  const idempotencyKey = readBoundedText(value, "idempotencyKey", 8, 200);
+  if (
+    organizationId === undefined ||
+    sourceSha256Hex === undefined ||
+    !HEX_SHA256_PATTERN.test(sourceSha256Hex) ||
+    sourceMimeType === undefined ||
+    !Number.isSafeInteger(sourceByteSize) ||
+    sourceByteSize < 1 ||
+    sourceByteSize > 26214400 ||
+    !Number.isSafeInteger(sourceWidthPixels) ||
+    sourceWidthPixels < 1 ||
+    sourceWidthPixels > 100000 ||
+    !Number.isSafeInteger(sourceHeightPixels) ||
+    sourceHeightPixels < 1 ||
+    sourceHeightPixels > 100000 ||
+    scope === undefined ||
+    typeof allowPublic !== "boolean" ||
+    altText === undefined ||
+    idempotencyKey === undefined
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    organizationId,
+    sourceSha256Hex: sourceSha256Hex.toLowerCase(),
+    sourceMimeType,
+    sourceByteSize,
+    sourceWidthPixels,
+    sourceHeightPixels,
+    scope,
+    allowPublic,
+    ...(altText === null ? {} : { altText }),
+    idempotencyKey,
+  });
+};
+
+export const parseAdminCatalogImageUploadStatusQuery = (
+  value: unknown,
+): AdminCatalogImageUploadStatusQuery | undefined => {
+  if (!isRecord(value) || !hasOnlyKeys(value, ["organizationId", "uploadId"])) {
+    return undefined;
+  }
+  const organizationId = readUuid(value, "organizationId");
+  const uploadId = readUuid(value, "uploadId");
+  if (organizationId === undefined || uploadId === undefined) {
+    return undefined;
+  }
+  return Object.freeze({ organizationId, uploadId });
 };

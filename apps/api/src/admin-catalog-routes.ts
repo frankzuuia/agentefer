@@ -21,6 +21,10 @@ import {
   ADMIN_CATALOG_JAVASCRIPT,
 } from "./admin-catalog-page.js";
 import { parseAdminCatalogCommand, parseAdminCatalogQuery } from "./admin-catalog-protocol.js";
+import {
+  parseAdminCatalogImageUploadStatusQuery,
+  parseAdminCatalogPrepareImageUploadBody,
+} from "./admin-catalog-protocol.js";
 import { AdminMetaGatewayError, type AdminMetaGateway } from "./admin-meta-gateway.js";
 import { parseBearerAccessToken } from "./admin-meta-protocol.js";
 import {
@@ -33,7 +37,10 @@ import { readFastifyErrorCode } from "./meta-webhook-routes.js";
 
 const PAGE_OPERATION = "admin.catalog.page";
 const COMMAND_OPERATION = "admin.catalog.command";
+const PREPARE_IMAGE_OPERATION = "admin.catalog.images.prepare-upload";
+const IMAGE_STATUS_OPERATION = "admin.catalog.images.upload-status";
 const MAXIMUM_COMMAND_BODY_BYTES = 16_384;
+const MAXIMUM_IMAGE_BODY_BYTES = 4_096;
 
 export type AdminCatalogRouteInput = Readonly<{
   catalogGateway: AdminCatalogGateway;
@@ -175,6 +182,101 @@ const handleCommand = async (
   });
 };
 
+const handlePrepareImageUpload = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminCatalogRouteInput,
+): Promise<void> => {
+  const body = parseAdminCatalogPrepareImageUploadBody(request.body);
+  const scope = createCorrelationScope({ organizationId: body?.organizationId });
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(PREPARE_IMAGE_OPERATION);
+    try {
+      requireJsonContentType(request);
+      const accessToken = requireAccessToken(request);
+      const identity = await input.identityGateway.authenticate(accessToken);
+      if (body === undefined) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const variantId = readUuidParam(request, "variantId");
+      if (variantId === undefined) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const result = await input.catalogGateway.prepareImageUpload({
+        organizationId: body.organizationId,
+        actorUserId: identity.userId,
+        variantId,
+        sourceSha256Hex: body.sourceSha256Hex,
+        sourceMimeType: body.sourceMimeType,
+        sourceByteSize: body.sourceByteSize,
+        sourceWidthPixels: body.sourceWidthPixels,
+        sourceHeightPixels: body.sourceHeightPixels,
+        scope: body.scope,
+        allowPublic: body.allowPublic,
+        altText: body.altText ?? null,
+        idempotencyKey: body.idempotencyKey,
+      });
+      input.metrics.recordCompleted({
+        operation: PREPARE_IMAGE_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      input.logger.info("admin.catalog.images.prepare-upload.accepted", "succeeded", {
+        organization_id: body.organizationId,
+        actor_user_id: identity.userId,
+        variant_id: variantId,
+        upload_id: result.uploadId,
+        media_asset_id: result.mediaAssetId,
+        was_replayed: result.wasReplayed,
+      });
+      reply.code(202).send({ status: "accepted", result });
+    } catch (error) {
+      recordFailure(input, PREPARE_IMAGE_OPERATION, startedAt, error);
+      sendFailure(reply, error);
+    }
+  });
+};
+
+const handleImageUploadStatus = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: AdminCatalogRouteInput,
+): Promise<void> => {
+  const query = parseAdminCatalogImageUploadStatusQuery(request.query);
+  const scope = createCorrelationScope({ organizationId: query?.organizationId });
+  await runWithCorrelation(scope, async () => {
+    const startedAt = performance.now();
+    input.metrics.recordStarted(IMAGE_STATUS_OPERATION);
+    try {
+      const accessToken = requireAccessToken(request);
+      const identity = await input.identityGateway.authenticate(accessToken);
+      if (query === undefined) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const result = await input.catalogGateway.getImageUploadStatus({
+        organizationId: query.organizationId,
+        actorUserId: identity.userId,
+        uploadId: query.uploadId,
+      });
+      input.metrics.recordCompleted({
+        operation: IMAGE_STATUS_OPERATION,
+        outcome: "succeeded",
+        durationMilliseconds: performance.now() - startedAt,
+      });
+      reply.code(200).send({ result });
+    } catch (error) {
+      recordFailure(input, IMAGE_STATUS_OPERATION, startedAt, error);
+      sendFailure(reply, error);
+    }
+  });
+};
+
+const readUuidParam = (request: FastifyRequest, field: string): string | undefined => {
+  const raw = (request.params as Readonly<Record<string, unknown>>)[field];
+  return typeof raw === "string" && raw.length > 0 ? raw : undefined;
+};
+
 const createContentSecurityPolicy = (supabaseUrl: string): string => {
   const supabaseOrigin = new URL(supabaseUrl).origin;
   return [
@@ -246,6 +348,15 @@ export function registerAdminCatalogRoutes(
       "/admin/catalog/commands",
       { bodyLimit: MAXIMUM_COMMAND_BODY_BYTES },
       (request, reply) => handleCommand(request, reply, input),
+    );
+    scope.post(
+      "/admin/catalog/products/:variantId/images/prepare-upload",
+      { bodyLimit: MAXIMUM_IMAGE_BODY_BYTES },
+      (request, reply) => handlePrepareImageUpload(request, reply, input),
+    );
+    scope.get(
+      "/admin/catalog/products/images/upload-status",
+      (request, reply) => handleImageUploadStatus(request, reply, input),
     );
     done();
   };

@@ -213,6 +213,48 @@ export type AdminCatalogBatchStateInput = Readonly<{
   idempotencyKey: string;
 }>;
 
+export type AdminCatalogPrepareImageUploadInput = Readonly<{
+  organizationId: string;
+  actorUserId: string;
+  variantId: string;
+  sourceSha256Hex: string;
+  sourceMimeType: "image/jpeg" | "image/png" | "image/webp";
+  sourceByteSize: number;
+  sourceWidthPixels: number;
+  sourceHeightPixels: number;
+  scope: "product" | "variant";
+  allowPublic: boolean;
+  altText?: string | null;
+  idempotencyKey: string;
+  correlationId?: string;
+  traceId?: string;
+}>;
+
+export type AdminCatalogPrepareImageUploadResult = Readonly<{
+  uploadId: string;
+  mediaAssetId: string;
+  productMediaId?: string;
+  sourceBucketId: string;
+  sourceObjectPath: string;
+  status: string;
+  wasReplayed: boolean;
+}>;
+
+export type AdminCatalogImageUploadStatusInput = Readonly<{
+  organizationId: string;
+  actorUserId: string;
+  uploadId: string;
+}>;
+
+export type AdminCatalogImageUploadStatusResult = Readonly<{
+  uploadId: string;
+  status: string;
+  mediaAssetId?: string;
+  productMediaId?: string;
+  lastErrorCode?: string | null;
+  wasReplayed: boolean;
+}>;
+
 export type AdminCatalogActionResult = Readonly<Record<string, unknown>>;
 
 export type AdminCatalogGateway = Readonly<{
@@ -223,6 +265,12 @@ export type AdminCatalogGateway = Readonly<{
   publishAll(input: AdminCatalogPublishAllInput): Promise<AdminCatalogActionResult>;
   retry(input: AdminCatalogRetryInput): Promise<AdminCatalogActionResult>;
   setBatchState(input: AdminCatalogBatchStateInput): Promise<AdminCatalogActionResult>;
+  prepareImageUpload(
+    input: AdminCatalogPrepareImageUploadInput,
+  ): Promise<AdminCatalogPrepareImageUploadResult>;
+  getImageUploadStatus(
+    input: AdminCatalogImageUploadStatusInput,
+  ): Promise<AdminCatalogImageUploadStatusResult>;
 }>;
 
 export type CreateAdminCatalogGatewayInput = Readonly<{
@@ -378,6 +426,30 @@ const readRpcObject = (value: unknown): Readonly<Record<string, unknown>> => {
     return value[0];
   }
   throw new AdminMetaGatewayError("dependency");
+};
+
+const readRpcString = (
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+): string | undefined => {
+  const value = record[field];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+};
+
+const readRpcOptionalString = (
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+): string | undefined => {
+  const value = record[field];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+};
+
+const readRpcBoolean = (
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+): boolean | undefined => {
+  const value = record[field];
+  return typeof value === "boolean" ? value : undefined;
 };
 
 const createMediaUrl = (
@@ -824,6 +896,91 @@ export function createAdminCatalogGateway(
         target_action: actionInput.action,
         target_reason: actionInput.reason,
         target_idempotency_key: actionInput.idempotencyKey,
+      });
+    },
+    async prepareImageUpload(actionInput) {
+      const rows = await executeRpc("prepare_admin_catalog_image_upload", {
+        target_organization_id: actionInput.organizationId,
+        target_actor_user_id: actionInput.actorUserId,
+        target_variant_id: actionInput.variantId,
+        target_source_sha256_hex: actionInput.sourceSha256Hex,
+        target_source_mime_type: actionInput.sourceMimeType,
+        target_source_byte_size: actionInput.sourceByteSize,
+        target_source_width_pixels: actionInput.sourceWidthPixels,
+        target_source_height_pixels: actionInput.sourceHeightPixels,
+        target_scope: actionInput.scope,
+        target_allow_public: actionInput.allowPublic,
+        target_alt_text: actionInput.altText ?? null,
+        target_idempotency_key: actionInput.idempotencyKey,
+        target_correlation_id: actionInput.correlationId ?? null,
+        target_trace_id: actionInput.traceId ?? null,
+      });
+      const row: unknown = Array.isArray(rows) ? (rows as unknown[])[0] : rows;
+      if (row === undefined || row === null) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const record = readRpcObject(row);
+      const mediaAssetId = readRpcString(record, "mediaAssetId");
+      const sourceObjectPath = readRpcString(record, "sourceObjectPath");
+      const sourceBucketId = readRpcString(record, "sourceBucketId");
+      const status = readRpcString(record, "status") ?? "pending";
+      const wasReplayed = readRpcBoolean(record, "wasReplayed") ?? false;
+      const productMediaId = readRpcOptionalString(record, "productMediaId");
+      const uploadId = readRpcString(record, "uploadId");
+      if (
+        uploadId === undefined ||
+        mediaAssetId === undefined ||
+        sourceObjectPath === undefined ||
+        sourceBucketId === undefined
+      ) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const preparedResult: {
+        uploadId: string;
+        mediaAssetId: string;
+        sourceBucketId: string;
+        sourceObjectPath: string;
+        status: string;
+      } = {
+        uploadId,
+        mediaAssetId,
+        sourceBucketId,
+        sourceObjectPath,
+        status,
+      };
+      return Object.freeze({
+        ...preparedResult,
+        ...(productMediaId === undefined ? {} : { productMediaId }),
+        wasReplayed,
+      });
+    },
+    async getImageUploadStatus(actionInput) {
+      const rows = await executeRpc("get_admin_catalog_image_upload_status", {
+        target_organization_id: actionInput.organizationId,
+        target_actor_user_id: actionInput.actorUserId,
+        target_upload_id: actionInput.uploadId,
+      });
+      const row: unknown = Array.isArray(rows) ? (rows as unknown[])[0] : rows;
+      if (row === undefined || row === null) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const record = readRpcObject(row);
+      const status = readRpcString(record, "status");
+      const uploadId = readRpcString(record, "uploadId");
+      if (uploadId === undefined || status === undefined) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      const mediaAssetId = readRpcOptionalString(record, "mediaAssetId");
+      const productMediaId = readRpcOptionalString(record, "productMediaId");
+      const lastErrorCode = readRpcOptionalString(record, "lastErrorCode");
+      const wasReplayed = readRpcBoolean(record, "wasReplayed") ?? false;
+      return Object.freeze({
+        uploadId,
+        status,
+        ...(mediaAssetId === undefined ? {} : { mediaAssetId }),
+        ...(productMediaId === undefined ? {} : { productMediaId }),
+        ...(lastErrorCode === undefined ? {} : { lastErrorCode }),
+        wasReplayed,
       });
     },
   });
