@@ -291,8 +291,12 @@ input:focus, select:focus, button:focus-visible {
 .button.secondary { color: #344054; border-color: #d0d5dd; background: white; }
 .button.danger { color: #b42318; border-color: #fecdca; background: var(--danger-soft); }
 .button.wide { width: 100%; margin-top: 12px; }
-.button.compact { min-height: 44px; padding-inline: 12px; font-size: 13px; }
+.button.compact { min-height: 36px; padding-inline: 12px; font-size: 13px; }
 .icon-button { color: #344054; border-color: #d0d5dd; background: white; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0; padding: 0;
+}
 
 .message { min-height: 20px; margin: 12px 0 0; color: #b42318; font-size: 13px; line-height: 1.45; }
 .message.success { color: var(--success); }
@@ -927,19 +931,25 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
 
     const photoEditor = create("details", "edit-panel");
     photoEditor.append(create("summary", "", "Administrar fotos"));
-    photoEditor.append(create("p", "help", "Toca una miniatura para elegirla. Quitar una foto la desvincula de este producto; no borra el archivo original."));
+    photoEditor.append(
+      create(
+        "p",
+        "help",
+        "Toca una miniatura para elegirla. “Quitar foto” la desvincula del producto pero conserva el archivo original.",
+      ),
+    );
     const photoActions = create("div", "edit-inline");
-    const choosePrimary = create("button", "button secondary", "Hacer principal");
+    const choosePrimary = create("button", "button compact secondary", "Hacer principal");
     choosePrimary.type = "button"; choosePrimary.disabled = !selectedMediaId;
     choosePrimary.addEventListener("click", () => runCommand(
       commandFor("set_primary_photo", { productMediaId: selectedMediaId }), "Imagen principal actualizada."));
-    const removePhoto = create("button", "button danger", "Quitar foto");
+    const removePhoto = create("button", "button compact danger", "Quitar foto");
     removePhoto.type = "button"; removePhoto.disabled = !selectedMediaId;
     removePhoto.addEventListener("click", () => {
-      if (!window.confirm("¿Quitar esta foto del producto? El archivo original se conserva.")) return;
+      if (!window.confirm("¿Quitar esta foto del producto? El archivo original se conserva y puede reutilizarse.")) return;
       runCommand(commandFor("remove_photo", { productMediaId: selectedMediaId }), "Foto retirada del producto.");
     });
-    const addPhoto = create("button", "button primary", "Agregar foto");
+    const addPhoto = create("button", "button compact primary", "Agregar foto");
     addPhoto.type = "button";
     addPhoto.disabled = !state.accessToken || !state.config || state.uploadingPhoto === true;
     const photoFile = create("input", "visually-hidden");
@@ -947,10 +957,11 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     photoFile.accept = "image/jpeg,image/png,image/webp";
     photoFile.addEventListener("change", () => { void handleAddPhoto(photoFile); });
     addPhoto.addEventListener("click", () => photoFile.click());
+    photoActions.append(choosePrimary, removePhoto, addPhoto, photoFile);
+    photoEditor.append(photoActions);
     const photoStatus = create("p", "help", "");
     photoStatus.id = "photo-upload-status-" + item.variantId;
-    photoActions.append(addPhoto, photoFile, photoStatus);
-    photoEditor.append(photoActions);
+    photoEditor.append(photoStatus);
     sheetContent.append(photoEditor);
 
     const facebook = create("section", "detail-block");
@@ -1003,7 +1014,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     }
     sheetContent.append(facebook);
 
-    const toggle = create("button", item.variantStatus === "active" ? "button danger" : "button secondary", item.variantStatus === "active" ? "Pausar" : "Activar en catálogo");
+    const toggle = create("button", item.variantStatus === "active" ? "button compact danger" : "button compact secondary", item.variantStatus === "active" ? "Pausar" : "Activar");
     toggle.type = "button";
     toggle.disabled = item.variantStatus === "archived";
     toggle.addEventListener("click", () => runCommand(commandFor("set_status", {
@@ -1012,7 +1023,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     sheetActions.append(toggle);
 
     if (item.facebook && item.facebook.availableActions.includes("retry") && item.facebook.latestJobId) {
-      const retry = create("button", "button primary", "Reintentar");
+      const retry = create("button", "button compact primary", "Reintentar");
       retry.type = "button";
       retry.addEventListener("click", () => runCommand({
         type: "retry", organizationId: state.organizationId,
@@ -1023,7 +1034,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
       (!item.facebook || item.facebook.availableActions.includes("publish") ||
         item.facebook.availableActions.includes("refresh") || item.facebook.publicationStatus === "paused")) {
       const operation = item.facebook && item.facebook.instanceId ? "refresh" : "publish";
-      const publish = create("button", "button primary", operation === "publish" ? "Publicar" : "Actualizar FB");
+      const publish = create("button", "button compact primary", operation === "publish" ? "Publicar" : "Actualizar FB");
       publish.type = "button";
       publish.disabled = !publicPhotoReady;
       publish.addEventListener("click", () => runCommand({
