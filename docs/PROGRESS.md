@@ -563,3 +563,39 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
   de alcance declarado). Los archivos de B3-006I, B3-006J y B3-006K se commitean junto con los
   tests y los scripts de verificación**. La UI del modal admin ("Agregar foto") es alcance de
   piezas 4-5 separadas; esta actualización cierra sólo la capa de datos.
+
+## Actualización 2026-09-19 — UI del "Agregar foto" cableada al pipeline
+
+- [x] **Botón visible y funcional**: el accordion "Administrar fotos" del modal admin ahora
+  incluye un tercer botón "Agregar foto" (`admin-catalog-page.ts:941`). El handler abre un
+  picker de archivos (accept JPEG/PNG/WebP, máximo 25MB), calcula `crypto.subtle.digest
+  'SHA-256'` del contenido, lee `naturalWidth/naturalHeight` via `Image + URL.createObjectURL`,
+  sube el `source_original` directo al bucket privado con la publishable key + JWT del admin,
+  y luego sondea `upload-status` con backoff (800ms → 4000ms) hasta `succeeded` /
+  `rejected` / `dead_letter`. Al terminar, recarga el sheet y muestra toast.
+- [x] **API**: `AdminCatalogGateway.prepareImageUpload` y `getImageUploadStatus` invocan las
+  RPCs `prepare_admin_catalog_image_upload` y `get_admin_catalog_image_upload_status`. Los
+  parsers validan MIME, tamaño, dimensiones, hex SHA-256 e idempotency-key antes de salir
+  del API. Las rutas `POST /admin/catalog/products/:variantId/images/prepare-upload` y
+  `GET /admin/catalog/products/images/upload-status` heredan el middleware de auth,
+  CSP, headers y métricas del resto del panel.
+- [x] **Worker**: nuevo processor `apps/worker/src/admin-catalog-image-processor.ts` con
+  su RPC client `admin-catalog-image-rpc.ts`. El loop adaptativo reclama un lease,
+  descarga el `source_original` desde storage, transcodifica a WebP con
+  `whatsapp-media.normalizeImage` (max 2500px, quality 85, effort 4 — ya en producción),
+  sube el `analysis_webp` a `orgId/assetId/analysis_webp/<sha256>.webp`, y llama
+  `complete_admin_catalog_image_upload` que registra ambos renditions y ejecuta
+  `admin_edit_catalog_offer(add_photo)` atómicamente. Si la transcodificación falla,
+  llama `fail_admin_catalog_image_upload` con `retryable=true` para reintento; al
+  agotar `max_attempts` la fila pasa a `dead_letter`.
+- [x] **Sin dependencias nuevas**: `verify:dependency-policy` verde con 10 manifests,
+  30 declaraciones exactas, 658 artefactos del registry, 3 lifecycle packages y 4
+  familias reciprocal-license sin cambios. `sharp@0.35.4` ya estaba aprobada en
+  `apps/worker/package.json` y se reusa sin movimiento de package.json/lock.
+- [x] **Calidad**: typecheck verde en `@agentefer/api` y `@agentefer/worker`; lint
+  verde en `apps/api/src` y `apps/worker/src`. Lint pasó por 11+ iteraciones
+  (no-non-null-assertion, no-unsafe-assignment, dot-notation, consistent-type-imports).
+- Estado: **commit `076281c feat(catalog,worker): wire admin catalog image upload
+  end-to-end` en develop (2 commits ahead de origin/develop)**. Working tree limpio. El
+  flujo "Agregar foto" está cableado end-to-end sin CI remoto en este bloque
+  (fuera de alcance declarado).
