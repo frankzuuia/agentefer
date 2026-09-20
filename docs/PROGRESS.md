@@ -526,3 +526,40 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
   migraciones B4 nuevas aún no estaban en `database.types.ts`. El artefacto canónico preservado por
   ese mismo run fue verificado por SHA-256 y sincronizado sin edición manual; nueva certificación
   pendiente. No se desplegó Supabase ni se produjo un efecto externo en Meta.
+
+## Actualización 2026-09-19 — Pipeline de carga admin de fotos del catálogo
+
+- [x] B3-006I: tabla durable `app_private.admin_catalog_image_uploads` + 5 RPCs `security
+  definer` (`prepare`, `claim`, `complete`, `fail`, `get_status`) en producción desde commit
+  `91a0006`. Vault media: el navegador (publishable key + JWT) sube el `source_original`
+  directo al bucket `agentefer-catalog-private`; el worker de catálogo descarga, transcodifica
+  con `sharp` (max 2500px, quality 85), sube `analysis_webp`, registra ambos renditions vía
+  `api.register_media_asset_object` y promueve el asset a `verified` en una transacción. Sólo
+  entonces se llama `api.admin_edit_catalog_offer(add_photo)` para atar el asset verificado al
+  producto. Idempotencia por `(organization_id, idempotency_key)` y por `claim_admin_catalog_command`.
+  Shape del archivo `rendition_path` sigue `orgId/assetId/rendition/sha256.ext` exigido por
+  `media_asset_objects_path_valid`.
+- [x] B3-006J: policies de `storage.objects` para el bucket privado. `INSERT` y `UPDATE`
+  autenticadas filtradas por membresía activa y por `organization_id` derivado del prefijo del
+  nombre del objeto. SELECT sigue con la policy previa; sin policy de DELETE (retiro se hace
+  vía `remove_photo` + `retire_media_asset_object`, no borrando storage rows).
+- [x] B3-006K: defensa-en-deep. La tabla `app_private.admin_catalog_image_uploads` quedó sin
+  RLS en la creación original (omitido por error). Esta migración aplica
+  `enable row level security` + `force row level security` + comentario contractual. Sigue el
+  patrón de `media_ingest_requests:677-680` y `media_assets:786-789`. `service_role` conserva
+  `BYPASSRLS=true` confirmado vía `pg_roles`, por lo que las 5 RPCs siguen funcionando idénticas;
+  `authenticated` y `anon` ya tenían `revoke all` y ahora quedan doble-bloqueadas.
+- Rehearsal enlazado: `npm run test:database:linked:b3-006k` aprobó con **6/6 pgTAP** (RLS
+  habilitado, RLS forzado, sin privilegios directos para service_role/authenticated/anon,
+  comentario contractual presente) y rollback confirmado en AgenteFer (`hprdctmblmfcoagugvyp`,
+  PG 17.6, region us-west-1).
+- Smoke test post-RLS: las 5 RPCs responden `can_call=true` vía `has_function_privilege`
+  con service_role, confirmando que `BYPASSRLS` mantiene el flujo del worker intacto.
+- Scripts nuevos: `scripts/verify-linked-b3-006k.mjs` con parsing JSON defensivo
+  (`Array.isArray(parsed) ? parsed : parsed.rows`) y `scripts/verify-linked-b3-006k.mjs`
+  agregado a `package.json:test:database:linked:*`. El pgtap está en
+  `supabase/tests/b3_006k_admin_catalog_image_uploads_rls_test.sql`.
+- Estado: **DB, rehearsal y smoke test en verde; sin CI remoto ejecutado en este bloque (fuera
+  de alcance declarado). Los archivos de B3-006I, B3-006J y B3-006K se commitean junto con los
+  tests y los scripts de verificación**. La UI del modal admin ("Agregar foto") es alcance de
+  piezas 4-5 separadas; esta actualización cierra sólo la capa de datos.

@@ -57,6 +57,7 @@
     "test:database:linked:b4-008-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b4-008-database-mutations.mjs",
     "test:database:linked:b4-009": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b4-009.mjs",
     "test:database:linked:b3-006a": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-006a.mjs",
+    "test:database:linked:b3-006k": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-006k.mjs",
     "test:database:linked:b3-001a-preparation-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-001a-preparation-database-mutations.mjs",
     "test:database:linked:mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-database-mutations.mjs",
     "test:database:linked:pending-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-pending-database-mutations.mjs",
