@@ -271,7 +271,7 @@ export type AdminCatalogPurgeProductMediaInput = Readonly<{
 export type AdminCatalogPurgeProductMediaResult = Readonly<{
   productMediaId: string;
   mediaAssetId: string;
-  assetDeleted: boolean;
+  removedProductMediaCount: number;
   storageDeleted: boolean;
 }>;
 
@@ -473,6 +473,14 @@ const readRpcBoolean = (
 ): boolean | undefined => {
   const value = record[field];
   return typeof value === "boolean" ? value : undefined;
+};
+
+const readRpcNumber = (
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+): number | undefined => {
+  const value = record[field];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 };
 
 const createMediaUrl = (
@@ -1020,7 +1028,7 @@ export function createAdminCatalogGateway(
       const record = readRpcObject(row);
       const productMediaId = readRpcString(record, "productMediaId");
       const mediaAssetId = readRpcString(record, "mediaAssetId");
-      const assetDeleted = readRpcBoolean(record, "assetDeleted") ?? false;
+      const removedProductMediaCount = readRpcNumber(record, "removedProductMediaCount") ?? 0;
       const storageDeleted = readRpcBoolean(record, "storageDeleted") ?? false;
       if (productMediaId === undefined || mediaAssetId === undefined) {
         throw new AdminMetaGatewayError("invalid");
@@ -1028,7 +1036,7 @@ export function createAdminCatalogGateway(
       return Object.freeze({
         productMediaId,
         mediaAssetId,
-        assetDeleted,
+        removedProductMediaCount,
         storageDeleted,
       });
     },
