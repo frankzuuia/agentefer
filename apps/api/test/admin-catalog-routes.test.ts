@@ -665,4 +665,202 @@ describe("admin catalog routes", () => {
     expect(response.statusCode).toBe(413);
     expect(response.json()).toEqual({ status: "invalid" });
   });
+
+  describe("image upload prepare/status endpoints", () => {
+    const uploadId = "b407a200-0000-4000-8000-000000000001";
+    const mediaAssetId = "b407a210-0000-4000-8000-000000000001";
+    const productMediaId = "b407a220-0000-4000-8000-000000000001";
+    const sourceSha256Hex = "0".repeat(64);
+    const sourceObjectPath = `${organizationId}/${mediaAssetId}/source_original/${sourceSha256Hex}.jpg`;
+
+    const prepareBody = {
+      organizationId,
+      sourceSha256Hex,
+      sourceMimeType: "image/jpeg" as const,
+      sourceByteSize: 1024,
+      sourceWidthPixels: 800,
+      sourceHeightPixels: 600,
+      scope: "variant" as const,
+      allowPublic: false,
+      altText: null,
+      idempotencyKey: "b407-image-upload-001",
+    };
+
+    it("calls prepare RPC and returns 202 with the canonical response", async () => {
+      let prepareBodySeen: Readonly<Record<string, unknown>> | undefined;
+      const dependencyUrl = await startServer(async (request, response) => {
+        if (request.url === "/auth/v1/user") {
+          writeJson(response, 200, { id: userId });
+          return;
+        }
+        expect(request.url).toBe("/rest/v1/rpc/prepare_admin_catalog_image_upload");
+        prepareBodySeen = await readBody(request);
+        writeJson(response, 200, [
+          {
+            uploadId,
+            mediaAssetId,
+            productMediaId,
+            sourceBucketId: "agentefer-catalog-private",
+            sourceObjectPath,
+            status: "pending",
+            wasReplayed: false,
+          },
+        ]);
+      });
+      const application = createApplication(dependencyUrl);
+      const response = await application.inject({
+        method: "POST",
+        url: `/admin/catalog/products/${variantId}/images/prepare-upload`,
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        payload: prepareBody,
+      });
+      expect(response.statusCode).toBe(202);
+      expect(prepareBodySeen).toMatchObject({
+        target_organization_id: organizationId,
+        target_actor_user_id: userId,
+        target_variant_id: variantId,
+        target_source_sha256_hex: sourceSha256Hex,
+        target_source_mime_type: "image/jpeg",
+        target_source_byte_size: 1024,
+        target_scope: "variant",
+        target_allow_public: false,
+        target_idempotency_key: "b407-image-upload-001",
+      });
+      expect(response.json()).toEqual({
+        status: "accepted",
+        result: {
+          uploadId,
+          mediaAssetId,
+          productMediaId,
+          sourceBucketId: "agentefer-catalog-private",
+          sourceObjectPath,
+          status: "pending",
+          wasReplayed: false,
+        },
+      });
+    });
+
+    it("rejects prepare requests that omit the JSON content type", async () => {
+      const application = createApplication("http://127.0.0.1:9");
+      const response = await application.inject({
+        method: "POST",
+        url: `/admin/catalog/products/${variantId}/images/prepare-upload`,
+        headers: { authorization: `Bearer ${accessToken}` },
+        payload: JSON.stringify(prepareBody),
+      });
+      expect(response.statusCode).toBe(415);
+    });
+
+    it("rejects prepare requests without a bearer token", async () => {
+      const application = createApplication("http://127.0.0.1:9");
+      const response = await application.inject({
+        method: "POST",
+        url: `/admin/catalog/products/${variantId}/images/prepare-upload`,
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify(prepareBody),
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it.each([
+      [{ ...prepareBody, sourceMimeType: "image/gif" }],
+      [{ ...prepareBody, sourceByteSize: 30_000_000 }],
+      [{ ...prepareBody, sourceSha256Hex: "abc123" }],
+      [{ ...prepareBody, idempotencyKey: "short" }],
+      [{ ...prepareBody, scope: "bogus" }],
+      [{ ...prepareBody, allowPublic: "yes" }],
+    ])("rejects an invalid prepare body (case: %j)", async (badBody) => {
+      const dependencyUrl = await startServer((request, response) => {
+        if (request.url === "/auth/v1/user") {
+          writeJson(response, 200, { id: userId });
+          return;
+        }
+        writeJson(response, 200, {});
+      });
+      const application = createApplication(dependencyUrl);
+      const response = await application.inject({
+        method: "POST",
+        url: `/admin/catalog/products/${variantId}/images/prepare-upload`,
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        payload: JSON.stringify(badBody),
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("returns 200 with the upload status when the bearer is valid", async () => {
+      let statusBodySeen: Readonly<Record<string, unknown>> | undefined;
+      const dependencyUrl = await startServer(async (request, response) => {
+        if (request.url === "/auth/v1/user") {
+          writeJson(response, 200, { id: userId });
+          return;
+        }
+        expect(request.url?.startsWith("/rest/v1/rpc/get_admin_catalog_image_upload_status")).toBe(
+          true,
+        );
+        statusBodySeen = await readBody(request);
+        writeJson(response, 200, [
+          {
+            uploadId,
+            mediaAssetId,
+            productMediaId,
+            status: "succeeded",
+            wasReplayed: false,
+          },
+        ]);
+      });
+      const application = createApplication(dependencyUrl);
+      const response = await application.inject({
+        method: "GET",
+        url: `/admin/catalog/products/images/upload-status?organizationId=${organizationId}&uploadId=${uploadId}`,
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(statusBodySeen).toEqual({
+        target_organization_id: organizationId,
+        target_actor_user_id: userId,
+        target_upload_id: uploadId,
+      });
+      expect(response.json()).toEqual({
+        result: {
+          uploadId,
+          mediaAssetId,
+          productMediaId,
+          status: "succeeded",
+          wasReplayed: false,
+        },
+      });
+    });
+
+    it("rejects status queries without a bearer token", async () => {
+      const application = createApplication("http://127.0.0.1:9");
+      const response = await application.inject({
+        method: "GET",
+        url: `/admin/catalog/products/images/upload-status?organizationId=${organizationId}&uploadId=${uploadId}`,
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("rejects status queries with malformed query strings", async () => {
+      const dependencyUrl = await startServer((request, response) => {
+        if (request.url === "/auth/v1/user") {
+          writeJson(response, 200, { id: userId });
+          return;
+        }
+        writeJson(response, 200, {});
+      });
+      const application = createApplication(dependencyUrl);
+      const response = await application.inject({
+        method: "GET",
+        url: `/admin/catalog/products/images/upload-status?organizationId=not-a-uuid`,
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+  });
 });

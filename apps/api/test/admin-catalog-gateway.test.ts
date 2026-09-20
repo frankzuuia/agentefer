@@ -443,3 +443,201 @@ describe("admin catalog Supabase gateway over real TCP", () => {
     ).rejects.toBeInstanceOf(AdminMetaGatewayError);
   });
 });
+
+const uploadId = "b407a200-0000-4000-8000-000000000001";
+const uploadProductMediaId = "b407a300-0000-4000-8000-000000000001";
+const uploadSourceSha256Hex = "0".repeat(64);
+const uploadPath = `${organizationId}/${mediaAssetId}/source_original/${uploadSourceSha256Hex}.jpg`;
+
+describe("admin catalog image upload gateway", () => {
+  it("serializes the prepare-image-upload body with the documented snake_case contract", async () => {
+    let requestBody: Readonly<Record<string, unknown>> | undefined;
+    const baseUrl = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/prepare_admin_catalog_image_upload");
+      expect(request.method).toBe("POST");
+      requestBody = await readBody(request);
+      writeJson(response, 200, [
+        {
+          uploadId,
+          mediaAssetId,
+          productMediaId: uploadProductMediaId,
+          sourceBucketId: "agentefer-catalog-private",
+          sourceObjectPath: uploadPath,
+          status: "pending",
+          wasReplayed: false,
+        },
+      ]);
+    });
+    const result = await createGateway(baseUrl).prepareImageUpload({
+      organizationId,
+      actorUserId: userId,
+      variantId,
+      sourceSha256Hex: uploadSourceSha256Hex,
+      sourceMimeType: "image/jpeg",
+      sourceByteSize: 1024,
+      sourceWidthPixels: 800,
+      sourceHeightPixels: 600,
+      scope: "variant",
+      allowPublic: false,
+      altText: null,
+      idempotencyKey: "b407-upload-key-001",
+    });
+    expect(requestBody).toEqual({
+      target_organization_id: organizationId,
+      target_actor_user_id: userId,
+      target_variant_id: variantId,
+      target_source_sha256_hex: uploadSourceSha256Hex,
+      target_source_mime_type: "image/jpeg",
+      target_source_byte_size: 1024,
+      target_source_width_pixels: 800,
+      target_source_height_pixels: 600,
+      target_scope: "variant",
+      target_allow_public: false,
+      target_alt_text: null,
+      target_idempotency_key: "b407-upload-key-001",
+      target_correlation_id: null,
+      target_trace_id: null,
+    });
+    expect(result).toEqual({
+      uploadId,
+      mediaAssetId,
+      productMediaId: uploadProductMediaId,
+      sourceBucketId: "agentefer-catalog-private",
+      sourceObjectPath: uploadPath,
+      status: "pending",
+      wasReplayed: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(serviceSecret);
+  });
+
+  it("hides the productMediaId when the server returns null after the row is still pending", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 200, [
+        {
+          uploadId,
+          mediaAssetId,
+          productMediaId: null,
+          sourceBucketId: "agentefer-catalog-private",
+          sourceObjectPath: uploadPath,
+          status: "pending",
+          wasReplayed: false,
+        },
+      ]);
+    });
+    const result = await createGateway(baseUrl).prepareImageUpload({
+      organizationId,
+      actorUserId: userId,
+      variantId,
+      sourceSha256Hex: uploadSourceSha256Hex,
+      sourceMimeType: "image/png",
+      sourceByteSize: 2048,
+      sourceWidthPixels: 1200,
+      sourceHeightPixels: 900,
+      scope: "product",
+      allowPublic: true,
+      altText: "Foto del producto",
+      idempotencyKey: "b407-upload-key-002",
+    });
+    expect(result.status).toBe("pending");
+    expect(result.wasReplayed).toBe(false);
+    expect("productMediaId" in result).toBe(false);
+  });
+
+  it("surfaces a dependency failure when the prepare RPC returns no rows", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 200, []);
+    });
+    await expect(
+      createGateway(baseUrl).prepareImageUpload({
+        organizationId,
+        actorUserId: userId,
+        variantId,
+        sourceSha256Hex: uploadSourceSha256Hex,
+        sourceMimeType: "image/webp",
+        sourceByteSize: 512,
+        sourceWidthPixels: 400,
+        sourceHeightPixels: 300,
+        scope: "variant",
+        allowPublic: false,
+        idempotencyKey: "b407-upload-key-003",
+      }),
+    ).rejects.toMatchObject({ kind: "dependency" });
+  });
+
+  it("translates 409 from the prepare RPC into a conflict failure", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 409, { message: "idempotency-key reused" });
+    });
+    await expect(
+      createGateway(baseUrl).prepareImageUpload({
+        organizationId,
+        actorUserId: userId,
+        variantId,
+        sourceSha256Hex: uploadSourceSha256Hex,
+        sourceMimeType: "image/jpeg",
+        sourceByteSize: 1024,
+        sourceWidthPixels: 800,
+        sourceHeightPixels: 600,
+        scope: "variant",
+        allowPublic: false,
+        idempotencyKey: "b407-upload-key-004",
+      }),
+    ).rejects.toMatchObject({ kind: "conflict" });
+  });
+
+  it("serializes the upload-status body and forwards optional identifiers when present", async () => {
+    let requestBody: Readonly<Record<string, unknown>> | undefined;
+    const baseUrl = await startServer(async (request, response) => {
+      expect(request.url).toBe("/rest/v1/rpc/get_admin_catalog_image_upload_status");
+      requestBody = await readBody(request);
+      writeJson(response, 200, [
+        {
+          uploadId,
+          mediaAssetId,
+          productMediaId: uploadProductMediaId,
+          status: "succeeded",
+          wasReplayed: false,
+        },
+      ]);
+    });
+    const result = await createGateway(baseUrl).getImageUploadStatus({
+      organizationId,
+      actorUserId: userId,
+      uploadId,
+    });
+    expect(requestBody).toEqual({
+      target_organization_id: organizationId,
+      target_actor_user_id: userId,
+      target_upload_id: uploadId,
+    });
+    expect(result).toEqual({
+      uploadId,
+      mediaAssetId,
+      productMediaId: uploadProductMediaId,
+      status: "succeeded",
+      wasReplayed: false,
+    });
+  });
+
+  it("surfaces the failure code from the upload status when present", async () => {
+    const baseUrl = await startServer((_request, response) => {
+      writeJson(response, 200, [
+        {
+          uploadId,
+          status: "dead_letter",
+          wasReplayed: false,
+          lastErrorCode: "MEDIA_NORMALIZATION_REJECTED",
+        },
+      ]);
+    });
+    const result = await createGateway(baseUrl).getImageUploadStatus({
+      organizationId,
+      actorUserId: userId,
+      uploadId,
+    });
+    expect(result.status).toBe("dead_letter");
+    expect(result.lastErrorCode).toBe("MEDIA_NORMALIZATION_REJECTED");
+    expect("mediaAssetId" in result).toBe(false);
+    expect("productMediaId" in result).toBe(false);
+  });
+});

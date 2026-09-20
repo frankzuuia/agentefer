@@ -917,7 +917,7 @@ export function createAdminCatalogGateway(
       });
       const row: unknown = Array.isArray(rows) ? (rows as unknown[])[0] : rows;
       if (row === undefined || row === null) {
-        throw new AdminMetaGatewayError("invalid");
+        throw new AdminMetaGatewayError("dependency");
       }
       const record = readRpcObject(row);
       const mediaAssetId = readRpcString(record, "mediaAssetId");
@@ -962,7 +962,7 @@ export function createAdminCatalogGateway(
       });
       const row: unknown = Array.isArray(rows) ? (rows as unknown[])[0] : rows;
       if (row === undefined || row === null) {
-        throw new AdminMetaGatewayError("invalid");
+        throw new AdminMetaGatewayError("dependency");
       }
       const record = readRpcObject(row);
       const status = readRpcString(record, "status");

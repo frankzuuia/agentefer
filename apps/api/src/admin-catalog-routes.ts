@@ -197,7 +197,7 @@ const handlePrepareImageUpload = async (
       const accessToken = requireAccessToken(request);
       const identity = await input.identityGateway.authenticate(accessToken);
       if (body === undefined) {
-        throw new AdminMetaGatewayError("invalid");
+        throw new AdminMetaHttpError("ADMIN_CATALOG_PREPARE_INVALID", "validation", 400);
       }
       const variantId = readUuidParam(request, "variantId");
       if (variantId === undefined) {
@@ -252,7 +252,7 @@ const handleImageUploadStatus = async (
       const accessToken = requireAccessToken(request);
       const identity = await input.identityGateway.authenticate(accessToken);
       if (query === undefined) {
-        throw new AdminMetaGatewayError("invalid");
+        throw new AdminMetaHttpError("ADMIN_CATALOG_STATUS_INVALID", "validation", 400);
       }
       const result = await input.catalogGateway.getImageUploadStatus({
         organizationId: query.organizationId,
@@ -318,7 +318,11 @@ export function registerAdminCatalogRoutes(
     });
 
     scope.setErrorHandler((error, _request, reply) => {
-      const failure = classifyAdminMetaParserFailure(readFastifyErrorCode(error));
+      const fastifyCode = readFastifyErrorCode(error);
+      const fastifyFailure = fastifyCode?.startsWith("FST_ERR_CTP_")
+        ? classifyAdminMetaParserFailure(fastifyCode)
+        : undefined;
+      const failure = fastifyFailure ?? classifyAdminMetaFailure(error);
       if (failure.statusCode === 503) {
         reply.header("retry-after", "2");
       }

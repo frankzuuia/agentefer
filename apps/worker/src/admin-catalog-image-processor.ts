@@ -196,6 +196,11 @@ const drainOnce = async (
   return Object.freeze({ processedCount: claims.length });
 };
 
+export const drainAdminCatalogImageUploadOnce = (
+  input: CreateAdminCatalogImageUploadProcessorInput,
+  signal: AbortSignal,
+): Promise<Readonly<{ processedCount: number }>> => drainOnce(input, signal);
+
 export function createAdminCatalogImageUploadProcessor(
   input: CreateAdminCatalogImageUploadProcessorInput,
 ): AdminCatalogImageUploadProcessor {
@@ -217,7 +222,7 @@ export function createAdminCatalogImageUploadProcessor(
     const startedAt = performance.now();
     input.metrics.recordStarted(operation);
     try {
-      const result = await drainOnce(input, controller.signal);
+      const result = await drainAdminCatalogImageUploadOnce(input, controller.signal);
       const wasCancelled = controller.signal.aborted;
       if (!wasCancelled) {
         input.logger.debug("worker.admin.catalog.image_cycle_completed", "succeeded", {
