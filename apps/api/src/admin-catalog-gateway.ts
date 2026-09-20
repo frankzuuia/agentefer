@@ -173,7 +173,13 @@ export type AdminCatalogEditInput = Readonly<{
   actorUserId: string;
   variantId: string;
   operation:
-    "set_status" | "edit_text" | "set_price" | "set_primary_photo" | "remove_photo" | "add_photo";
+    | "set_status"
+    | "edit_text"
+    | "set_price"
+    | "set_primary_photo"
+    | "remove_photo"
+    | "purge_photo"
+    | "add_photo";
   changes: Readonly<Record<string, unknown>>;
   idempotencyKey: string;
 }>;
@@ -255,6 +261,20 @@ export type AdminCatalogImageUploadStatusResult = Readonly<{
   wasReplayed: boolean;
 }>;
 
+export type AdminCatalogPurgeProductMediaInput = Readonly<{
+  organizationId: string;
+  actorUserId: string;
+  productMediaId: string;
+  idempotencyKey: string;
+}>;
+
+export type AdminCatalogPurgeProductMediaResult = Readonly<{
+  productMediaId: string;
+  mediaAssetId: string;
+  assetDeleted: boolean;
+  storageDeleted: boolean;
+}>;
+
 export type AdminCatalogActionResult = Readonly<Record<string, unknown>>;
 
 export type AdminCatalogGateway = Readonly<{
@@ -271,6 +291,9 @@ export type AdminCatalogGateway = Readonly<{
   getImageUploadStatus(
     input: AdminCatalogImageUploadStatusInput,
   ): Promise<AdminCatalogImageUploadStatusResult>;
+  purgeProductMedia(
+    input: AdminCatalogPurgeProductMediaInput,
+  ): Promise<AdminCatalogPurgeProductMediaResult>;
 }>;
 
 export type CreateAdminCatalogGatewayInput = Readonly<{
@@ -981,6 +1004,32 @@ export function createAdminCatalogGateway(
         ...(productMediaId === undefined ? {} : { productMediaId }),
         ...(lastErrorCode === undefined ? {} : { lastErrorCode }),
         wasReplayed,
+      });
+    },
+    async purgeProductMedia(actionInput) {
+      const rows = await executeRpc("admin_purge_product_media", {
+        target_organization_id: actionInput.organizationId,
+        target_actor_user_id: actionInput.actorUserId,
+        target_product_media_id: actionInput.productMediaId,
+        target_idempotency_key: actionInput.idempotencyKey,
+      });
+      const row: unknown = Array.isArray(rows) ? (rows as unknown[])[0] : rows;
+      if (row === undefined || row === null) {
+        throw new AdminMetaGatewayError("dependency");
+      }
+      const record = readRpcObject(row);
+      const productMediaId = readRpcString(record, "productMediaId");
+      const mediaAssetId = readRpcString(record, "mediaAssetId");
+      const assetDeleted = readRpcBoolean(record, "assetDeleted") ?? false;
+      const storageDeleted = readRpcBoolean(record, "storageDeleted") ?? false;
+      if (productMediaId === undefined || mediaAssetId === undefined) {
+        throw new AdminMetaGatewayError("invalid");
+      }
+      return Object.freeze({
+        productMediaId,
+        mediaAssetId,
+        assetDeleted,
+        storageDeleted,
       });
     },
   });

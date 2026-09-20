@@ -935,7 +935,7 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
       create(
         "p",
         "help",
-        "Toca una miniatura para elegirla. “Quitar foto” la desvincula del producto pero conserva el archivo original.",
+        "Toca una miniatura para elegirla. “Eliminar foto” desvincula la foto del producto y, si nadie más la usa, también borra el archivo del storage.",
       ),
     );
     const photoActions = create("div", "edit-inline");
@@ -943,11 +943,11 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
     choosePrimary.type = "button"; choosePrimary.disabled = !selectedMediaId;
     choosePrimary.addEventListener("click", () => runCommand(
       commandFor("set_primary_photo", { productMediaId: selectedMediaId }), "Imagen principal actualizada."));
-    const removePhoto = create("button", "button compact danger", "Quitar foto");
+    const removePhoto = create("button", "button compact danger", "Eliminar foto");
     removePhoto.type = "button"; removePhoto.disabled = !selectedMediaId;
     removePhoto.addEventListener("click", () => {
-      if (!window.confirm("¿Quitar esta foto del producto? El archivo original se conserva y puede reutilizarse.")) return;
-      runCommand(commandFor("remove_photo", { productMediaId: selectedMediaId }), "Foto retirada del producto.");
+      if (!window.confirm("¿Eliminar esta foto del producto? Si nadie más la usa, también se borrará el archivo del storage. Esta acción no se puede deshacer.")) return;
+      runCommand(commandFor("purge_photo", { productMediaId: selectedMediaId }), "Foto eliminada.");
     });
     const addPhoto = create("button", "button compact primary", "Agregar foto");
     addPhoto.type = "button";

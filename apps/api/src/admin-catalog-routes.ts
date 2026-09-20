@@ -152,12 +152,19 @@ const handleCommand = async (
       }
       const actor = { actorUserId: identity.userId } as const;
       const result =
-        command.type === "edit"
-          ? await input.catalogGateway.edit({ ...command, ...actor })
-          : command.type === "set_status"
-            ? await input.catalogGateway.setOfferStatus({ ...command, ...actor })
-            : command.type === "publish"
-              ? await input.catalogGateway.publish({ ...command, ...actor })
+        command.type === "edit" && command.operation === "purge_photo"
+          ? await input.catalogGateway.purgeProductMedia({
+              organizationId: command.organizationId,
+              actorUserId: identity.userId,
+              productMediaId: command.changes.productMediaId as string,
+              idempotencyKey: command.idempotencyKey,
+            })
+          : command.type === "edit"
+            ? await input.catalogGateway.edit({ ...command, ...actor })
+            : command.type === "set_status"
+              ? await input.catalogGateway.setOfferStatus({ ...command, ...actor })
+              : command.type === "publish"
+                ? await input.catalogGateway.publish({ ...command, ...actor })
               : command.type === "publish_all"
                 ? await input.catalogGateway.publishAll({ ...command, ...actor })
                 : command.type === "retry"

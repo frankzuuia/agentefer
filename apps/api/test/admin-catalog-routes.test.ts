@@ -173,7 +173,7 @@ describe("admin catalog routes", () => {
     expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("edit_text"');
     expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_price"');
     expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_primary_photo"');
-    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("remove_photo"');
+    expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("purge_photo"');
     expect(ADMIN_CATALOG_JAVASCRIPT).toContain('commandFor("set_status"');
   });
 

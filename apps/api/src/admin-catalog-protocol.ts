@@ -11,6 +11,7 @@ const EDIT_OPERATIONS = [
   "set_price",
   "set_primary_photo",
   "remove_photo",
+  "purge_photo",
   "add_photo",
 ] as const;
 const IMAGE_SCOPES = ["product", "variant"] as const;
@@ -272,7 +273,9 @@ export const parseAdminCatalogCommand = (value: unknown): AdminCatalogCommand | 
               Number.isFinite(changes.amount) &&
               changes.amount >= 0 &&
               changes.amount <= 999_999_999_999.99)) ||
-        ((operation === "set_primary_photo" || operation === "remove_photo") &&
+        ((operation === "set_primary_photo" ||
+            operation === "remove_photo" ||
+            operation === "purge_photo") &&
           keys.length === 1 &&
           photoId !== undefined) ||
         (operation === "add_photo" &&
