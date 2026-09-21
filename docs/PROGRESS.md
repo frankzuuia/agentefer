@@ -617,5 +617,10 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
 - [x] Readiness reparado: el procesador admin de imágenes tiene bandera propia, default productivo
   `true`, no hace red cuando está deshabilitado y se detiene tanto en shutdown como en rollback.
   Su cliente RPC quedó cubierto al 100% de líneas/sentencias/funciones y 98.87% de ramas.
-- [ ] Aplicar `006s`, desplegar worker desde `develop` y repetir E2E con una nueva foto real.
-  Producción no fue modificada durante el ensayo.
+- [x] `006s` aplicada exclusivamente al Supabase enlazado de AgenteFer, registrada en el historial
+  remoto y validada postflight con 99/99 pgTAP y rollback limpio.
+- [x] Worker `agente-fer/worker` desplegado desde `develop` en EasyPanel con el commit
+  `90c3a6765ae0dabf2526a701cfe18fbc6de8c302`: build `Success` a las 19:01:48Z y nuevo
+  `worker.runtime.started` a las 19:01:53Z; la instancia anterior cerró limpiamente por `SIGTERM`.
+- [ ] Repetir E2E por WhatsApp con una nueva foto real y comprobar la galería de ambos productos.
+  No se ejecutó ninguna publicación externa en Facebook.

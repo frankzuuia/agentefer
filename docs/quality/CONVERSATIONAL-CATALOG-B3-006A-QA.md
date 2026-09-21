@@ -152,4 +152,8 @@ sentencias, 85.93% ramas, 93.07% funciones y 90.35% líneas. Durante ese gate se
 previa de readiness: el procesador admin de imágenes ahora tiene una bandera independiente con
 default productivo `true`, no inicia red cuando está deshabilitado y siempre se detiene. Su cliente
 RPC quedó cubierto al 100% de líneas/sentencias/funciones y 98.87% de ramas mediante HTTP efímero
-local. Migración y despliegue de B3-006S siguen pendientes.
+local. La migración `006s` se aplicó exclusivamente al Supabase de AgenteFer y aprobó el
+postflight enlazado 99/99 con rollback. EasyPanel desplegó `agente-fer/worker` desde
+`90c3a6765ae0dabf2526a701cfe18fbc6de8c302`: build exitoso, evento
+`worker.runtime.started` a las 19:01:53Z y apagado limpio de la instancia anterior. El E2E por
+WhatsApp con una foto nueva continúa pendiente; no se publicó nada en Facebook.
