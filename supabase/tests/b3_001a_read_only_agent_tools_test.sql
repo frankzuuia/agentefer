@@ -555,7 +555,8 @@ select extensions.is(
 create temporary table pg_temp.b301_tool_context (
   tool_definitions jsonb,
   tool_history jsonb,
-  next_tool_round integer
+  next_tool_round integer,
+  completion_requires_tool_evidence boolean
 ) on commit drop;
 grant select, insert, delete on pg_temp.b301_tool_context to service_role;
 

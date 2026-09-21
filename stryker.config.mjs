@@ -14,7 +14,7 @@ export default {
     "apps/worker/src/whatsapp-ai-processor.ts:135-162",
     "apps/worker/src/whatsapp-ai-processor.ts:216-217",
     "apps/worker/src/whatsapp-ai-processor.ts:252-253",
-    "apps/worker/src/whatsapp-ai-processor.ts:360-390",
+    "apps/worker/src/whatsapp-ai-processor.ts:357-390",
     "apps/worker/src/whatsapp-ai-processor.ts:465-477",
     "apps/worker/src/whatsapp-ai-rpc.ts:404-469",
     "apps/worker/src/whatsapp-ai-rpc.ts:563-573",

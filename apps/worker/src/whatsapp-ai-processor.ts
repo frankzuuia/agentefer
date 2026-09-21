@@ -207,6 +207,17 @@ const settleTurnFailure = async (
   });
 };
 
+const OWNER_TOOL_EVIDENCE_RECOVERY_INSTRUCTION = `
+
+## Recuperación obligatoria de evidencia operativa
+La respuesta anterior de este mismo intento fue descartada antes de enviarse porque intentó
+finalizar un turno administrativo sin usar ninguna herramienta. No repitas esa respuesta.
+Antes de emitir texto visible debes llamar al menos una herramienta autorizada y basarte en su
+resultado real. Si el dueño pidió una mutación, ejecuta todas las mutaciones solicitadas, una por
+ronda, y sólo afirma éxito para las que la herramienta confirmó. Si no pidió una mutación, usa una
+herramienta de lectura pertinente para fundamentar la respuesta. No inventes IDs ni resultados.
+`;
+
 const persistTurnResult = async (
   input: CreateWhatsAppAiProcessorInput,
   claim: ClaimedAgentTurn,
@@ -329,7 +340,7 @@ const processAgentTurn = async (
   const turnSignal = AbortSignal.any([processorSignal, timeoutSignal]);
   try {
     const conversation = await conversationWithVisualInputs(input, claim, turnSignal);
-    const result = await provider.executeTurn({
+    const request = {
       model: claim.model,
       systemPrompt: claim.systemPrompt,
       conversation: conversation.map((item) => {
@@ -342,7 +353,36 @@ const processAgentTurn = async (
       tools: claim.toolDefinitions,
       toolHistory: claim.toolHistory,
       signal: turnSignal,
-    });
+    } as const;
+    let result = await provider.executeTurn(request);
+    if (
+      claim.completionRequiresToolEvidence &&
+      claim.toolHistory.length === 0 &&
+      result.terminationReason === "completed"
+    ) {
+      input.logger.warn("worker.whatsapp.ai.owner_tool_evidence_retry", "observed", {
+        organization_id: claim.organizationId,
+        agent_run_id: claim.agentRunId,
+        provider: claim.provider,
+        model: claim.model,
+      });
+      result = await provider.executeTurn({
+        ...request,
+        systemPrompt: `${claim.systemPrompt}${OWNER_TOOL_EVIDENCE_RECOVERY_INSTRUCTION}`,
+      });
+      if (result.terminationReason === "completed") {
+        await settleTurnFailure(
+          input,
+          claim,
+          "provider_owner_tool_evidence_required",
+          true,
+          processorSignal,
+          "provider_error",
+          result.providerRequestId,
+        );
+        return;
+      }
+    }
     await persistTurnResult(input, claim, result, processorSignal);
     input.metrics.recordCompleted({
       operation,

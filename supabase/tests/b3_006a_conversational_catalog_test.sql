@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(95);
+select extensions.plan(99);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -294,10 +294,17 @@ grant select, insert, delete on pg_temp.b306_turn_claims to service_role;
 create temporary table pg_temp.b306_tool_context (
   tool_definitions jsonb,
   tool_history jsonb,
-  next_tool_round integer
+  next_tool_round integer,
+  completion_requires_tool_evidence boolean
 ) on commit drop;
 grant select, insert, delete on pg_temp.b306_tool_context to service_role;
 
+set local role service_role;
+
+set local role postgres;
+select app_private.ensure_customer_assistant_catalog_edit_tools(
+  'b3061000-0000-4000-8000-000000000001'
+);
 set local role service_role;
 
 insert into pg_temp.b306_turn_claims
@@ -334,6 +341,11 @@ select extensions.is(
   (select jsonb_array_length(tool_definitions) from pg_temp.b306_tool_context),
   3,
   'a customer receives all three commercial read tools'
+);
+select extensions.is(
+  (select completion_requires_tool_evidence from pg_temp.b306_tool_context),
+  false,
+  'a customer conversation does not require administrative tool evidence'
 );
 select extensions.is(
   (
@@ -550,8 +562,13 @@ select * from api.get_agent_turn_tool_context(
 
 select extensions.is(
   (select jsonb_array_length(tool_definitions) from pg_temp.b306_tool_context),
-  3,
-  'the owner retains the same commercial resources needed to sell'
+  16,
+  'the owner receives the complete current commercial and administrative tool set'
+);
+select extensions.is(
+  (select completion_requires_tool_evidence from pg_temp.b306_tool_context),
+  true,
+  'a verified owner with mutation tools requires durable tool evidence'
 );
 select extensions.ok(
   (
@@ -563,6 +580,48 @@ select extensions.ok(
     where run_value.id = (select agent_run_id from pg_temp.b306_turn_claims)
   ),
   'the verified owner run freezes an enforced member snapshot lane'
+);
+
+select pg_temp.throws_sqlstate(
+  $$select api.complete_whatsapp_agent_turn(
+    (select organization_id from pg_temp.b306_turn_claims),
+    (select job_attempt_id from pg_temp.b306_turn_claims),
+    'b306-worker-member',
+    (select lease_token from pg_temp.b306_turn_claims),
+    'Cambios aplicados sin ejecutar herramientas.',
+    'b306-ungrounded-owner-answer',
+    '{}'::jsonb
+  )$$,
+  '23514',
+  'the database rejects an owner success answer without a native tool execution'
+);
+
+create temporary table pg_temp.b306_grounding_result as
+select *
+from api.execute_whatsapp_tool_call(
+  (select organization_id from pg_temp.b306_turn_claims),
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  (select job_attempt_id from pg_temp.b306_turn_claims),
+  'b306-worker-member',
+  (select lease_token from pg_temp.b306_turn_claims),
+  'minimax',
+  'b306-grounding-request',
+  'b306-grounding-call',
+  'catalog_ingestion_context',
+  1,
+  '{}'::jsonb,
+  '{"role":"assistant","tool_calls":[{"id":"b306-grounding-call","type":"function","function":{"name":"catalog_ingestion_context","arguments":"{}"}}]}'::jsonb,
+  '{}'::jsonb
+);
+
+delete from pg_temp.b306_turn_claims;
+delete from pg_temp.b306_tool_context;
+insert into pg_temp.b306_turn_claims
+select *
+from api.claim_whatsapp_agent_turn(
+  'b306-worker-member-grounded', 'minimax', 'MiniMax-M3',
+  'minimax', 'MiniMax-M3', null, 120,
+  'b3061000-0000-4000-8000-000000000001'
 );
 
 -- B3-006A functional journey; actor/channel setup comes from the real B3-002A fixture.
@@ -612,7 +671,7 @@ select extensions.is((select result->>'revision' from pg_temp.ingestion_draft),'
 select extensions.is((select result->>'status' from pg_temp.ingestion_draft),'needs_confirmation','A13 still requires confirmation');
 select pg_temp.throws_sqlstate($$select pg_temp.apply_draft(jsonb_build_object('draft_id',(select result->>'draft_id' from pg_temp.ingestion_draft),'expected_revision',2,'owner_confirmed',true))$$,'42501','A13 same message cannot confirm');
 select extensions.is((select count(*)::integer from app_private.products where organization_id='b3061000-0000-4000-8000-000000000001'),0,'no products before confirmation');
-select api.complete_whatsapp_agent_turn((select organization_id from pg_temp.b306_turn_claims),(select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-member',(select lease_token from pg_temp.b306_turn_claims),'Resumen para confirmar.','b306-summary','{}');
+select api.complete_whatsapp_agent_turn((select organization_id from pg_temp.b306_turn_claims),(select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-member-grounded',(select lease_token from pg_temp.b306_turn_claims),'Resumen para confirmar.','b306-summary','{}');
 -- No HTTP is executed: SQL outbox and transactional input records are rolled back.
 insert into app_private.messages(id,organization_id,channel_connection_id,conversation_id,sender_participant_id,direction,content_kind,provider_message_type,external_message_id,deduplication_key,content,provider_context,status,provider_occurred_at,received_at,created_at,updated_at)
 select 'b3062400-0000-4000-8000-000000000004',organization_id,channel_connection_id,conversation_id,id,
@@ -623,8 +682,8 @@ insert into pg_temp.b306_turn_claims select * from api.claim_whatsapp_agent_turn
 select extensions.is((select count(*)::integer from pg_temp.b306_turn_claims),1,'confirmation claims a separate run');
 select extensions.is((select jsonb_array_length(tool_definitions) from api.get_agent_turn_tool_context(
  (select organization_id from pg_temp.b306_turn_claims),(select agent_run_id from pg_temp.b306_turn_claims),
- (select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-confirm',(select lease_token from pg_temp.b306_turn_claims))),13,'existing owner chat adopts native tools on its next run');
-select extensions.is((select count(*)::integer from app_private.conversation_agent_snapshots where organization_id='b3061000-0000-4000-8000-000000000001' and actor_kind='member'),2,'old snapshot preserved when upgrading owner policy');
+ (select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-confirm',(select lease_token from pg_temp.b306_turn_claims))),16,'existing owner chat adopts the complete native tool set on its next run');
+select extensions.is((select count(*)::integer from app_private.conversation_agent_snapshots where organization_id='b3061000-0000-4000-8000-000000000001' and actor_kind='member'),1,'the current owner policy reuses one immutable member snapshot across runs');
 select extensions.is((app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')->'drafts'->0->>'revision'),'2','A03 persisted context across runs');
 select pg_temp.throws_sqlstate($$select pg_temp.apply_draft(jsonb_build_object('draft_id',(select result->>'draft_id' from pg_temp.ingestion_draft),'expected_revision',1,'owner_confirmed',true))$$,'40001','A08 stale apply rejected');
 select pg_temp.throws_sqlstate($$select pg_temp.apply_draft(jsonb_build_object('draft_id',(select result->>'draft_id' from pg_temp.ingestion_draft),'expected_revision',2,'owner_confirmed',false))$$,'42501','A13 confirmation required');
@@ -819,6 +878,19 @@ select extensions.is(
       and id = (select id from pg_temp.b306_current_prompt_version)),
   1,
   'E7 the formatting rule marker appears exactly once in the current prompt template'
+);
+select extensions.is(
+  (select ((length(content_template) - length(replace(
+      content_template,
+      '## Edición de catálogo del dueño',
+      ''
+    ))) / length('## Edición de catálogo del dueño'))::integer
+    from app_private.prompt_versions
+    where prompt_key = 'customer_assistant.system'
+      and organization_id = 'b3061000-0000-4000-8000-000000000001'
+      and id = (select id from pg_temp.b306_current_prompt_version)),
+  1,
+  'B3-006S the owner catalog guidance appears exactly once in the current prompt'
 );
 
 select * from extensions.finish();

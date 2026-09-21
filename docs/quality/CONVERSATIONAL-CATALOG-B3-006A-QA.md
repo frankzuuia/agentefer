@@ -126,3 +126,30 @@ volver a una política auditada compatible y corregir hacia delante; conservar b
 Después de cerrar este bloque: distribución pública de medios y venta al cliente, edición de
 catálogo/galería, categorías jerárquicas y gestión de bajas/publicaciones son bloques separados.
 No se afirma que todo el vendedor experto ni la tienda QR estén terminados por esta entrega.
+
+## Addendum B3-006S — 2026-09-21
+
+### Causa raíz observada
+
+Dos runs reales del dueño resolvieron correctamente actor `member`, imagen verificada y 16 tools,
+pero el proveedor devolvió texto final con `tool_round_count=0`. El runtime no tenía una puerta de
+finalización determinista y persistió “cambios aplicados” sin mutación. No fue un error de identidad,
+Storage, UUID ni panel: fue una afirmación cognitiva sin evidencia operativa.
+
+### Corrección y evidencia
+
+- Worker: una finalización owner con tools administrativas y sin historial se descarta, se reintenta
+  una vez exigiendo tool calling y, si reincide, se liquida como `retry_provider` sin texto visible.
+- Base: `api.complete_whatsapp_agent_turn` valida que exista una ejecución terminal del mismo run.
+- Prompt: una única guía vigente para editar varios destinos, separar galería/principal y no publicar
+  en Facebook implícitamente.
+- Pruebas: 58/58 unitarias; mutation testing focal 25/25 (100%); Gherkin 422 escenarios; rehearsal
+  remoto 99/99 con rollback; contrato estático 59 migraciones, 106/106 tablas privadas con RLS
+  forzado y 1,390 aserciones pgTAP registradas.
+
+La cobertura completa ejecutó 1,265/1,265 pruebas y superó los umbrales sin reducirlos: 90.23%
+sentencias, 85.93% ramas, 93.07% funciones y 90.35% líneas. Durante ese gate se reparó una deuda
+previa de readiness: el procesador admin de imágenes ahora tiene una bandera independiente con
+default productivo `true`, no inicia red cuando está deshabilitado y siempre se detiene. Su cliente
+RPC quedó cubierto al 100% de líneas/sentencias/funciones y 98.87% de ramas mediante HTTP efímero
+local. Migración y despliegue de B3-006S siguen pendientes.

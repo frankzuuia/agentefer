@@ -7812,6 +7812,7 @@ export type Database = {
           target_worker_id: string;
         };
         Returns: {
+          completion_requires_tool_evidence: boolean;
           next_tool_round: number;
           tool_definitions: Json;
           tool_history: Json;

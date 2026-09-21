@@ -87,3 +87,13 @@ Feature: B3-006A Owner creates a catalog through conversation
     And it instructs the agent to use bullets, numbered lists, or line breaks instead
     And the formatting rule is idempotent across consecutive migrations
     And the catalog apply_draft flow remains unchanged
+
+  Scenario: B3-006S An owner photo edit cannot be acknowledged without durable tool evidence
+    Given a verified owner sends one stored photo and names two existing active products
+    And the owner did not request Facebook publication
+    When the model attempts to answer that both photos were added without calling a tool
+    Then the worker discards that ungrounded answer and requests native tool execution
+    And the database rejects direct completion while no terminal tool execution exists
+    And one authorized photo mutation is executed and audited for each product
+    And the agent reports each real result only after both tool executions finish
+    And no Facebook publication is enqueued

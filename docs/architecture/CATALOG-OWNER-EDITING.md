@@ -26,11 +26,15 @@ Estado: bloque en construcción sobre `develop`.
 | CE-A07 | Dueño pide publicar | Se exige oferta activa, página correcta, contenido aprobado y job idempotente | Sin página, permiso o foto pública: estado explica el bloqueo |
 | CE-A08 | Cliente dice “soy el dueño” | Ninguna herramienta administrativa disponible | Autorización se deriva de identidad/membresía, no del texto |
 | CE-A09 | Catálogo móvil | Edición en secciones cortas dentro del detalle, sin lista infinita | 375 px, teclado, foco y targets de 44 px verificados |
+| CE-A10 | El modelo intenta declarar una edición sin llamar una herramienta | El worker descarta el texto, exige una tool nativa y la base impide completar el run sin evidencia terminal | Tras un segundo incumplimiento el turno falla como reintentable y no se envía una confirmación falsa |
+| CE-A11 | Una foto debe agregarse a dos productos existentes | El agente resuelve IDs reales y ejecuta una mutación auditada por producto; no cambia la principal salvo petición explícita | Un resultado parcial se comunica como parcial; nunca se convierte en éxito total ni en publicación Facebook |
 
 ## Contrato técnico
 
 - Panel: sesión Supabase validada por API y membresía owner validada de nuevo en PostgreSQL.
 - WhatsApp: identidad `member` verificada, tool autorizada y ejecución auditada con lease.
+- Un turno administrativo con tools mutantes no puede finalizar sin al menos una ejecución terminal
+  registrada. El worker ofrece una recuperación cognitiva y PostgreSQL conserva el cierre fail-closed.
 - Un núcleo transaccional por organización aplica las mismas reglas de dominio a panel y agente.
 - Precio y publicaciones son versiones; no se sobrescribe una publicación aprobada.
 - Activación del catálogo no crea un job de Facebook. Publicar requiere un comando distinto.

@@ -65,6 +65,17 @@ assert.deepEqual(
     "20260919160000_b3_006f_catalog_owner_edit.sql",
     "20260919170000_b3_006g_catalog_owner_facebook_publish.sql",
     "20260919180000_b3_006h_catalog_storefront_jobs.sql",
+    "20260919210000_b3_006i_admin_catalog_image_upload.sql",
+    "20260919224350_b3_006j_admin_catalog_storage_policies.sql",
+    "20260919233000_b3_006k_admin_catalog_image_uploads_rls.sql",
+    "20260920093000_b3_006l_admin_purge_product_media.sql",
+    "20260920103000_b3_006m_admin_uploads_in_agent_context.sql",
+    "20260920104000_b3_006n_max_photos_default_public.sql",
+    "20260920113000_b3_006o_qr_vs_facebook_separation.sql",
+    "20260920122000_b3_006p_force_public_in_agent_wrapper.sql",
+    "20260920123000_b3_006q_fix_wrapper_variable_overwrite.sql",
+    "20260920131000_b3_006r_resolve_provider_media_id.sql",
+    "20260921121000_b3_006s_owner_tool_grounding.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -209,6 +220,10 @@ const adminCatalogPanelMigration = await readFile(
 );
 const facebookPageOauthMigration = await readFile(
   path.join(migrationDirectory, migrationEntries[35]),
+  "utf8",
+);
+const ownerToolGroundingMigration = await readFile(
+  path.join(migrationDirectory, "20260921121000_b3_006s_owner_tool_grounding.sql"),
   "utf8",
 );
 const foundationDatabaseTest = await readFile(
@@ -2406,7 +2421,7 @@ for (const migrationEntry of migrationEntries) {
     forcedRlsTableNames.add(match[1]);
   }
 }
-assert.equal(privateTableNames.size, 105, "the private table inventory must remain reviewed");
+assert.equal(privateTableNames.size, 106, "the private table inventory must remain reviewed");
 assert.deepEqual(
   [...forcedRlsTableNames].sort(),
   [...privateTableNames].sort(),
@@ -2995,6 +3010,20 @@ assert.ok(
   eslintConfiguration.includes('"packages/database/src/database.types.ts"'),
   "only the canonical generated type file may bypass stylistic lint",
 );
+
+for (const groundingGuard of [
+  "app_private.agent_run_requires_tool_evidence",
+  "completion_requires_tool_evidence boolean",
+  "administrative completion requires durable tool evidence",
+  "app_private.complete_whatsapp_agent_turn_b3001a_base",
+  "app_private.normalize_customer_assistant_prompt_b3006s",
+  "revoke all on function api.complete_whatsapp_agent_turn",
+]) {
+  assert.ok(
+    ownerToolGroundingMigration.includes(groundingGuard),
+    `B3-006S owner tool-grounding migration must include: ${groundingGuard}`,
+  );
+}
 
 console.log(
   `Database contract verified: ${migrationEntries.length} ordered production migrations, ${forcedRlsTableNames.size} forced-RLS tables, ${plannedDatabaseAssertions} pgTAP assertions, generated TypeScript schemas locked.`,

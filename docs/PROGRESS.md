@@ -599,3 +599,23 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
   end-to-end` en develop (2 commits ahead de origin/develop)**. Working tree limpio. El
   flujo "Agregar foto" está cableado end-to-end sin CI remoto en este bloque
   (fuera de alcance declarado).
+
+## Actualización 2026-09-21 — B3-006S cierre de respuestas administrativas sin evidencia
+
+- [x] Autopsia de dos runs reales: actor `member` correcto, 16 tools elegibles, foto WebP verificada,
+  pero MiniMax finalizó con texto y cero `tool_executions`; el worker aceptaba ese texto como éxito.
+- [x] El worker descarta una finalización administrativa sin historial de tools, reintenta una vez
+  con instrucción operativa y falla como reintentable si el proveedor vuelve a ignorar las tools.
+- [x] PostgreSQL rechaza `complete_whatsapp_agent_turn` para ese run mientras no exista ejecución
+  terminal auditada; un bypass del proceso no puede producir la confirmación falsa.
+- [x] Prompt owner normalizado a una sola sección: IDs reales desde contexto, una mutación por
+  producto, `add_photo` separado de `set_primary_photo` y publicación Facebook independiente.
+- [x] Evidencia: 1,265/1,265 pruebas, cobertura global 90.23% sentencias / 85.93% ramas /
+  93.07% funciones / 90.35% líneas, 99/99 pgTAP enlazado con rollback, 422 escenarios Gherkin,
+  25/25 mutantes eliminados (100%) y contrato DB verde con 59 migraciones, 106 tablas `FORCE RLS`
+  y 1,390 aserciones declaradas.
+- [x] Readiness reparado: el procesador admin de imágenes tiene bandera propia, default productivo
+  `true`, no hace red cuando está deshabilitado y se detiene tanto en shutdown como en rollback.
+  Su cliente RPC quedó cubierto al 100% de líneas/sentencias/funciones y 98.87% de ramas.
+- [ ] Aplicar `006s`, desplegar worker desde `develop` y repetir E2E con una nueva foto real.
+  Producción no fue modificada durante el ensayo.

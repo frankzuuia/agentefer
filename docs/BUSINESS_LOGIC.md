@@ -55,6 +55,10 @@ Convención: `BL-nnn: nombre -> regla -> dirección técnica`.
 ## BL-005: Catálogo como fuente de verdad comercial
 
 **Regla →** El agente solo afirma precio, stock, fotos, garantía y condición a partir de datos vigentes del catálogo; los faltantes se reconocen.  
+Para el dueño, ninguna respuesta puede afirmar que una edición fue aplicada basándose sólo en texto
+del modelo: el turno administrativo exige evidencia durable de una herramienta autorizada. Agregar
+una misma foto a varios productos requiere una mutación y resultado por producto. Vincular una foto
+no la convierte automáticamente en principal y nunca publica en Facebook sin un comando separado.  
 **Dirección técnica →** herramientas de consulta devuelven datos versionados con procedencia; la respuesta distingue hechos, conocimiento general e incertidumbre.
 
 - Actor: cliente, Fer y agente.

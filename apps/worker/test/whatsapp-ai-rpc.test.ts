@@ -124,6 +124,7 @@ const turnClaim = (): ClaimedAgentTurn => ({
   toolDefinitions: [],
   toolHistory: [],
   nextToolRound: 1,
+  completionRequiresToolEvidence: false,
   channelConnectionId: uuids.connection,
   conversationId: uuids.conversation,
   triggerMessageId: uuids.trigger,
@@ -134,6 +135,7 @@ const emptyToolContextRow = {
   tool_definitions: [],
   tool_history: [],
   next_tool_round: 1,
+  completion_requires_tool_evidence: false,
 } as const;
 
 const isToolContextRequest = (request: IncomingMessage): boolean =>
@@ -584,6 +586,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
               },
             ],
             next_tool_round: 2,
+            completion_requires_tool_evidence: true,
           },
         ]);
         return;
@@ -627,6 +630,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
       },
     ]);
     expect(claimed?.nextToolRound).toBe(2);
+    expect(claimed?.completionRequiresToolEvidence).toBe(true);
   });
 
   it.each([
@@ -655,6 +659,7 @@ describe("WhatsApp AI Supabase RPC contract", () => {
                 },
               ],
               next_tool_round: 2,
+              completion_requires_tool_evidence: false,
             },
           ]);
           return;

@@ -94,6 +94,7 @@ export type ClaimedAgentTurn = Readonly<{
   toolDefinitions: readonly NativeToolDefinition[];
   toolHistory: readonly NativeToolExchange[];
   nextToolRound: number;
+  completionRequiresToolEvidence: boolean;
   channelConnectionId: string;
   conversationId: string;
   triggerMessageId: string;
@@ -686,6 +687,7 @@ export function createWhatsAppAiRpcClient(
           toolDefinitions: readToolDefinitions(toolRow),
           toolHistory: readToolHistory(toolRow),
           nextToolRound: readInteger(toolRow, "next_tool_round", 1),
+          completionRequiresToolEvidence: readBoolean(toolRow, "completion_requires_tool_evidence"),
         });
       });
     },

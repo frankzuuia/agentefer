@@ -66,6 +66,7 @@ const agentClaim = (): ClaimedAgentTurn => ({
   toolDefinitions: [],
   toolHistory: [],
   nextToolRound: 1,
+  completionRequiresToolEvidence: false,
   channelConnectionId: uuids.connection,
   conversationId: uuids.conversation,
   triggerMessageId: uuids.trigger,
@@ -198,6 +199,23 @@ const providerReturning = (value: CognitiveTurnResult): CognitiveProvider => ({
   executeTurn: () => Promise.resolve(value),
 });
 
+const providerReturningSequence = (
+  values: readonly CognitiveTurnResult[],
+  requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [],
+): CognitiveProvider => {
+  const pending = [...values];
+  return {
+    executeTurn: (request) => {
+      requests.push(request);
+      const value = pending.shift();
+      if (value === undefined) {
+        return Promise.reject(new Error("unexpected provider invocation"));
+      }
+      return Promise.resolve(value);
+    },
+  };
+};
+
 const createInput = (
   input: Readonly<{
     rpc: WhatsAppAiRpcClient;
@@ -299,6 +317,226 @@ describe("WhatsApp cognitive and outbox processor", () => {
     expect(rpc.evidence.outboxOutcomes).toMatchObject([
       { outcome: "succeeded", providerMessageId: "wamid.1" },
     ]);
+  });
+
+  it("discards an ungrounded owner answer and recovers through a native tool call", async () => {
+    const claim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      completionRequiresToolEvidence: true,
+      toolDefinitions: [
+        {
+          name: "catalog_ingestion_context",
+          description: "Recupera fotos y contexto real del catálogo.",
+          parameters: { type: "object", properties: {}, additionalProperties: false },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [claim] });
+    const observability = createObservabilityEvidence();
+    const requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [];
+    const providerState = {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call-grounding-1",
+          function: { name: "catalog_ingestion_context", arguments: "{}" },
+        },
+      ],
+    };
+    const provider = providerReturningSequence(
+      [
+        result("completed", "✅ Cambios aplicados"),
+        {
+          providerRequestId: "provider-request-grounding-2",
+          visibleText: "",
+          terminationReason: "tool_calls",
+          toolCalls: [
+            {
+              id: "call-grounding-1",
+              name: "catalog_ingestion_context",
+              argumentsJson: "{}",
+            },
+          ],
+          toolContinuationState: providerState,
+          metadataSafe: { total_tokens: 12 },
+        },
+      ],
+      requests,
+    );
+
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: rpc.client,
+        provider,
+        logger: observability.logger,
+        metrics: observability.metrics,
+      }),
+      new AbortController().signal,
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(requests[1]?.systemPrompt).toContain("Recuperación obligatoria de evidencia operativa");
+    expect(observability.warnings).toContainEqual({
+      event: "worker.whatsapp.ai.owner_tool_evidence_retry",
+      outcome: "observed",
+      attributes: {
+        organization_id: uuids.organization,
+        agent_run_id: uuids.run,
+        provider: "minimax",
+        model: "MiniMax-M3",
+      },
+    });
+    expect(observability.completed).toContainEqual(
+      expect.objectContaining({ operation: "whatsapp.ai.turn", outcome: "succeeded" }),
+    );
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(rpc.evidence.agentFailures).toEqual([]);
+    expect(rpc.evidence.toolExecutions).toMatchObject([
+      {
+        providerRequestId: "provider-request-grounding-2",
+        providerToolCallId: "call-grounding-1",
+        toolName: "catalog_ingestion_context",
+        argumentsSafe: {},
+      },
+    ]);
+  });
+
+  it("executes a first-attempt owner tool call without an unnecessary provider retry", async () => {
+    const claim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      completionRequiresToolEvidence: true,
+      toolDefinitions: [
+        {
+          name: "catalog_manage_context",
+          description: "Consulta el catálogo real.",
+          parameters: { type: "object", properties: {}, additionalProperties: false },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [claim] });
+    const requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [];
+    const providerState = {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          id: "call-direct-1",
+          function: { name: "catalog_manage_context", arguments: "{}" },
+        },
+      ],
+    };
+
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: rpc.client,
+        provider: providerReturningSequence(
+          [
+            {
+              providerRequestId: "provider-request-direct-1",
+              visibleText: "",
+              terminationReason: "tool_calls",
+              toolCalls: [
+                {
+                  id: "call-direct-1",
+                  name: "catalog_manage_context",
+                  argumentsJson: "{}",
+                },
+              ],
+              toolContinuationState: providerState,
+              metadataSafe: { total_tokens: 8 },
+            },
+          ],
+          requests,
+        ),
+      }),
+      new AbortController().signal,
+    );
+
+    expect(requests).toHaveLength(1);
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(rpc.evidence.agentFailures).toEqual([]);
+    expect(rpc.evidence.toolExecutions).toMatchObject([
+      {
+        providerRequestId: "provider-request-direct-1",
+        providerToolCallId: "call-direct-1",
+        toolName: "catalog_manage_context",
+      },
+    ]);
+  });
+
+  it("fails safely when an owner answer ignores the tool-evidence recovery", async () => {
+    const claim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      completionRequiresToolEvidence: true,
+      toolDefinitions: [
+        {
+          name: "catalog_manage_context",
+          description: "Consulta el catálogo real.",
+          parameters: { type: "object", properties: {}, additionalProperties: false },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [claim] });
+    const requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [];
+
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: rpc.client,
+        provider: providerReturningSequence(
+          [result("completed", "✅ Ya quedó"), result("completed", "✅ Ya quedó, ahora sí")],
+          requests,
+        ),
+      }),
+      new AbortController().signal,
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(rpc.evidence.completed).toEqual([]);
+    expect(rpc.evidence.toolExecutions).toEqual([]);
+    expect(rpc.evidence.agentFailures).toMatchObject([
+      {
+        errorCode: "provider_owner_tool_evidence_required",
+        disposition: "retry_provider",
+        terminationReason: "provider_error",
+      },
+    ]);
+  });
+
+  it("allows an owner turn to finish after durable tool history exists", async () => {
+    const claim: ClaimedAgentTurn = {
+      ...agentClaim(),
+      completionRequiresToolEvidence: true,
+      toolHistory: [
+        {
+          provider: "minimax",
+          providerState: { role: "assistant", tool_calls: [] },
+          call: {
+            id: "call-applied-1",
+            name: "catalog_edit_offer",
+            argumentsJson: '{"operation":"add_photo"}',
+          },
+          result: { ok: true, productMediaId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" },
+        },
+      ],
+    };
+    const rpc = createRpcContract({ turns: [claim] });
+    const requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [];
+
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: rpc.client,
+        provider: providerReturningSequence(
+          [result("completed", "Foto agregada con evidencia real")],
+          requests,
+        ),
+      }),
+      new AbortController().signal,
+    );
+
+    expect(requests).toHaveLength(1);
+    expect(rpc.evidence.completed).toEqual(["Foto agregada con evidencia real"]);
+    expect(rpc.evidence.agentFailures).toEqual([]);
   });
 
   it("attaches a short-lived verified WebP URL to an image turn", async () => {
