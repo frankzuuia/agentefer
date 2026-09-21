@@ -152,6 +152,7 @@ export const workerEnvironmentVariables = [
   "WORKER_META_RETRY_DELAY_SECONDS",
   "WORKER_META_BATCH_SIZE",
   "WORKER_WHATSAPP_AI_ENABLED",
+  "WORKER_ADMIN_CATALOG_IMAGE_ENABLED",
   "WORKER_FACEBOOK_PUBLICATION_ENABLED",
   "SUPABASE_URL",
   "SUPABASE_PROJECT_REF",
@@ -217,6 +218,7 @@ const workerEnvironmentSchema = z
       "must not exceed 100 items",
     ),
     WORKER_WHATSAPP_AI_ENABLED: defaultedBoolean(true),
+    WORKER_ADMIN_CATALOG_IMAGE_ENABLED: defaultedBoolean(true),
     WORKER_FACEBOOK_PUBLICATION_ENABLED: defaultedBoolean(false),
     SUPABASE_URL: httpUrlSchema,
     SUPABASE_PROJECT_REF: supabaseProjectRefSchema,
@@ -339,6 +341,9 @@ const workerEnvironmentSchema = z
         maxAttempts: environment.WORKER_META_MAX_ATTEMPTS,
         retryDelaySeconds: environment.WORKER_META_RETRY_DELAY_SECONDS,
         batchSize: environment.WORKER_META_BATCH_SIZE,
+      },
+      adminCatalogImageUpload: {
+        enabled: environment.WORKER_ADMIN_CATALOG_IMAGE_ENABLED,
       },
       facebookPublication: {
         enabled: environment.WORKER_FACEBOOK_PUBLICATION_ENABLED,

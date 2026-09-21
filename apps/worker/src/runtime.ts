@@ -53,7 +53,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
   let whatsappAiOperational = !configuration.whatsappAi.enabled;
   let facebookPublicationOperational = !configuration.facebookPublication.enabled;
   let publicationNotificationOperational = !configuration.facebookPublication.enabled;
-  let adminCatalogImageUploadOperational = true;
+  let adminCatalogImageUploadOperational = !configuration.adminCatalogImageUpload.enabled;
   const synchronizeReadiness = (): void => {
     if (
       metaInboundOperational &&
@@ -199,31 +199,33 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
         },
       })
     : undefined;
-  const adminCatalogImageUploadProcessor = createAdminCatalogImageUploadProcessor({
-    configuration: {
-      workerId: `admin-catalog-image-${randomUUID()}`,
-      pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
-      maximumIdlePollIntervalMilliseconds:
-        configuration.whatsappAi.maximumIdlePollIntervalMilliseconds,
-      idleBackoffJitterPercent: configuration.whatsappAi.idleBackoffJitterPercent,
-      leaseSeconds: configuration.whatsappAi.leaseSeconds,
-      maxAttempts: configuration.whatsappAi.maxAttempts,
-      retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
-      batchSize: configuration.whatsappAi.batchSize,
-    },
-    rpcClient: createAdminCatalogImageUploadRpcClient({
-      supabaseUrl: configuration.supabase.url,
-      secretKey: configuration.supabase.secretKey,
-      timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
-    }),
-    storageClient: mediaStorageClient,
-    logger,
-    metrics,
-    onOperationalStateChange(operational) {
-      adminCatalogImageUploadOperational = operational;
-      synchronizeReadiness();
-    },
-  });
+  const adminCatalogImageUploadProcessor = configuration.adminCatalogImageUpload.enabled
+    ? createAdminCatalogImageUploadProcessor({
+        configuration: {
+          workerId: `admin-catalog-image-${randomUUID()}`,
+          pollIntervalMilliseconds: configuration.whatsappAi.pollIntervalMilliseconds,
+          maximumIdlePollIntervalMilliseconds:
+            configuration.whatsappAi.maximumIdlePollIntervalMilliseconds,
+          idleBackoffJitterPercent: configuration.whatsappAi.idleBackoffJitterPercent,
+          leaseSeconds: configuration.whatsappAi.leaseSeconds,
+          maxAttempts: configuration.whatsappAi.maxAttempts,
+          retryDelaySeconds: configuration.whatsappAi.retryDelaySeconds,
+          batchSize: configuration.whatsappAi.batchSize,
+        },
+        rpcClient: createAdminCatalogImageUploadRpcClient({
+          supabaseUrl: configuration.supabase.url,
+          secretKey: configuration.supabase.secretKey,
+          timeoutMilliseconds: configuration.whatsappAi.rpcTimeoutMilliseconds,
+        }),
+        storageClient: mediaStorageClient,
+        logger,
+        metrics,
+        onOperationalStateChange(operational) {
+          adminCatalogImageUploadOperational = operational;
+          synchronizeReadiness();
+        },
+      })
+    : undefined;
 
   const whatsappAiProcessor = configuration.whatsappAi.enabled
     ? createWhatsAppAiProcessor({
@@ -325,6 +327,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       readiness.markNotReady();
       logger.info("worker.shutdown.started", "started", { signal });
       await whatsappAiProcessor?.stop();
+      await adminCatalogImageUploadProcessor?.stop();
       await publicationNotificationProcessor?.stop();
       await facebookPublicationProcessor?.stop();
       await catalogStorefrontProcessor?.stop();
@@ -347,7 +350,10 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       catalogStorefrontProcessor === undefined ? true : await catalogStorefrontProcessor.start();
     whatsappAiOperational =
       whatsappAiProcessor === undefined ? true : await whatsappAiProcessor.start();
-    adminCatalogImageUploadOperational = await adminCatalogImageUploadProcessor.start();
+    adminCatalogImageUploadOperational =
+      adminCatalogImageUploadProcessor === undefined
+        ? true
+        : await adminCatalogImageUploadProcessor.start();
     facebookPublicationOperational =
       facebookPublicationProcessor === undefined
         ? true
@@ -367,6 +373,8 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
       catalog_storefront_operational: catalogStorefrontOperational,
       whatsapp_ai_enabled: configuration.whatsappAi.enabled,
       whatsapp_ai_operational: whatsappAiOperational,
+      admin_catalog_image_upload_enabled: adminCatalogImageUploadProcessor !== undefined,
+      admin_catalog_image_upload_operational: adminCatalogImageUploadOperational,
       facebook_publication_enabled: configuration.facebookPublication.enabled,
       facebook_publication_operational: facebookPublicationOperational,
       publication_notification_operational: publicationNotificationOperational,
@@ -377,6 +385,7 @@ export async function startWorker(environment: RawEnvironment): Promise<WorkerRu
     readiness.markNotReady();
     logger.error("worker.runtime.start_failed", error);
     await whatsappAiProcessor?.stop();
+    await adminCatalogImageUploadProcessor?.stop();
     await publicationNotificationProcessor?.stop();
     await facebookPublicationProcessor?.stop();
     await catalogStorefrontProcessor?.stop();

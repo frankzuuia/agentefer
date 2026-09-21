@@ -4,9 +4,7 @@ import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  buildLinkedMigrationPgtapCollector,
-} from "../packages/database/dist/linked-pgtap.js";
+import { buildLinkedMigrationPgtapCollector } from "../packages/database/dist/linked-pgtap.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const npmExecutable = process.env.npm_execpath;

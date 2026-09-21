@@ -214,6 +214,7 @@ describe("worker environment", () => {
       retryDelaySeconds: 5,
       batchSize: 25,
     });
+    expect(configuration.adminCatalogImageUpload).toEqual({ enabled: true });
     expect(configuration.facebookPublication).toEqual({
       enabled: false,
       rpcTimeoutMilliseconds: 5_000,
@@ -369,6 +370,7 @@ describe("worker environment", () => {
       ...validWorkerEnvironment(),
       WORKER_META_INBOUND_ENABLED: "false",
       WORKER_WHATSAPP_AI_ENABLED: "false",
+      WORKER_ADMIN_CATALOG_IMAGE_ENABLED: "false",
       WORKER_META_RPC_TIMEOUT_MS: "250",
       WORKER_META_POLL_INTERVAL_MS: "100",
       WORKER_META_LEASE_SECONDS: "15",
@@ -389,6 +391,7 @@ describe("worker environment", () => {
       batchSize: 100,
     });
     expect(configuration.whatsappAi.enabled).toBe(false);
+    expect(configuration.adminCatalogImageUpload.enabled).toBe(false);
   });
 
   it("applies independently bounded adaptive idle backoff controls", () => {
