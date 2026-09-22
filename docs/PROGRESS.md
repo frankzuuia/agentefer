@@ -4,6 +4,18 @@ Estado histórico del bloque inicial: Bloque 1 y B2-001–B2-009 completos y cer
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
+## B3-006T — recuperación de respuesta administrativa (2026-09-21)
+
+Evidencia: [QA B3-006T](quality/B3-006T-OWNER-TOOL-EVIDENCE-QA.md) y
+[investigación del proveedor](references/REQUIRED-TOOL-CHOICE-B3-006T-RESEARCH.md).
+
+- [x] Causa raíz demostrada en dos runs reales: ocho intentos sin tool call y cierre fallido.
+- [x] Selección obligatoria limitada al primer paso protegido, sin clasificar intención por texto.
+- [x] Adaptadores, regresión, cobertura y mutación focalizada verificados localmente.
+- [ ] Commit y push a `develop`.
+- [ ] Despliegue exclusivo de `agente-fer/worker`.
+- [ ] E2E WhatsApp real: tool execution, outbox y entrega posterior al despliegue.
+
 ## B3-006A — alta conversacional (bloque aprobado 2026-09-07)
 
 Especificación: [B3-006A](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).

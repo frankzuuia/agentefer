@@ -297,10 +297,11 @@ const createObservabilityEvidence = (): Readonly<{
 describe("WhatsApp cognitive and outbox processor", () => {
   it("persists visible provider output and sends the resulting outbox", async () => {
     const rpc = createRpcContract({ turns: [agentClaim()], outbox: [outboxClaim()] });
+    const requests: Parameters<CognitiveProvider["executeTurn"]>[0][] = [];
     const cycle = await drainWhatsAppAiOnce(
       createInput({
         rpc: rpc.client,
-        provider: providerReturning(result("completed", "  Hola  ")),
+        provider: providerReturningSequence([result("completed", "  Hola  ")], requests),
       }),
       new AbortController().signal,
     );
@@ -311,6 +312,8 @@ describe("WhatsApp cognitive and outbox processor", () => {
       turnCount: 1,
       outboxCount: 1,
     });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.toolChoice).toBeUndefined();
     expect(rpc.evidence.recoveryCalls).toBe(1);
     expect(rpc.evidence.preparationCalls).toBe(1);
     expect(rpc.evidence.completed).toEqual(["Hola"]);
@@ -376,6 +379,8 @@ describe("WhatsApp cognitive and outbox processor", () => {
     );
 
     expect(requests).toHaveLength(2);
+    expect(requests[0]?.toolChoice).toBe("required");
+    expect(requests[1]?.toolChoice).toBe("required");
     expect(requests[1]?.systemPrompt).toContain("Recuperación obligatoria de evidencia operativa");
     expect(observability.warnings).toContainEqual({
       event: "worker.whatsapp.ai.owner_tool_evidence_retry",
@@ -454,6 +459,7 @@ describe("WhatsApp cognitive and outbox processor", () => {
     );
 
     expect(requests).toHaveLength(1);
+    expect(requests[0]?.toolChoice).toBe("required");
     expect(rpc.evidence.completed).toEqual([]);
     expect(rpc.evidence.agentFailures).toEqual([]);
     expect(rpc.evidence.toolExecutions).toMatchObject([
@@ -492,6 +498,7 @@ describe("WhatsApp cognitive and outbox processor", () => {
     );
 
     expect(requests).toHaveLength(2);
+    expect(requests.every((request) => request.toolChoice === "required")).toBe(true);
     expect(rpc.evidence.completed).toEqual([]);
     expect(rpc.evidence.toolExecutions).toEqual([]);
     expect(rpc.evidence.agentFailures).toMatchObject([
@@ -535,6 +542,7 @@ describe("WhatsApp cognitive and outbox processor", () => {
     );
 
     expect(requests).toHaveLength(1);
+    expect(requests[0]?.toolChoice).toBeUndefined();
     expect(rpc.evidence.completed).toEqual(["Foto agregada con evidencia real"]);
     expect(rpc.evidence.agentFailures).toEqual([]);
   });

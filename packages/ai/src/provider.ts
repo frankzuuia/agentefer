@@ -29,6 +29,7 @@ export type CognitiveTurnRequest = Readonly<{
   toolHistory?: readonly NativeToolExchange[];
   reasoningEffort?: string;
   tools?: readonly NativeToolDefinition[];
+  toolChoice?: "required";
   signal?: AbortSignal;
 }>;
 
@@ -602,6 +603,9 @@ export const createOpenAiProvider = (credentials: ProviderCredentials): Cognitiv
       if (tools.length > 0) {
         body.tools = toolDefinitionsForOpenAi(tools);
         body.parallel_tool_calls = false;
+        if (request.toolChoice === "required") {
+          body.tool_choice = "required";
+        }
       }
 
       return parseOpenAiResponse(
@@ -671,6 +675,9 @@ export const createMiniMaxProvider = (credentials: ProviderCredentials): Cogniti
       };
       if (tools.length > 0) {
         body.tools = toolDefinitionsForChatCompletions(tools);
+        if (request.toolChoice === "required") {
+          body.tool_choice = "required";
+        }
       }
 
       return parseMiniMaxResponse(

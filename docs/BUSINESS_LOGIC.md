@@ -314,6 +314,22 @@ no la convierte automáticamente en principal y nunca publica en Facebook sin un
 - Auditoría: comando, versión, resultado, excepción y aprobador.
 - Validación: requisito sin tarea, prueba fallida, secreto detectado, migración insegura y rollback no probado.
 
+### Addendum BL-025-T: primer paso verificable de un turno administrativo
+
+**Regla →** Un mensaje del dueño que dispone de herramientas administrativas no puede terminar
+como éxito operativo sin una llamada nativa auditada; una conversación informativa sí debe poder
+responder después de una herramienta de lectura pertinente. La selección de herramienta la hace el
+LLM, no un clasificador de frases en el backend.  
+**Dirección técnica →** Solicitar `tool_choice=required` únicamente antes de la primera herramienta
+cuando la política y el contexto del run exigen evidencia. Mantener la barrera durable de PostgreSQL
+y permitir finalización normal después de que exista historial de herramientas.
+
+- Actor: dueño verificado, agente, worker y proveedor cognitivo.
+- Datos: run, política, herramientas elegibles, intentos y ejecuciones auditadas.
+- Permiso: las definiciones provienen solo de la política activa del tenant y sus roles.
+- Auditoría: provider request, herramienta, resultado, reintento y estado terminal del run.
+- Validación: saludo, lectura, edición, cero herramientas, proveedor que ignora `required`, cliente.
+
 ## Auditoría de cobertura inicial
 
 - Requisitos cubiertos directamente: RQ-001 a RQ-110.

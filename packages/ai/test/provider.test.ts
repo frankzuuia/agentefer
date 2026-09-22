@@ -79,6 +79,35 @@ afterEach(async () => {
 });
 
 describe("OpenAI Responses adapter", () => {
+  it("keeps automatic tool selection when a turn does not require evidence", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "resp_optional_tool",
+        status: "completed",
+        output: [{ type: "message", content: [{ type: "output_text", text: "Hola" }] }],
+      });
+    });
+
+    await createOpenAiProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "gpt-test",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+      tools: [
+        {
+          name: "catalog_search",
+          description: "Consulta el catálogo.",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+    });
+
+    expect(capturedBody).toHaveProperty("tools");
+    expect(capturedBody).not.toHaveProperty("tool_choice");
+  });
+
   it("sends the exact model and native tools without imposing an output cap", async () => {
     let capturedBody: unknown;
     let capturedAuthorization: string | undefined;
@@ -107,6 +136,7 @@ describe("OpenAI Responses adapter", () => {
       conversation,
       continuationParts: [],
       reasoningEffort: "medium",
+      toolChoice: "required",
       tools: [
         {
           name: "catalog_search",
@@ -139,6 +169,7 @@ describe("OpenAI Responses adapter", () => {
         },
       ],
       parallel_tool_calls: false,
+      tool_choice: "required",
     });
     expect(capturedBody).not.toHaveProperty("max_output_tokens");
     expect(result).toEqual({
@@ -641,6 +672,54 @@ describe("OpenAI Responses adapter", () => {
 });
 
 describe("MiniMax OpenAI-compatible adapter", () => {
+  it("passes through the live-verified required tool choice for a protected turn", async () => {
+    let capturedBody: unknown;
+    const server = await startServer(async (request, response) => {
+      capturedBody = await readRequestJson(request);
+      respondJson(response, 200, {
+        id: "minimax_required_tool",
+        choices: [
+          {
+            finish_reason: "tool_calls",
+            message: {
+              content: "",
+              tool_calls: [
+                {
+                  id: "call_context",
+                  type: "function",
+                  function: { name: "catalog_manage_context", arguments: "{}" },
+                },
+              ],
+            },
+          },
+        ],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Usa una herramienta.",
+      conversation,
+      continuationParts: [],
+      toolChoice: "required",
+      tools: [
+        {
+          name: "catalog_manage_context",
+          description: "Consulta el catálogo real.",
+          parameters: { type: "object", properties: {}, additionalProperties: false },
+        },
+      ],
+    });
+
+    expect(capturedBody).toMatchObject({
+      model: "MiniMax-M3",
+      tool_choice: "required",
+      tools: [{ type: "function", function: { name: "catalog_manage_context" } }],
+    });
+    expect(result.terminationReason).toBe("tool_calls");
+    expect(result.toolCalls).toMatchObject([{ name: "catalog_manage_context" }]);
+  });
+
   it("preserves the exact model and continuation context", async () => {
     let capturedBody: unknown;
     const server = await startServer(async (request, response) => {

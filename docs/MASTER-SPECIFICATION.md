@@ -438,6 +438,48 @@ Especificación, escenarios A01–A20, contratos, límites y validación:
 [Alta conversacional persistente](architecture/CONVERSATIONAL-CATALOG-B3-006A.md).
 Reutiliza BL-002/008/009/010/011/019/020/025. Construir no implica aplicar ni desplegar.
 
+## Addendum B3-006T — recuperación de tool calling administrativo
+
+### Requirements Covered
+
+BL-022 y BL-025-T. Corrige la regresión observada en dos runs `member` reales que
+terminaron `failed` tras ocho intentos sin llamadas a herramientas.
+
+### Scenario Matrix
+
+| Escenario | Actor y disparador | Datos y herramientas | Resultado y auditoría | Falla y recuperación |
+| --- | --- | --- | --- | --- |
+| T01 | Dueño saluda | Policy y tool de lectura autorizado | Primera respuesta solicita tool; tras resultado puede contestar | Si el proveedor omite la tool, se descarta el texto sin evidencia |
+| T02 | Dueño pide foto en dos productos | Contexto, dos `catalog_edit_offer`, executions | Confirmación solo por resultados persistidos; sin Facebook implícito | Resultado parcial se comunica como parcial, no como éxito total |
+| T03 | Cliente consulta catálogo | Tools de cliente únicamente | Respuesta normal y auditoría del run | No se fuerzan tools administrativas |
+| T04 | Policy exige evidencia pero no hay tools elegibles | Run y policy | No se afirma efecto alguno | Falla cerrada; revisar política y autorización |
+| T05 | MiniMax ignora `required` | Intentos y metadatos de proveedor | No sale la respuesta inventada | Recuperación controlada; incidente observable |
+
+### Data Flow / Permissions / Security
+
+`api.get_agent_turn_tool_context` calcula el bit de evidencia y las tools elegibles con permisos
+por organización. El worker agrega `tool_choice=required` solo al primer intento sin historial
+cuando hay al menos una herramienta autorizada. El adaptador transmite esa opción sin alterar
+argumentos, URLs ni secretos. `api.complete_whatsapp_agent_turn` continúa rechazando una
+finalización administrativa sin una ejecución terminal durable del mismo run.
+
+### Integrations / Costs / Limits
+
+MiniMax Chat Completions con `MiniMax-M3`. Su documentación pública describe `tools`, pero no
+enumera `required` en el esquema de esa ruta; una prueba real y acotada del endpoint del servicio
+AgenteFer devolvió HTTP 200 y `finish_reason=tool_calls` con `tool_choice=required` el 2026-09-21.
+Se conserva el reintento existente si el proveedor llega a ignorar esa opción. No hay nuevo
+límite de salida ni llamadas de sondeo a Supabase.
+
+### Recovery / Rollback / Validation
+
+Rollback del worker por commit previo si el proveedor cambia de contrato; la barrera SQL queda
+intacta. Validar saludos, ediciones, fallos, autorización, tool history, cobertura, mutation testing
+y E2E real con un nuevo mensaje. No declarar E2E verde solo por la prueba aislada del proveedor.
+
+**Veredicto forense:** GREEN LIGHT para el cambio acotado en worker/adaptador; la prueba
+WhatsApp end-to-end posterior al despliegue sigue siendo una puerta abierta.
+
 ## Addendum CE — administración del catálogo
 
 Reglas CE-01 a CE-06, escenarios CE-A01 a CE-A09, autorización, datos, fallas y validación:

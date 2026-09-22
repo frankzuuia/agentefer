@@ -97,3 +97,24 @@ Feature: B3-006A Owner creates a catalog through conversation
     And one authorized photo mutation is executed and audited for each product
     And the agent reports each real result only after both tool executions finish
     And no Facebook publication is enqueued
+
+  Scenario: B3-006T A protected owner turn requests a native tool before any answer
+    Given a verified owner sends a greeting or a catalog question
+    And the active policy requires durable tool evidence
+    When the worker asks MiniMax for the first turn response
+    Then it requests native tool choice required with the authorized tools
+    And a read-only tool result permits a grounded informational answer
+    And the worker does not repeat the previous eight-attempt no-tool loop
+
+  Scenario: B3-006T An owner mutation remains blocked if the provider ignores required tool choice
+    Given a verified owner asks to add a photo to two active products
+    When the provider returns only a success claim without tool calls
+    Then the worker discards the ungrounded claim
+    And the database rejects completion without a terminal audited tool execution
+    And no false catalog or Facebook success is sent
+
+  Scenario: B3-006T A customer conversation keeps automatic tool selection
+    Given a customer asks about a product
+    When the worker requests an answer
+    Then it does not force an owner administrative tool
+    And the customer cannot call owner-only catalog mutations

@@ -352,6 +352,11 @@ const processAgentTurn = async (
       ...(claim.reasoningEffort === undefined ? {} : { reasoningEffort: claim.reasoningEffort }),
       tools: claim.toolDefinitions,
       toolHistory: claim.toolHistory,
+      ...(claim.completionRequiresToolEvidence &&
+      claim.toolHistory.length === 0 &&
+      claim.toolDefinitions.length > 0
+        ? { toolChoice: "required" as const }
+        : {}),
       signal: turnSignal,
     } as const;
     let result = await provider.executeTurn(request);
