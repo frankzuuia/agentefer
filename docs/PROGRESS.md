@@ -12,8 +12,8 @@ Evidencia: [QA B3-006T](quality/B3-006T-OWNER-TOOL-EVIDENCE-QA.md) y
 - [x] Causa raíz demostrada en dos runs reales: ocho intentos sin tool call y cierre fallido.
 - [x] Selección obligatoria limitada al primer paso protegido, sin clasificar intención por texto.
 - [x] Adaptadores, regresión, cobertura y mutación focalizada verificados localmente.
-- [ ] Commit y push a `develop`.
-- [ ] Despliegue exclusivo de `agente-fer/worker`.
+- [x] Commit `b077f88080ccf592d55e4fe47960456dbcaec78c` y push a `develop`.
+- [x] Despliegue exclusivo de `agente-fer/worker`; una réplica activa sobre el mismo commit.
 - [ ] E2E WhatsApp real: tool execution, outbox y entrega posterior al despliegue.
 
 ## B3-006A — alta conversacional (bloque aprobado 2026-09-07)

@@ -39,3 +39,13 @@ tool calls; el worker descartaba correctamente ese texto y por eso WhatsApp qued
 
 La reparación no queda certificada end-to-end hasta observar un mensaje real posterior al
 despliegue con una herramienta autorizada, respuesta en outbox y entrega confirmada por WhatsApp.
+
+## Evidencia de despliegue
+
+- Commit de código: `b077f88080ccf592d55e4fe47960456dbcaec78c` en `develop`.
+- Recurso único intervenido: proyecto `agente-fer`, servicio `worker`.
+- EasyPanel resolvió source y etiqueta de despliegue al mismo SHA completo, con `actual=1` y
+  `desired=1`; el runtime emitió `worker.runtime.started`.
+- Incidente controlado: una primera etiqueta corta de siete caracteres incumplió el contrato de
+  configuración y produjo `worker.bootstrap.failed`. Se corrigió inmediatamente al SHA completo y
+  se verificó el arranque. No se modificaron API, base de datos ni otros proyectos.
