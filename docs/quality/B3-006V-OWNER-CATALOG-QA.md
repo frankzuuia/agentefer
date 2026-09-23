@@ -24,6 +24,7 @@ Fecha: 2026-09-22. Proyecto autorizado: AgenteFer; rama `develop`.
 | Regresión panel/agente | `npx vitest run apps/api/test/admin-catalog-routes.test.ts apps/worker/test/whatsapp-ai-processor.test.ts --maxWorkers=2`: 69/69 |
 | Suite TypeScript con cobertura | `npm run test:coverage`: 1,276/1,276; líneas 90.44%, ramas 86.21% |
 | Base vinculada | `npm run test:database:linked:rehearsal -- supabase/migrations/20260922210000_b3_006v_owner_catalog_activation.sql supabase/tests/b3_006a_conversational_catalog_test.sql`: 110/110, rollback |
+| Postflight instalado | `npm run test:database:linked:b3-006a -- postflight`: 110/110, rollback; historial remoto `20260922210000` aplicado |
 | Regresión editor anterior | Mismo ensayo con `supabase/tests/b3_006f_catalog_owner_edit_test.sql`: 24/24, rollback |
 | Mutación crítica | `npm run test:database:linked:b3-006v-mutations`: base 110/110, 2/2 mutantes detectados por fallos pgTAP, rollback |
 | Contratos | `npm run verify:database-contract`: 61 migraciones; `npm run verify:acceptance-contract`: 434 escenarios, 0 errores |
@@ -38,4 +39,9 @@ El dueño, no el agente de desarrollo, enviará la próxima foto y orden por Wha
 
 ## Despliegue
 
-Pendiente de autorización de excepción para E2E dirigido por el dueño. Aplicar sólo la migración AgenteFer y desplegar únicamente `agente-fer/api` (panel) y `agente-fer/worker` (observabilidad), después de commit/push en `develop`.
+El dueño autorizó la excepción documentada: despliegue antes de su prueba real de WhatsApp.
+Commit `f5eecc8d4f1f1c0d66c5feeda8728826f4f65457` subido sólo a `develop`.
+Migración B3-006V aplicada únicamente al Supabase vinculado `AgenteFer`; registro local/remoto coincide.
+EasyPanel: sólo `agente-fer/api` y `agente-fer/worker`, ambos con build `Success`, commit correcto y 1/1 réplica.
+API pública: `/health/ready` 200; `/admin/catalog` 200; `app.js` ya no contiene tarjeta de Borradores.
+No se cambió `main`, otro proyecto, otra organización ni los tres productos reales.
