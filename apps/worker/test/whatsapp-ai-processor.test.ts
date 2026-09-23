@@ -272,16 +272,19 @@ const createObservabilityEvidence = (): Readonly<{
   metrics: OperationalMetrics;
   started: string[];
   completed: CompletedOperation[];
+  infos: Readonly<Record<string, unknown>>[];
   warnings: Readonly<Record<string, unknown>>[];
   errors: Readonly<Record<string, unknown>>[];
 }> => {
   const started: string[] = [];
   const completed: CompletedOperation[] = [];
+  const infos: Readonly<Record<string, unknown>>[] = [];
   const warnings: Readonly<Record<string, unknown>>[] = [];
   const errors: Readonly<Record<string, unknown>>[] = [];
   return Object.freeze({
     started,
     completed,
+    infos,
     warnings,
     errors,
     metrics: Object.freeze({
@@ -290,7 +293,8 @@ const createObservabilityEvidence = (): Readonly<{
     }),
     logger: Object.freeze({
       debug: () => undefined,
-      info: () => undefined,
+      info: (event: string, outcome: LogOutcome = "observed", attributes: LogAttributes = {}) =>
+        infos.push({ event, outcome, attributes }),
       warn: (event: string, outcome: LogOutcome = "observed", attributes: LogAttributes = {}) =>
         warnings.push({ event, outcome, attributes }),
       error: (event: string, _error: unknown, attributes: LogAttributes = {}) =>
@@ -387,6 +391,9 @@ describe("WhatsApp cognitive and outbox processor", () => {
     expect(requests[0]?.toolChoice).toBe("required");
     expect(requests[1]?.toolChoice).toBe("required");
     expect(requests[1]?.systemPrompt).toContain("Recuperación obligatoria de evidencia operativa");
+    expect(requests[1]?.systemPrompt).toContain(
+      "Si una herramienta permite varias ediciones en una sola llamada, úsala",
+    );
     expect(observability.warnings).toContainEqual({
       event: "worker.whatsapp.ai.owner_tool_evidence_retry",
       outcome: "observed",
@@ -400,6 +407,25 @@ describe("WhatsApp cognitive and outbox processor", () => {
     expect(observability.completed).toContainEqual(
       expect.objectContaining({ operation: "whatsapp.ai.turn", outcome: "succeeded" }),
     );
+    const completedTurn = observability.infos.find(
+      (entry) => entry.event === "worker.whatsapp.ai.turn_completed",
+    );
+    expect(completedTurn?.outcome).toBe("succeeded");
+    const attributes = completedTurn?.attributes as Record<string, unknown> | undefined;
+    expect(attributes?.organization_id).toBe(uuids.organization);
+    expect(attributes?.agent_run_id).toBe(uuids.run);
+    expect(attributes?.provider_request_count).toBe(2);
+    expect(attributes?.attempt_number).toBe(1);
+    expect(attributes?.tool_round).toBe(1);
+    const providerDuration = attributes?.provider_duration_ms;
+    const turnDuration = attributes?.duration_ms;
+    expect(typeof providerDuration).toBe("number");
+    expect(typeof turnDuration).toBe("number");
+    if (typeof providerDuration !== "number" || typeof turnDuration !== "number") {
+      throw new Error("completed turn timings must be numeric");
+    }
+    expect(providerDuration).toBeGreaterThanOrEqual(0);
+    expect(turnDuration).toBeGreaterThanOrEqual(providerDuration);
     expect(rpc.evidence.completed).toEqual([]);
     expect(rpc.evidence.agentFailures).toEqual([]);
     expect(rpc.evidence.toolExecutions).toMatchObject([

@@ -213,8 +213,9 @@ const OWNER_TOOL_EVIDENCE_RECOVERY_INSTRUCTION = `
 La respuesta anterior de este mismo intento fue descartada antes de enviarse porque intentó
 finalizar un turno administrativo sin usar ninguna herramienta. No repitas esa respuesta.
 Antes de emitir texto visible debes llamar al menos una herramienta autorizada y basarte en su
-resultado real. Si el dueño pidió una mutación, ejecuta todas las mutaciones solicitadas, una por
-ronda, y sólo afirma éxito para las que la herramienta confirmó. Si no pidió una mutación, usa una
+resultado real. Si el dueño pidió cambios, ejecuta todas las ediciones solicitadas.
+Si una herramienta permite varias ediciones en una sola llamada, úsala y verifica cada
+resultado. Sólo afirma éxito para las ediciones que la herramienta confirmó. Si no pidió cambios, usa una
 herramienta de lectura pertinente para fundamentar la respuesta. No inventes IDs ni resultados.
 `;
 
@@ -359,7 +360,9 @@ const processAgentTurn = async (
         : {}),
       signal: turnSignal,
     } as const;
+    const providerStartedAt = performance.now();
     let result = await provider.executeTurn(request);
+    let providerRequestCount = 1;
     if (
       claim.completionRequiresToolEvidence &&
       claim.toolHistory.length === 0 &&
@@ -375,6 +378,7 @@ const processAgentTurn = async (
         ...request,
         systemPrompt: `${claim.systemPrompt}${OWNER_TOOL_EVIDENCE_RECOVERY_INSTRUCTION}`,
       });
+      providerRequestCount += 1;
       if (result.terminationReason === "completed") {
         await settleTurnFailure(
           input,
@@ -400,6 +404,11 @@ const processAgentTurn = async (
       provider: claim.provider,
       model: claim.model,
       termination_reason: result.terminationReason,
+      attempt_number: claim.attemptNumber,
+      tool_round: claim.nextToolRound,
+      provider_request_count: providerRequestCount,
+      provider_duration_ms: Math.round(elapsedMilliseconds(providerStartedAt)),
+      duration_ms: Math.round(elapsedMilliseconds(startedAt)),
     });
   } catch (error) {
     recordFailure(input, operation, startedAt, error);
@@ -409,6 +418,8 @@ const processAgentTurn = async (
       provider: claim.provider,
       model: claim.model,
       attempt_number: claim.attemptNumber,
+      tool_round: claim.nextToolRound,
+      duration_ms: Math.round(elapsedMilliseconds(startedAt)),
       ...rpcFailureAttributes(error),
     });
     if (processorSignal.aborted) {

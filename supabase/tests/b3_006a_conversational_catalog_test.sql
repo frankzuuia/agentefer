@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(110);
+select extensions.plan(145);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -562,7 +562,7 @@ select * from api.get_agent_turn_tool_context(
 
 select extensions.is(
   (select jsonb_array_length(tool_definitions) from pg_temp.b306_tool_context),
-  16,
+  17,
   'the owner receives the complete current commercial and administrative tool set'
 );
 select extensions.is(
@@ -582,6 +582,9 @@ select extensions.ok(
   'the verified owner run freezes an enforced member snapshot lane'
 );
 
+set local role postgres;
+set local role service_role;
+
 select pg_temp.throws_sqlstate(
   $$select api.complete_whatsapp_agent_turn(
     (select organization_id from pg_temp.b306_turn_claims),
@@ -595,6 +598,17 @@ select pg_temp.throws_sqlstate(
   '23514',
   'the database rejects an owner success answer without a native tool execution'
 );
+
+select extensions.ok(exists(
+  select 1 from app_private.job_attempts attempt_value
+  where attempt_value.organization_id=(select organization_id from pg_temp.b306_turn_claims)
+    and attempt_value.id=(select job_attempt_id from pg_temp.b306_turn_claims)
+    and attempt_value.run_id=(select agent_run_id from pg_temp.b306_turn_claims)
+    and attempt_value.status='running'
+    and attempt_value.worker_id='b306-worker-member'
+    and attempt_value.lease_token=(select lease_token from pg_temp.b306_turn_claims)
+    and attempt_value.provider='minimax'
+),'a rejected owner response without tool evidence leaves the original lease running');
 
 create temporary table pg_temp.b306_grounding_result as
 select *
@@ -653,6 +667,18 @@ create function pg_temp.save_draft(args jsonb, execution text) returns jsonb lan
  select app_private.catalog_save_draft_for_owner('b3061000-0000-4000-8000-000000000001',
  (select agent_run_id from pg_temp.b306_turn_claims),execution,args);
 $$;
+create function pg_temp.save_draft_observed_error_code(args jsonb, execution text)
+returns text language plpgsql as $$
+declare result_value jsonb;
+  caught_state text;
+begin
+  result_value := pg_temp.save_draft(args, execution);
+  return result_value->'error'->>'code';
+exception when others then
+  get stacked diagnostics caught_state = returned_sqlstate;
+  return 'sqlstate:' || caught_state;
+end;
+$$;
 create function pg_temp.apply_draft(args jsonb) returns jsonb language sql as $$
  select app_private.catalog_apply_draft_for_owner('b3061000-0000-4000-8000-000000000001',
  (select agent_run_id from pg_temp.b306_turn_claims),'b306-apply',args);
@@ -660,8 +686,22 @@ $$;
 select extensions.ok(not has_function_privilege('service_role','app_private.catalog_apply_draft_for_owner(uuid,uuid,text,jsonb)','EXECUTE'),'no bypass of leased tools');
 select extensions.ok(not app_private.catalog_proposal_json_safe('{"image":"data:image/webp,AAAA"}'),'data URI rejected');
 select extensions.ok(app_private.catalog_proposal_json_safe('{"notes":"Dato de la foto"}'),'ordinary cognitive JSON accepted');
+select extensions.ok(app_private.catalog_proposal_shape_valid(
+  '{"units":[],"products":[{"name":"Producto nuevo","variants":[{"name":"Unidad","prices":[]}]}]}'::jsonb
+),'B3-006W accepts real JSON arrays in a partial proposal');
+select extensions.ok(not app_private.catalog_proposal_shape_valid(
+  '{"products":{"item":[{"name":"Producto nuevo"}]}}'::jsonb
+),'B3-006W rejects the item-wrapped product object that caused the live apply failure');
+select extensions.is((select count(*)::integer from app_private.catalog_proposal_product_items(
+  '{"products":{"item":[{"name":"uno"},{"name":"dos"},{"name":"tres"}]}}'::jsonb
+)),3,'B3-006W can inspect legacy wrapped proposals without rewriting their audit payload');
 insert into pg_temp.ingestion_draft select pg_temp.save_draft('{"proposal":{},"unresolved_fields":["modalidad"]}','b306-save-1');
 select extensions.is((select result->>'status' from pg_temp.ingestion_draft),'collecting','A01 collecting');
+select extensions.is(pg_temp.save_draft_observed_error_code(
+  '{"proposal":{"products":{"item":[{"name":"Producto nuevo"}]}},"unresolved_fields":[]}'::jsonb,
+  'b306-w-reject-wrapped-products'
+),'catalog_proposal_arrays_invalid',
+  'B3-006W leased save operation rejects item-wrapped products before persistence');
 select extensions.is(pg_temp.save_draft('{"proposal":{},"unresolved_fields":["modalidad"]}','b306-save-1'),(select result from pg_temp.ingestion_draft),'A07 replay same result');
 select pg_temp.throws_sqlstate($$select pg_temp.save_draft('{"proposal":{"notes":"changed"},"unresolved_fields":[]}','b306-save-1')$$,'23514','A07 conflicting replay');
 select pg_temp.throws_sqlstate($$select pg_temp.save_draft('{"proposal":{},"unresolved_fields":[]}','b306-duplicate')$$,'40001','A07 no duplicate initial draft');
@@ -682,7 +722,7 @@ insert into pg_temp.b306_turn_claims select * from api.claim_whatsapp_agent_turn
 select extensions.is((select count(*)::integer from pg_temp.b306_turn_claims),1,'confirmation claims a separate run');
 select extensions.is((select jsonb_array_length(tool_definitions) from api.get_agent_turn_tool_context(
  (select organization_id from pg_temp.b306_turn_claims),(select agent_run_id from pg_temp.b306_turn_claims),
- (select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-confirm',(select lease_token from pg_temp.b306_turn_claims))),16,'existing owner chat adopts the complete native tool set on its next run');
+ (select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-confirm',(select lease_token from pg_temp.b306_turn_claims))),17,'existing owner chat adopts the complete native tool set on its next run');
 select extensions.is((select count(*)::integer from app_private.conversation_agent_snapshots where organization_id='b3061000-0000-4000-8000-000000000001' and actor_kind='member'),1,'the current owner policy reuses one immutable member snapshot across runs');
 select extensions.is((app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')->'drafts'->0->>'revision'),'2','A03 persisted context across runs');
 select pg_temp.throws_sqlstate($$select pg_temp.apply_draft(jsonb_build_object('draft_id',(select result->>'draft_id' from pg_temp.ingestion_draft),'expected_revision',1,'owner_confirmed',true))$$,'40001','A08 stale apply rejected');
@@ -799,14 +839,135 @@ select extensions.is(app_private.catalog_set_offer_status_for_owner_agent(
     )
   )
 )->>'ok','true','B3-006V native owner wrapper links a verified WhatsApp photo to an active offer');
-select extensions.is((select count(*)::integer from app_private.product_media
-  where organization_id='b3061000-0000-4000-8000-000000000001' and status='approved'),2,
-  'B3-006V panel edit and WhatsApp edit both persist approved photos');
+set local role postgres;
 select extensions.is((select count(*)::integer from app_private.product_attribute_values where organization_id='b3061000-0000-4000-8000-000000000001' and value_text='Roadtrack'),1,'typed specifications saved');
 select extensions.is(pg_temp.apply_draft(jsonb_build_object('draft_id',(select result->>'draft_id' from pg_temp.ingestion_draft),'expected_revision',2,'owner_confirmed',true))->'error'->>'code','catalog_already_applied_edit_existing_product','A07 applied history cannot be reused as a product edit');
 select extensions.is(jsonb_array_length(app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')->'drafts'),0,'A07 applied history is hidden from the live intake queue');
 select extensions.is((select count(*)::integer from app_private.products where organization_id='b3061000-0000-4000-8000-000000000001'),1,'A07 no duplicate product');
 select extensions.is((select count(*)::integer from app_private.publications where organization_id='b3061000-0000-4000-8000-000000000001'),0,'A16 no implicit Facebook publication');
+select extensions.ok(
+  (app_private.catalog_proposal_existing_product_names(
+    'b3061000-0000-4000-8000-000000000001',
+    '{"products":[{"name":"ruedas transaccionales"}]}'::jsonb
+  ) ? 'Ruedas transaccionales'),
+  'B3-006W detects an existing active product case-insensitively within the same organization'
+);
+select extensions.is(
+  (pg_temp.save_draft(
+    '{"proposal":{"products":[{"name":"Ruedas transaccionales"}]},"unresolved_fields":[]}'::jsonb,
+    'b306-existing-product-save'
+  )->'error'->>'code'),
+  'catalog_existing_product_requires_edit',
+  'B3-006W refuses to create another intake for an existing offer'
+);
+select extensions.is((select count(*)::integer from app_private.catalog_ingestion_drafts
+  where organization_id='b3061000-0000-4000-8000-000000000001'
+    and status in ('collecting','needs_confirmation','ready')),0,
+  'B3-006W collision rejection leaves no new pending intake row');
+select extensions.is((select count(*)::integer from app_private.catalog_ingestion_drafts draft_value
+  where draft_value.status in ('collecting','needs_confirmation','ready')
+    and exists(select 1 from app_private.catalog_proposal_product_items(draft_value.proposal) proposed(product_value))
+    and not exists(select 1 from app_private.catalog_proposal_product_items(draft_value.proposal) proposed(product_value)
+      where jsonb_typeof(proposed.product_value->'name') <> 'string'
+        or not exists(select 1 from app_private.products product_value
+          where product_value.organization_id=draft_value.organization_id
+            and product_value.status in ('active','paused')
+            and lower(btrim(product_value.name))=lower(btrim(proposed.product_value->>'name'))))),0,
+  'B3-006W migration leaves no pending draft whose every proposed product already exists');
+select extensions.ok(
+  (app_private.catalog_ingestion_context_for_owner(
+    'b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}'::jsonb
+  )->'offers' @> '[{"product_name":"Ruedas transaccionales"}]'::jsonb),
+  'B3-006W returns the current catalog beside images in one owner context read'
+);
+select extensions.is((select input_schema #>> '{properties,proposal,properties,products,type}'
+  from app_private.tool_contracts c join app_private.tool_contract_versions v
+    on v.organization_id=c.organization_id and v.id=c.current_version_id
+  where c.organization_id='b3061000-0000-4000-8000-000000000001' and c.tool_name='catalog_save_draft'),
+  'array','B3-006W tool schema prevents model item-wrapped products');
+select extensions.is((select input_schema #>> '{properties,proposal,properties,products,items,properties,variants,type}'
+  from app_private.tool_contracts c join app_private.tool_contract_versions v
+    on v.organization_id=c.organization_id and v.id=c.current_version_id
+  where c.organization_id='b3061000-0000-4000-8000-000000000001' and c.tool_name='catalog_save_draft'),
+  'array','B3-006W tool schema constrains nested variants to JSON arrays');
+select extensions.ok(exists(
+  select 1 from app_private.agent_policies p
+  join app_private.agent_policy_versions v on v.organization_id=p.organization_id and v.id=p.current_version_id
+  join app_private.prompt_versions prompt on prompt.organization_id=v.organization_id and prompt.id=v.prompt_version_id
+  where p.organization_id='b3061000-0000-4000-8000-000000000001' and p.policy_key='customer_assistant'
+    and strpos(prompt.content_template,'catalog_add_photo_to_products con variantIds')>0
+),'B3-006W prompt gives one direct multi-product photo workflow');
+select extensions.is((select input_schema #>> '{properties,variantIds,type}'
+  from app_private.tool_contracts c join app_private.tool_contract_versions v
+    on v.organization_id=c.organization_id and v.id=c.current_version_id
+  where c.organization_id='b3061000-0000-4000-8000-000000000001'
+    and c.tool_name='catalog_add_photo_to_products'),
+  'array','B3-006W photo tool exposes a dedicated variant ID array');
+select extensions.ok(exists(
+  select 1 from app_private.agent_policies p
+  join app_private.agent_policy_tools t on t.organization_id=p.organization_id
+    and t.policy_version_id=p.current_version_id
+  join app_private.tool_contracts c on c.organization_id=t.organization_id
+    and c.id=t.tool_contract_id
+  where p.organization_id='b3061000-0000-4000-8000-000000000001'
+    and p.policy_key='customer_assistant' and c.tool_name='catalog_add_photo_to_products'
+    and t.allowed_actor_kinds=array['member']::text[]
+    and t.required_membership_roles=array['owner']::text[]
+    and t.allowed_channels=array['whatsapp']::text[]
+),'B3-006W dedicated photo tool is bound only to the WhatsApp owner lane');
+select extensions.ok(not exists(
+  select 1 from app_private.tool_contracts c
+  join app_private.tool_contract_versions v on v.organization_id=c.organization_id
+    and v.id=c.current_version_id
+  where c.organization_id='b3061000-0000-4000-8000-000000000001'
+    and c.tool_name='catalog_edit_offer'
+    and v.input_schema #> '{properties,operation,enum}' @> '["add_photo"]'::jsonb
+),'B3-006W single-offer edit tool no longer competes for photo attachment');
+select extensions.ok(not exists(
+  select 1 from app_private.agent_policies p
+  join app_private.agent_policy_versions v on v.organization_id=p.organization_id and v.id=p.current_version_id
+  join app_private.prompt_versions prompt on prompt.organization_id=v.organization_id and prompt.id=v.prompt_version_id
+  where p.organization_id='b3061000-0000-4000-8000-000000000001' and p.policy_key='customer_assistant'
+    and strpos(prompt.content_template,'El alta crea productos en borrador')>0
+),'B3-006W removes the obsolete user-visible draft instruction');
+select extensions.is(app_private.ensure_customer_assistant_catalog_edit_tools(
+  'b3061000-0000-4000-8000-000000000001'
+),(select current_version_id from app_private.agent_policies
+  where organization_id='b3061000-0000-4000-8000-000000000001' and policy_key='customer_assistant'),
+  'B3-006W automatic tool preparation is idempotent');
+select extensions.ok(not has_function_privilege('service_role',
+  'app_private.catalog_proposal_shape_valid(jsonb)','EXECUTE'),
+  'B3-006W contract validator remains behind the leased tool boundary');
+select extensions.ok(not has_function_privilege('service_role',
+  'app_private.catalog_save_draft_for_owner_b3006w_base(uuid,uuid,text,jsonb)','EXECUTE'),
+  'B3-006W legacy writer cannot bypass proposal validation');
+select extensions.ok(not has_function_privilege('service_role',
+  'app_private.catalog_add_photo_to_products_for_owner_agent(uuid,uuid,text,jsonb)','EXECUTE'),
+  'B3-006W photo batch has no direct service-role bypass');
+create temporary table pg_temp.b306_duplicate_active_intake as
+with inserted as (
+  insert into app_private.catalog_ingestion_drafts(
+    organization_id,source_conversation_id,source_message_id,last_source_message_id,
+    status,proposal,created_by_user_id
+  ) values (
+    'b3061000-0000-4000-8000-000000000001','b3062200-0000-4000-8000-000000000002',
+    'b3062400-0000-4000-8000-000000000002','b3062400-0000-4000-8000-000000000002',
+    'needs_confirmation','{"products":[{"name":"Ruedas transaccionales"}]}'::jsonb,
+    'b3060000-0000-4000-8000-000000000001'
+  ) returning id
+)
+select id from inserted;
+select extensions.is(
+  (pg_temp.apply_draft(jsonb_build_object(
+    'draft_id',(select id from pg_temp.b306_duplicate_active_intake),
+    'expected_revision',1,'owner_confirmed',true
+  ))->'error'->>'code'),
+  'catalog_existing_product_requires_edit',
+  'B3-006W prevents a historical duplicate intake from creating another active product'
+);
+select extensions.is((select count(*)::integer from app_private.products
+  where organization_id='b3061000-0000-4000-8000-000000000001'),1,
+  'B3-006W duplicate apply guard preserves the existing product count');
 select pg_temp.throws_sqlstate($$select app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000002',(select agent_run_id from pg_temp.b306_turn_claims),'{}')$$,'42501','A10 cross-tenant context rejected');
 update app_private.organization_memberships set role='admin' where organization_id='b3061000-0000-4000-8000-000000000001' and user_id='b3060000-0000-4000-8000-000000000001';
 select pg_temp.throws_sqlstate($$select app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')$$,'42501','A09 admin cannot use owner tools');
@@ -821,16 +982,23 @@ with inserted as (
 select extensions.is(app_private.catalog_ingestion_execute('catalog.ingestion.apply.owner.v1',
  'b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'b306-conflict',
  jsonb_build_object('draft_id',(select id from pg_temp.ingestion_conflict),'expected_revision',1,'owner_confirmed',true))->'error'->>'code',
- 'catalog_identity_conflict','A12 duplicate SKU returns recoverable tool error');
+ 'catalog_existing_product_requires_edit','A12 duplicate active name is routed to the edit tool');
 select extensions.is((select count(*)::integer from app_private.products where organization_id='b3061000-0000-4000-8000-000000000001'),1,'A12 failed application rolls back all partial products');
 select extensions.is((select status from app_private.catalog_ingestion_drafts where id=(select id from pg_temp.ingestion_conflict)),'needs_confirmation','A12 failed draft stays recoverable');
 -- Real PostgreSQL rejection paths. These are operational inputs, not external media fixtures.
 create function pg_temp.apply_proposal(proposal_value jsonb) returns jsonb language plpgsql as $$
-declare draft_id_value uuid;
+declare draft_id_value uuid := extensions.gen_random_uuid();
 begin
-  insert into app_private.catalog_ingestion_drafts(organization_id,source_conversation_id,
+  if jsonb_typeof(proposal_value->'products')='array'
+    and jsonb_array_length(proposal_value->'products')>0
+    and jsonb_typeof(proposal_value->'products'->0->'name')='string' then
+    proposal_value:=jsonb_set(proposal_value,'{products,0,name}',to_jsonb(
+      proposal_value->'products'->0->>'name' || ' negative-' || draft_id_value::text
+    ));
+  end if;
+  insert into app_private.catalog_ingestion_drafts(id,organization_id,source_conversation_id,
     source_message_id,last_source_message_id,status,proposal,created_by_user_id)
-  values('b3061000-0000-4000-8000-000000000001','b3062200-0000-4000-8000-000000000002',
+  values(draft_id_value,'b3061000-0000-4000-8000-000000000001','b3062200-0000-4000-8000-000000000002',
     'b3062400-0000-4000-8000-000000000002','b3062400-0000-4000-8000-000000000002',
     'needs_confirmation',proposal_value,'b3060000-0000-4000-8000-000000000001') returning id into draft_id_value;
   return app_private.catalog_ingestion_execute('catalog.ingestion.apply.owner.v1',
@@ -865,6 +1033,127 @@ select extensions.is((select count(*)::integer from app_private.products where o
 select extensions.is((select sum(on_hand_quantity)::integer from app_private.inventory_balances where organization_id='b3061000-0000-4000-8000-000000000001'),20,'A14 all rejected proposals leave stock unchanged');
 select extensions.is(jsonb_array_length(api.get_facebook_catalog_admin_page(
   'b3061000-0000-4000-8000-000000000001','b3060000-0000-4000-8000-000000000001')->'items'),3,'owner panel includes all three active offers');
+-- B3-006W: one verified incoming image must attach atomically to multiple distinct products.
+create temporary table pg_temp.b306_photo_batch_products as
+select 1::integer as ordinal, pg_temp.apply_proposal(value) as result
+from pg_temp.unkeyed_proposal
+union all
+select 2::integer as ordinal, pg_temp.apply_proposal(value) as result
+from pg_temp.unkeyed_proposal;
+select extensions.is((select count(*)::integer from pg_temp.b306_photo_batch_products
+  where result->>'ok'='true'),2,'B3-006W batch fixtures are two real active catalog products');
+create temporary table pg_temp.b306_photo_batch_targets as
+select product_value.ordinal,
+  (product_value.result->'products'->0->'variants'->0->>'variant_id')::uuid as variant_id
+from pg_temp.b306_photo_batch_products as product_value;
+select extensions.is((select count(distinct variant_value.product_id)::integer
+  from pg_temp.b306_photo_batch_targets as target_value
+  join app_private.product_variants as variant_value
+    on variant_value.organization_id='b3061000-0000-4000-8000-000000000001'
+   and variant_value.id=target_value.variant_id),2,
+  'B3-006W batch targets are variants on distinct products');
+create temporary table pg_temp.b306_photo_batch_result as
+select app_private.catalog_add_photo_to_products_for_owner_agent(
+  'b3061000-0000-4000-8000-000000000001',
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  'b306-owner-photo-batch',
+  jsonb_build_object(
+    'variantIds',jsonb_build_array(
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=1),
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=2)
+    ),
+    'mediaAssetId','b3069000-0000-4000-8000-000000000001',
+    'allowPublic',true
+  )
+) as result;
+select extensions.is((select result->>'ok' from pg_temp.b306_photo_batch_result),'true',
+  'B3-006W one owner tool call applies the same verified WhatsApp photo to both products');
+select extensions.is((select (result->>'count')::integer from pg_temp.b306_photo_batch_result),2,
+  'B3-006W batch reports the exact number of completed product edits');
+select extensions.is((select jsonb_array_length(result->'results') from pg_temp.b306_photo_batch_result),2,
+  'B3-006W batch returns persisted evidence for every product');
+select extensions.is((select count(*)::integer from app_private.product_media as media_value
+  join app_private.product_variants as variant_value
+    on variant_value.organization_id=media_value.organization_id
+   and variant_value.product_id=media_value.product_id
+  join pg_temp.b306_photo_batch_targets as target_value
+    on target_value.variant_id=variant_value.id
+  where media_value.organization_id='b3061000-0000-4000-8000-000000000001'
+    and media_value.media_asset_id='b3069000-0000-4000-8000-000000000001'
+    and media_value.variant_id is null and media_value.status='approved'),2,
+  'B3-006W verified public photo is approved once on each requested product');
+select extensions.is((app_private.catalog_add_photo_to_products_for_owner_agent(
+  'b3061000-0000-4000-8000-000000000001',
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  'b306-owner-photo-batch',
+  jsonb_build_object(
+    'variantIds',jsonb_build_array(
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=1),
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=2)
+    ),
+    'mediaAssetId','b3069000-0000-4000-8000-000000000001',
+    'allowPublic',true
+  )
+))->>'wasReplayed','true','B3-006W batch replay is idempotent');
+select extensions.is((select count(*)::integer from app_private.product_media as media_value
+  join app_private.product_variants as variant_value
+    on variant_value.organization_id=media_value.organization_id
+   and variant_value.product_id=media_value.product_id
+  join pg_temp.b306_photo_batch_targets as target_value
+    on target_value.variant_id=variant_value.id
+  where media_value.organization_id='b3061000-0000-4000-8000-000000000001'
+    and media_value.media_asset_id='b3069000-0000-4000-8000-000000000001'
+    and media_value.variant_id is null and media_value.status='approved'),2,
+  'B3-006W retry does not duplicate product photo links');
+select extensions.is((app_private.catalog_add_photo_to_products_for_owner_agent(
+  'b3061000-0000-4000-8000-000000000001',
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  'b306-owner-photo-variant-scope',
+  jsonb_build_object(
+    'variantIds',jsonb_build_array((select (result->'products'->0->'variants'->1->>'variant_id')::uuid
+      from pg_temp.b306_photo_batch_products where ordinal=1)),
+    'mediaAssetId','b3069000-0000-4000-8000-000000000001',
+    'scope','variant','allowPublic',true
+  )
+))->>'ok','true','B3-006W dedicated photo tool preserves variant-only attachments');
+select extensions.is((select count(*)::integer from app_private.product_media
+  where organization_id='b3061000-0000-4000-8000-000000000001'
+    and variant_id=(select (result->'products'->0->'variants'->1->>'variant_id')::uuid
+      from pg_temp.b306_photo_batch_products where ordinal=1)
+    and media_asset_id='b3069000-0000-4000-8000-000000000001'
+    and status='approved'),1,
+  'B3-006W variant-only photo is persisted separately from the product photo');
+select extensions.is((app_private.catalog_add_photo_to_products_for_owner_agent(
+  'b3061000-0000-4000-8000-000000000001',
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  'b306-owner-photo-same-product',
+  jsonb_build_object(
+    'variantIds',jsonb_build_array(
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=1),
+      (select (result->'products'->0->'variants'->1->>'variant_id')::uuid
+        from pg_temp.b306_photo_batch_products where ordinal=1)
+    ),
+    'mediaAssetId','b3069000-0000-4000-8000-000000000001',
+    'allowPublic',true
+  )
+))->'error'->>'code','duplicate_product_in_photo_batch',
+  'B3-006W batch refuses two variants that belong to the same product');
+select pg_temp.throws_sqlstate($$select app_private.catalog_add_photo_to_products_for_owner_agent(
+  'b3061000-0000-4000-8000-000000000002',
+  (select agent_run_id from pg_temp.b306_turn_claims),
+  'b306-owner-photo-cross-tenant',
+  jsonb_build_object(
+    'variantIds',jsonb_build_array(
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=1),
+      (select variant_id from pg_temp.b306_photo_batch_targets where ordinal=2)
+    ),
+    'mediaAssetId','b3069000-0000-4000-8000-000000000001',
+    'allowPublic',true
+  )
+)$$,'42501','B3-006W batch rejects a run from another organization');
+select extensions.is((select count(*)::integer from app_private.publications
+  where organization_id='b3061000-0000-4000-8000-000000000001'),0,
+  'B3-006W adding product photos does not publish to Facebook');
 update app_private.organization_memberships set role='admin' where organization_id='b3061000-0000-4000-8000-000000000001' and user_id='b3060000-0000-4000-8000-000000000001';
 select pg_temp.throws_sqlstate($$select api.get_facebook_catalog_admin_page('b3061000-0000-4000-8000-000000000001','b3060000-0000-4000-8000-000000000001')$$,'42501','private panel is owner-only even for another membership role');
 update app_private.organization_memberships set role='owner' where organization_id='b3061000-0000-4000-8000-000000000001' and user_id='b3060000-0000-4000-8000-000000000001';
@@ -879,10 +1168,13 @@ select extensions.is((select count(*)::integer from app_private.publications whe
 create temporary table pg_temp.ingestion_native_failure as select * from api.execute_whatsapp_tool_call(
  'b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),
  (select job_attempt_id from pg_temp.b306_turn_claims),'b306-worker-confirm',(select lease_token from pg_temp.b306_turn_claims),
- 'minimax','b306-native-request','b306-native-call','catalog_apply_draft',1,
- jsonb_build_object('draft_id',(select id from pg_temp.ingestion_conflict),'expected_revision',1,'owner_confirmed',true),'{}','{}');
-select extensions.is((select tool_status from pg_temp.ingestion_native_failure),'failed','native dispatcher returns failed on rejected application');
-select extensions.is((select tool_result->'error'->>'code' from pg_temp.ingestion_native_failure),'catalog_identity_conflict','native continuation preserves actionable error');
+ 'minimax','b306-native-request','b306-native-call','catalog_add_photo_to_products',1,
+ jsonb_build_object(
+   'variantIds',jsonb_build_array((select variant_id from pg_temp.b306_photo_batch_targets where ordinal=1)),
+   'mediaAssetId','b3069000-0000-4000-8000-000000000099','allowPublic',true
+ ),'{}','{}');
+select extensions.is((select tool_status from pg_temp.ingestion_native_failure),'failed','native dispatcher marks rejected photo editing as failed');
+select extensions.is((select tool_result->'error'->>'cause' from pg_temp.ingestion_native_failure),'photo_not_in_owner_conversation','native continuation preserves the verified-image error');
 select extensions.is((select effect_certainty from app_private.tool_executions where id=(select tool_execution_id from pg_temp.ingestion_native_failure)),'confirmed_not_applied','failed tool never claims confirmed effect');
 select extensions.is((select count(*)::integer from app_private.agent_messages where run_id=(select agent_run_id from pg_temp.b306_turn_claims) and message_kind='tool_result'),1,'tool result is durable for the next provider attempt');
 select pg_temp.throws_sqlstate($$select app_private.catalog_ingestion_context_for_owner('b3061000-0000-4000-8000-000000000001',(select agent_run_id from pg_temp.b306_turn_claims),'{}')$$,'42501','completed native call cannot bypass runtime phase ownership');
@@ -1009,9 +1301,9 @@ select extensions.ok(
       and id = (select id from pg_temp.b306_current_prompt_version)
       and strpos(content_template, 'activa todas las ofertas en la') > 0
       and strpos(content_template, 'no las presentes como borradores') > 0
-      and strpos(content_template, 'operation=add_photo') > 0
+      and strpos(content_template, 'catalog_add_photo_to_products') > 0
   ),
-  'B3-006V prompt separates confirmed QR activation from editing an existing photo'
+  'B3-006W prompt separates confirmed QR activation from editing an existing photo'
 );
 
 select * from extensions.finish();

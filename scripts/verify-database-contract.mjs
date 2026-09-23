@@ -78,6 +78,7 @@ assert.deepEqual(
     "20260921121000_b3_006s_owner_tool_grounding.sql",
     "20260922180000_b3_006u_tool_round_attempt_budget.sql",
     "20260922210000_b3_006v_owner_catalog_activation.sql",
+    "20260923140000_b3_006w_owner_agent_catalog_integrity.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );

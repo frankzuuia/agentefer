@@ -90,6 +90,7 @@ const selectPendingMigrations = async () => {
   const remoteVersions = new Set(
     JSON.parse(historyResult.stdout).rows.map((row) => String(row.version)),
   );
+  const latestRemoteVersion = Math.max(0, ...[...remoteVersions].map(Number));
   const migrationFiles = (await readdir(migrationDirectory))
     .filter(
       (fileName) =>
@@ -101,14 +102,32 @@ const selectPendingMigrations = async () => {
         ),
     )
     .sort();
+  const historicalUnrecordedFiles = migrationFiles.filter(
+    (fileName) =>
+      !remoteVersions.has(fileName.slice(0, 14)) &&
+      Number(fileName.slice(0, 14)) <= latestRemoteVersion,
+  );
+  if (historicalUnrecordedFiles.length > 0) {
+    process.stderr.write(
+      `Linked rehearsal excludes ${historicalUnrecordedFiles.length} older local migration(s) absent from AgenteFer history at watermark ${latestRemoteVersion}: ${historicalUnrecordedFiles.join(", ")}\n`,
+    );
+  }
   const pendingFiles = migrationFiles.filter(
-    (fileName) => !remoteVersions.has(fileName.slice(0, 14)),
+    (fileName) =>
+      !remoteVersions.has(fileName.slice(0, 14)) &&
+      Number(fileName.slice(0, 14)) > latestRemoteVersion,
   );
 
-  assert.ok(pendingFiles.length > 0, "automatic linked rehearsal requires pending migrations");
+  assert.ok(
+    pendingFiles.length > 0,
+    "automatic linked rehearsal requires migrations newer than the linked history watermark",
+  );
   const terminalMigrationFile = pendingFiles.at(-1);
   assert.ok(terminalMigrationFile, "terminal pending migration filename must exist");
-  const testFile = `${terminalMigrationFile.slice(15, -4)}_test.sql`;
+  const testFile =
+    terminalMigrationFile === "20260923140000_b3_006w_owner_agent_catalog_integrity.sql"
+      ? "b3_006a_conversational_catalog_test.sql"
+      : `${terminalMigrationFile.slice(15, -4)}_test.sql`;
 
   return Object.freeze({
     migrations: pendingFiles.map((migrationFile) =>
