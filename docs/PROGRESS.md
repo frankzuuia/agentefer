@@ -636,3 +636,29 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
   `worker.runtime.started` a las 19:01:53Z; la instancia anterior cerró limpiamente por `SIGTERM`.
 - [ ] Repetir E2E por WhatsApp con una nueva foto real y comprobar la galería de ambos productos.
   No se ejecutó ninguna publicación externa en Facebook.
+
+## Actualización 2026-09-22 — B3-006U continuidad durable de WhatsApp
+
+- [x] Autopsia de mensajes aceptados por Meta: un run quedó sin turno reclamable al gastar los
+  ocho intentos antes de una tool, y otro falló en `provider_tool_continuation_invalid` después
+  de ejecutar `catalog_ingestion_context`. No se atribuye el formato bruto del proveedor sin
+  conservar la respuesta original.
+- [x] Adaptador MiniMax serializa propuestas múltiples a una llamada durable con replay
+  coincidente; una terminación `tool_calls` sin llamada es reintentable y campos incompletos
+  se rechazan antes de persistir.
+- [x] B3-006U renueva presupuesto por ronda terminada desde la política congelada; preserva
+  contadores monotónicos, límites de 64 rondas, autorización e inmutabilidad fuera de la
+  transición. Aplicada solo en Supabase enlazado a AgenteFer.
+- [x] Evidencia: 1,486/1,486 pgTAP enlazado en 33 archivos, 68/68 mutantes eliminados en el
+  rango amplio del parser, 35/35 de `tool_choice`, 1,275/1,275 Vitest con dos workers,
+  Gherkin y contratos verdes. El dueño aprobó excepción explícita
+  para omitir la batería global de 3,707 mutantes; `npm test` no se declara verde.
+- [x] Auditoría de pruebas antiguas: B2-009 sincroniza el inventario real de 106 tablas con
+  RLS forzada; B3-006F exige la lista exacta y el rechazo de `purge_photo` directo; B3-006R
+  verifica el dispatch real y la denegación de ejecución directa del resolver no conectado.
+- [ ] Desplegar `agente-fer/worker` desde el commit final de `develop`, comprobar arranque y
+  mantener API, `main`, Facebook y otros proyectos intactos.
+- [ ] El dueño envía un mensaje nuevo de WhatsApp; verificar run, tool execution, outbox y entrega
+  sin que Codex envíe mensajes de prueba.
+- [ ] Bloque independiente: especificar y reparar la resolución de fotos B3-006R en el handler
+  real sin fallback ambiguo a "foto más reciente"; probar selección explícita y aislamiento.

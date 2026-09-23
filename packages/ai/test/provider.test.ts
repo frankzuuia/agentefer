@@ -933,6 +933,69 @@ describe("MiniMax OpenAI-compatible adapter", () => {
     });
   });
 
+  it.each([
+    ["non-object call", null, "minimax_tool_call_invalid"],
+    ["missing function", { id: "tool_invalid" }, "minimax_tool_call_invalid"],
+    [
+      "missing call id",
+      { function: { name: "catalog_search", arguments: "{}" } },
+      "minimax_tool_call_id_invalid",
+    ],
+    [
+      "missing name",
+      { id: "tool_invalid", function: { arguments: "{}" } },
+      "minimax_tool_name_invalid",
+    ],
+    [
+      "missing arguments",
+      { id: "tool_invalid", function: { name: "catalog_search" } },
+      "minimax_tool_arguments_invalid",
+    ],
+  ] as const)("rejects a MiniMax %s before persisting it", async (_scenario, toolCall, code) => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_invalid_tool",
+        choices: [{ finish_reason: "tool_calls", message: { tool_calls: [toolCall] } }],
+      });
+    });
+
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+      }),
+    ).rejects.toMatchObject({ code, retryable: false });
+  });
+
+  it("honors a native tool call even when MiniMax reports an inconsistent stop reason", async () => {
+    const toolCall = {
+      id: "tool_inconsistent_finish",
+      function: { name: "catalog_search", arguments: "{}" },
+    };
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_inconsistent_finish",
+        choices: [{ finish_reason: "stop", message: { tool_calls: [toolCall] } }],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+    });
+
+    expect(result.terminationReason).toBe("tool_calls");
+    expect(result.toolCalls).toEqual([
+      { id: toolCall.id, name: "catalog_search", argumentsJson: "{}" },
+    ]);
+    expect(result.visibleText).toBe("");
+    expect(result.toolContinuationState).toEqual({ tool_calls: [toolCall] });
+  });
+
   it("serializes multiple MiniMax proposals into one durable call and one replayed call", async () => {
     const first = {
       id: "tool_first",

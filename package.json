@@ -48,7 +48,7 @@
     "verify:workspace-gates": "node ./scripts/verify-workspace-gates.mjs",
     "verify:workspaces": "node ./scripts/verify-workspaces.mjs",
     "test": "npm run prepare:internal && npm run verify:workspaces && npm run verify:workspace-gates && npm run verify:workspace-build-graph && npm run verify:ci-policy && npm run verify:documentation-contract && npm run verify:acceptance-contract && npm run verify:container-contract && npm run verify:database-contract && npm run verify:dependency-policy && npm run test:coverage && npm run test:mutation:b3-006a && npm run test:mutation:b3-006f-catalog-storefront && npm run test:mutation:b3-006t && npm run test:mutation:b3-006u && npm run test:mutation && npm run test:mutation:b2-010 && npm run test:mutation:b4-005-b4-006 && npm run test:mutation:b4-005-b4-006-admin-catalog && npm run test:mutation:b4-007-facebook-oauth",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --maxWorkers=2",
     "test:database:linked": "npm run build --workspace @agentefer/database && node ./scripts/run-linked-pgtap.mjs",
     "test:database:linked:b3-001a-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-001a-database-mutations.mjs",
     "test:database:linked:b3-002a-mutations": "npm run build --workspace @agentefer/database && node ./scripts/verify-linked-b3-002a-database-mutations.mjs",

@@ -480,6 +480,48 @@ y E2E real con un nuevo mensaje. No declarar E2E verde solo por la prueba aislad
 **Veredicto forense:** GREEN LIGHT para el cambio acotado en worker/adaptador; la prueba
 WhatsApp end-to-end posterior al despliegue sigue siendo una puerta abierta.
 
+## Addendum B3-006U — continuidad durable después de herramientas
+
+### Requirements Covered / Scenario Matrix
+
+BL-022 y BL-025-T: un turno aceptado por WhatsApp debe conservar su progreso y responder
+únicamente después de ejecutar herramientas reales.
+
+| Escenario | Actor y disparador | Datos y herramientas | Resultado y auditoría | Falla y recuperación |
+| --- | --- | --- | --- | --- |
+| U01 | Dueño llama una herramienta en el último intento disponible | `agent_jobs`, `agent_runs`, política congelada | Reanudar con un nuevo cupo acotado; contadores monotónicos | La transición repetida no aumenta el cupo |
+| U02 | MiniMax propone varias tools en un mismo mensaje | Estado nativo y ejecutor durable secuencial | Persistir solo la primera llamada con replay coincidente | Las restantes se reconsideran tras el resultado real |
+| U03 | MiniMax marca `tool_calls` sin ninguna llamada | Respuesta del proveedor | No crear ejecución ficticia | Error reintentable y observable |
+| U04 | MiniMax manda una llamada malformada o terminación inconsistente | Contrato nativo | Rechazar campos incompletos; ejecutar llamada presente aunque el finish sea `stop` | Nunca anunciar efecto no persistido |
+| U05 | Rol sin permiso intenta ampliar presupuesto o invocar función privada | Triggers, RLS y grants | Rechazo; ningún dato de otra organización visible | Auditoría de fallos y rollback transaccional |
+
+### Data Flow / Permissions / Integrations
+
+MiniMax conserva el razonamiento y la elección de tools; el adaptador normaliza un solo llamado
+por ronda, compatible con `api.execute_whatsapp_tool_call`. La continuación almacenada contiene
+el mismo `tool_call` cuya ejecución se confirma. `api.resume_agent_run_after_tools` activa dos
+triggers privados que derivan un nuevo cupo desde `agent_policy_versions.max_provider_attempts`
+sin reiniciar `attempt_count` ni `provider_attempt_count`. Los triggers de inmutabilidad permiten
+solo esa ampliación exacta en la transición de herramienta terminada. No se modifican costos,
+identidad, tenant, permisos de tools, umbrales de costo ni límites físicos del proveedor.
+
+### Recovery / Validation / Open Risks
+
+Las migraciones y pgTAP se prueban en transacciones revertidas, además de Vitest, cobertura,
+mutación del parser, Gherkin, lint, typecheck, build y arranque. El E2E de envío queda pendiente
+de un mensaje nuevo del dueño tras el despliegue. No se reencolan mensajes antiguos para evitar
+respuestas tardías duplicadas.
+
+Hallazgo separado: la función de resolución de fotos introducida en B3-006R no es el handler
+activo del agente; el wrapper real exige un UUID de media en la misma conversación. La función
+huérfana no se conecta en este bloque porque su fallback puede elegir una foto distinta a la
+solicitada. Su reparación requiere especificación y validación propias, sin declarar B3-006U
+incompleto por una ruta que no modificó.
+
+**Veredicto forense:** GREEN LIGHT para el cambio acotado de continuidad; RED ALERT para la
+resolución automática de IDs de fotos, pendiente de bloque separado. La entrega WhatsApp E2E
+permanece abierta hasta prueba real del dueño.
+
 ## Addendum CE — administración del catálogo
 
 Reglas CE-01 a CE-06, escenarios CE-A01 a CE-A09, autorización, datos, fallas y validación:

@@ -26,7 +26,7 @@
 ## Pruebas reproducibles
 
 1. `npm exec -- vitest run packages/ai/test/provider.test.ts apps/worker/test/whatsapp-ai-processor.test.ts`
-2. `npm run test:coverage` (ejecutar solo, sin compilar simultáneamente).
+2. `npm run test:coverage` (dos workers para evitar contención TCP local).
 3. `npm run test:mutation:b3-006u` y `npm run test:mutation:b3-006t`.
 4. `npm run test:database:linked:rehearsal -- supabase/migrations/20260922180000_b3_006u_tool_round_attempt_budget.sql supabase/tests/b3_006u_tool_round_attempt_budget_test.sql`
 5. Repetir el paso 4 con `supabase/tests/b2_008_agent_runtime_test.sql` para probar el flujo
@@ -41,10 +41,11 @@
 | Puerta | Resultado |
 | --- | --- |
 | Vitest focalizado | 92/92 |
-| Cobertura global | 1,269/1,269; sentencias 90.24%, ramas 85.98%, funciones 93.07%, líneas 90.36% |
-| Mutación MiniMax nueva | 19/19 eliminados; 100% |
+| Cobertura global | 1,275/1,275; sentencias 90.26%, ramas 86.03%, funciones 93.07%, líneas 90.38% |
+| Mutación MiniMax, rango amplio del parser | 68/68 eliminados; 100%; cero sin cobertura |
 | Mutación protección de tool choice | 35/35 eliminados; 100% |
 | PostgreSQL enlazado, transacción revertida | 9/9 B3-006U y 88/88 B2-008 |
+| pgTAP enlazado después de la migración | 1,486/1,486 en 33 archivos; transacciones revertidas |
 | Gherkin | 23 features, 429 escenarios, sin errores de parseo |
 | Contrato DB | 60 migraciones ordenadas, 106 tablas `FORCE RLS`, 1,403 aserciones |
 | Typecheck, lint, formato | verde |
@@ -52,11 +53,16 @@
 
 ## Salvedades y cierre
 
-- Una primera ejecución de cobertura en paralelo con compilación agotó el timeout de cinco
-  pruebas TCP. Repetida sin carga concurrente, la suite completa pasó.
+- La ejecución de cobertura sin límite de workers agotó el timeout de cinco pruebas TCP, incluso
+  una vez sin compilación paralela. Con `--maxWorkers=2`, sin subir timeouts ni omitir tests,
+  cobertura y suite completa pasaron 1,275/1,275. Ese límite está ahora en el script oficial.
 - El dueño autorizó explícitamente una excepción documentada para no esperar la batería global
   de mutación de 3,707 mutantes (estimación de 25–38 minutos). Se interrumpió sin declarar
-  `npm test` verde; las rutas de este defecto sí completaron 19/19 y 35/35 mutantes eliminados.
+  `npm test` verde. La primera prueba del parser sobre 73 mutantes obtuvo 80.82%: 9 sobrevivieron
+  y 5 no tuvieron cobertura. Se agregaron casos para llamadas malformadas y terminación
+  inconsistente del proveedor, y se quitó una condición lógicamente redundante. Al repetir el
+  mismo rango fuente, quedaron 68/68 eliminados y cero sin cobertura. El recuento bajó por
+  eliminar código redundante, no por volver a estrechar el rango.
 - El `db push --dry-run` estándar encontró divergencias de historial previas a B3-006U. No se
   reparan ni se aplican las migraciones anteriores en este bloque. La operación de B3-006U debe
   dirigirse expresamente al proyecto enlazado de AgenteFer y verificar su versión después.
@@ -65,3 +71,10 @@
   producción no cambia. Tras ello API y worker pasaron el arranque/readiness.
 - La prueba E2E real queda a cargo del dueño: no hay evidencia de entrega posterior al despliegue
   hasta que envíe un mensaje nuevo.
+- Hallazgo independiente: B3-006R introdujo `catalog_edit_offer_for_owner`, pero el ejecutor
+  WhatsApp activo despacha a `catalog_set_offer_status_for_owner_agent`. El resolver B3-006R no
+  participa en las fotos del agente. No se conectó aquí porque su fallback de "foto más reciente"
+  puede asociar una imagen no elegida explícitamente. El test ahora verifica el dispatch real,
+  la denegación de acceso directo a la función huérfana y el contrato UUID/conversación del
+  wrapper activo. La mejora de resolución de fotos requiere un bloque separado; no se declara
+  reparada con esta entrega.

@@ -150,8 +150,11 @@ select extensions.ok(
 select extensions.ok(
   pg_get_functiondef(
     'api.admin_edit_catalog_offer(uuid,uuid,uuid,text,jsonb,text)'::regprocedure
-  ) like '%target_operation not in (''set_status'',''edit_text'',''set_price'',''set_primary_photo'',''remove_photo'',''add_photo'')%',
-  'catalog edits use an explicit operation allowlist'
+  ) like '%target_operation not in (''set_status'',''edit_text'',''set_price'',''set_primary_photo'',''remove_photo'',''purge_photo'',''add_photo'')%'
+  and pg_get_functiondef(
+    'api.admin_edit_catalog_offer(uuid,uuid,uuid,text,jsonb,text)'::regprocedure
+  ) like '%purge_photo is handled by admin_purge_product_media%',
+  'catalog edits use an explicit operation allowlist and reject direct photo purges'
 );
 select extensions.ok(
   pg_get_functiondef(

@@ -1,15 +1,13 @@
 begin;
 
 -- =============================================================================
--- Tests for catalog_edit_offer_for_owner (b3_006r fix). Validates the wrapper
--- signature, grants, and source contract for resolving mediaAssetId (UUID,
--- provider_media_id, or recent-conversation fallback).
+-- The B3-006R resolver exists but is not the live WhatsApp handler. Preserve
+-- its private boundary and assert the actual owner-tool route separately.
 -- =============================================================================
 
 create extension if not exists pgtap with schema extensions;
 
--- Configure plan count dynamically via assertion results so we always match.
-select extensions.plan(9);
+select extensions.plan(11);
 
 -- Each assertion below is wrapped in a CTE that captures (passed, description)
 -- so we can rerun the file and see exactly which one failed.
@@ -22,14 +20,34 @@ select extensions.has_function(
   'catalog_edit_offer_for_owner has the documented signature'
 );
 
--- 2a. service_role can execute the wrapper.
+-- 2a. This unbound resolver must not be directly executable by service_role.
 select extensions.ok(
-  has_function_privilege(
+  not has_function_privilege(
     'service_role',
     'app_private.catalog_edit_offer_for_owner(uuid,uuid,text,jsonb)',
     'EXECUTE'
   ),
-  'service_role can execute the owner wrapper'
+  'service_role cannot directly execute the unbound resolver'
+);
+
+select extensions.ok(
+  pg_get_functiondef(
+    'api.execute_whatsapp_tool_call(uuid,uuid,uuid,text,uuid,text,text,text,text,integer,jsonb,jsonb,jsonb)'::regprocedure
+  ) like '%catalog_set_offer_status_for_owner_agent%'
+  and pg_get_functiondef(
+    'api.execute_whatsapp_tool_call(uuid,uuid,uuid,text,uuid,text,text,text,text,integer,jsonb,jsonb,jsonb)'::regprocedure
+  ) not like '%catalog_edit_offer_for_owner%',
+  'the live WhatsApp executor dispatches to the owner status wrapper, not the unbound resolver'
+);
+
+select extensions.ok(
+  pg_get_functiondef(
+    'app_private.catalog_set_offer_status_for_owner_agent(uuid,uuid,text,jsonb)'::regprocedure
+  ) like '%target_asset_id:=(changes->>''mediaAssetId'')::uuid%'
+  and pg_get_functiondef(
+    'app_private.catalog_set_offer_status_for_owner_agent(uuid,uuid,text,jsonb)'::regprocedure
+  ) like '%m.conversation_id=owner_run.conversation_id%',
+  'the live owner wrapper requires an asset UUID from the same conversation'
 );
 
 -- 2b. authenticated/anon cannot.

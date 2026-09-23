@@ -54,8 +54,8 @@ select extensions.is(
     where namespace.nspname = 'app_private'
       and relation.relkind in ('r', 'p')
   ),
-  105,
-  'the private data model contains the 105 reviewed tables'
+  106,
+  'the private data model contains the 106 reviewed tables'
 );
 select extensions.is(
   (
@@ -66,7 +66,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relrowsecurity
   ),
-  105,
+  106,
   'RLS is enabled on every private table'
 );
 select extensions.is(
@@ -78,7 +78,7 @@ select extensions.is(
       and relation.relkind in ('r', 'p')
       and relation.relforcerowsecurity
   ),
-  105,
+  106,
   'RLS is forced on every private table'
 );
 select extensions.is(
@@ -97,7 +97,7 @@ select extensions.is(
         select 1 from pg_catalog.pg_policy as policy where policy.polrelid = relation.oid
       )
   ),
-  'admin_catalog_commands, catalog_ingestion_commands, catalog_storefront_jobs, facebook_page_credentials, facebook_page_oauth_sessions, inbound_events, media_ingest_requests, meta_webhook_deliveries, outbox_events',
+  'admin_catalog_commands, admin_catalog_image_uploads, catalog_ingestion_commands, catalog_storefront_jobs, facebook_page_credentials, facebook_page_oauth_sessions, inbound_events, media_ingest_requests, meta_webhook_deliveries, outbox_events',
   'only reviewed backend queues remain default deny without read policies'
 );
 select extensions.is(

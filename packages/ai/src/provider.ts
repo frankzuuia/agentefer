@@ -526,7 +526,7 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
     throw new CognitiveProviderError({ code: "minimax_tool_calls_missing", retryable: true });
   }
   const terminationReason: NormalizedTerminationReason =
-    toolCalls.length > 0 || finishReason === "tool_calls"
+    toolCalls.length > 0
       ? "tool_calls"
       : finishReason === "stop"
         ? "completed"
