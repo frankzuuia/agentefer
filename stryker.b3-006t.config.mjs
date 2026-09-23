@@ -5,8 +5,8 @@ export default {
   ...baseConfiguration,
   mutate: [
     "apps/worker/src/whatsapp-ai-processor.ts:343-385",
-    "packages/ai/src/provider.ts:604-608",
-    "packages/ai/src/provider.ts:676-680",
+    "packages/ai/src/provider.ts:615-618",
+    "packages/ai/src/provider.ts:687-690",
   ],
   jsonReporter: { fileName: "reports/mutation/b3-006t-required-tool-choice.json" },
   testFiles: [

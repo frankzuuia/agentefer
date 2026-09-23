@@ -933,6 +933,70 @@ describe("MiniMax OpenAI-compatible adapter", () => {
     });
   });
 
+  it("serializes multiple MiniMax proposals into one durable call and one replayed call", async () => {
+    const first = {
+      id: "tool_first",
+      type: "function",
+      function: { name: "catalog_search", arguments: '{"query":"llanta"}' },
+    };
+    const second = {
+      id: "tool_second",
+      type: "function",
+      function: { name: "catalog_offer", arguments: '{"sku":"RIN-01"}' },
+    };
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_parallel_proposals",
+        choices: [
+          {
+            finish_reason: "tool_calls",
+            message: { role: "assistant", content: "", tool_calls: [first, second] },
+          },
+        ],
+      });
+    });
+
+    const result = await createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+      model: "MiniMax-M3",
+      systemPrompt: "Atiende.",
+      conversation,
+      continuationParts: [],
+      tools: [
+        { name: "catalog_search", description: "Busca", parameters: { type: "object" } },
+        { name: "catalog_offer", description: "Consulta", parameters: { type: "object" } },
+      ],
+    });
+
+    expect(result.toolCalls).toEqual([
+      { id: "tool_first", name: "catalog_search", argumentsJson: '{"query":"llanta"}' },
+    ]);
+    expect(result.toolContinuationState).toEqual({
+      role: "assistant",
+      content: "",
+      tool_calls: [first],
+    });
+    expect(result.metadataSafe).toMatchObject({ deferred_tool_call_count: 1 });
+  });
+
+  it("treats a MiniMax tool-call finish without any call as a retryable provider defect", async () => {
+    const server = await startServer((_request, response) => {
+      respondJson(response, 200, {
+        id: "minimax_missing_tool_call",
+        choices: [{ finish_reason: "tool_calls", message: { role: "assistant", content: "" } }],
+      });
+    });
+
+    await expect(
+      createMiniMaxProvider({ apiKey, baseUrl: server.baseUrl }).executeTurn({
+        model: "MiniMax-M3",
+        systemPrompt: "Atiende.",
+        conversation,
+        continuationParts: [],
+        tools: [{ name: "catalog_search", description: "Busca", parameters: { type: "object" } }],
+      }),
+    ).rejects.toMatchObject({ code: "minimax_tool_calls_missing", retryable: true });
+  });
+
   it("rejects oversized MiniMax assistant state before it can be persisted", async () => {
     const message = {
       content: "",

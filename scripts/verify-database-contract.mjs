@@ -76,6 +76,7 @@ assert.deepEqual(
     "20260920123000_b3_006q_fix_wrapper_variable_overwrite.sql",
     "20260920131000_b3_006r_resolve_provider_media_id.sql",
     "20260921121000_b3_006s_owner_tool_grounding.sql",
+    "20260922180000_b3_006u_tool_round_attempt_budget.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -226,6 +227,10 @@ const ownerToolGroundingMigration = await readFile(
   path.join(migrationDirectory, "20260921121000_b3_006s_owner_tool_grounding.sql"),
   "utf8",
 );
+const toolRoundAttemptBudgetMigration = await readFile(
+  path.join(migrationDirectory, "20260922180000_b3_006u_tool_round_attempt_budget.sql"),
+  "utf8",
+);
 const foundationDatabaseTest = await readFile(
   path.join(testDirectory, "b2_001_database_foundation_test.sql"),
   "utf8",
@@ -336,6 +341,10 @@ const adminCatalogPanelDatabaseTest = await readFile(
 );
 const facebookPageOauthDatabaseTest = await readFile(
   path.join(testDirectory, "b4_007_facebook_page_oauth_test.sql"),
+  "utf8",
+);
+const toolRoundAttemptBudgetDatabaseTest = await readFile(
+  path.join(testDirectory, "b3_006u_tool_round_attempt_budget_test.sql"),
   "utf8",
 );
 const config = await readFile(path.join(supabaseDirectory, "config.toml"), "utf8");
@@ -1845,7 +1854,7 @@ for (const statement of requiredPublicationTestStatements) {
 }
 
 const requiredAgentRuntimeTestStatements = [
-  "select extensions.plan(84);",
+  "select extensions.plan(88);",
   "set local role authenticated;",
   "set local role postgres;",
   "every B2-008 foreign key column is indexed",
@@ -2334,6 +2343,31 @@ for (const statement of [
   );
 }
 
+for (const statement of [
+  "create function app_private.next_agent_tool_round_attempt_budget(",
+  "create trigger agent_job_replenish_after_tools",
+  "create trigger agent_run_replenish_after_tools",
+  "old.status = 'waiting_tools' and new.status = 'retryable'",
+  "old.status = 'waiting_tool' and new.status = 'waiting_provider'",
+  "revoke all on function app_private.next_agent_tool_round_attempt_budget",
+]) {
+  assert.ok(
+    toolRoundAttemptBudgetMigration.includes(statement),
+    `B3-006U tool-round budget migration must include: ${statement}`,
+  );
+}
+for (const statement of [
+  "select extensions.plan(9);",
+  "first successful tool round grants a fresh provider attempt allowance",
+  "a repeated transition cannot grant the same round twice",
+  "client-facing service role cannot call the private budget function directly",
+]) {
+  assert.ok(
+    toolRoundAttemptBudgetDatabaseTest.includes(statement),
+    `B3-006U tool-round budget test must include: ${statement}`,
+  );
+}
+
 const productionDatabaseTests = [
   ["B2-001", foundationDatabaseTest],
   ["B2-002", messagingDatabaseTest],
@@ -2363,6 +2397,7 @@ const productionDatabaseTests = [
   ["B4-005/B4-006 publication orchestration", ownerPublicationToolsDatabaseTest],
   ["B4-005/B4-006 admin catalog panel", adminCatalogPanelDatabaseTest],
   ["B4-007 Facebook Page OAuth", facebookPageOauthDatabaseTest],
+  ["B3-006U tool-round attempt budget", toolRoundAttemptBudgetDatabaseTest],
 ];
 
 const pgtapExtensionBootstrap = "create extension if not exists pgtap with schema extensions;";

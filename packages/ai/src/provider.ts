@@ -503,7 +503,11 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
   if (message === undefined) {
     throw new CognitiveProviderError({ code: "minimax_message_invalid", retryable: false });
   }
-  const rawToolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+  // The durable WhatsApp executor commits one native call per round. Keep only the
+  // first provider-selected call in the replayed assistant message so every
+  // persisted tool_call has exactly one matching tool result on continuation.
+  const proposedToolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+  const rawToolCalls = proposedToolCalls.slice(0, 1);
   const toolCalls = rawToolCalls.map((toolCall) => {
     if (!isRecord(toolCall) || !isRecord(toolCall.function)) {
       throw new CognitiveProviderError({ code: "minimax_tool_call_invalid", retryable: false });
@@ -518,6 +522,9 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
     });
   });
   const finishReason = readOptionalText(choice.finish_reason, 120);
+  if (finishReason === "tool_calls" && toolCalls.length === 0) {
+    throw new CognitiveProviderError({ code: "minimax_tool_calls_missing", retryable: true });
+  }
   const terminationReason: NormalizedTerminationReason =
     toolCalls.length > 0 || finishReason === "tool_calls"
       ? "tool_calls"
@@ -534,7 +541,9 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
       ? projectCustomerVisibleText(rawVisibleText)
       : Object.freeze({ text: rawVisibleText, format: "provider_text" as const });
   const toolContinuationState =
-    toolCalls.length === 0 ? undefined : boundedToolContinuationState(message);
+    toolCalls.length === 0
+      ? undefined
+      : boundedToolContinuationState({ ...message, tool_calls: rawToolCalls });
 
   return Object.freeze({
     providerRequestId: readRequiredText(value.id, "minimax_response_id_invalid", 512),
@@ -545,6 +554,7 @@ const parseMiniMaxResponse = (value: unknown): CognitiveTurnResult => {
     metadataSafe: Object.freeze({
       finish_reason: finishReason ?? "unknown",
       visible_output_format: visibleTextProjection.format,
+      deferred_tool_call_count: proposedToolCalls.length - rawToolCalls.length,
       usage: safeUsage(value.usage),
     }),
   });

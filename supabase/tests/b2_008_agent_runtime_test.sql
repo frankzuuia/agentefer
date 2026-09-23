@@ -1,8 +1,9 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
+set search_path = extensions, pg_catalog;
 
-select extensions.plan(84);
+select extensions.plan(88);
 
 create function pg_temp.throws_sqlstate(
   statement text,
@@ -855,6 +856,53 @@ select extensions.is(
       where run_id = (select id from app_private.agent_runs where run_key = 'contact-turn-001')))),
   'waiting_provider',
   'completed tool round queues a provider continuation without duplicate effects'
+);
+
+select extensions.is(
+  (
+    select job_value.max_attempts
+    from app_private.agent_jobs as job_value
+    join app_private.agent_runs as run_value on run_value.id = job_value.run_id
+    where run_value.run_key = 'contact-turn-001'
+  ),
+  (
+    select 2 * policy_value.max_provider_attempts
+    from app_private.agent_runs as run_value
+    join app_private.agent_policy_versions as policy_value
+      on policy_value.id = run_value.policy_version_id
+    where run_value.run_key = 'contact-turn-001'
+  ),
+  'tool completion renews the job allowance even when the first allowance was exhausted'
+);
+
+select extensions.is(
+  (
+    select run_value.max_provider_attempts
+    from app_private.agent_runs as run_value
+    where run_value.run_key = 'contact-turn-001'
+  ),
+  (
+    select 2 * policy_value.max_provider_attempts
+    from app_private.agent_runs as run_value
+    join app_private.agent_policy_versions as policy_value
+      on policy_value.id = run_value.policy_version_id
+    where run_value.run_key = 'contact-turn-001'
+  ),
+  'tool completion renews the run allowance without resetting provider attempt history'
+);
+
+select extensions.throws_ok(
+  $$update app_private.agent_jobs set max_attempts = max_attempts + 1
+    where run_id = (select id from app_private.agent_runs where run_key = 'contact-turn-001')$$,
+  '23514', 'agent job core contract is immutable',
+  'outside the completed-tool transition the job attempt budget remains immutable'
+);
+
+select extensions.throws_ok(
+  $$update app_private.agent_runs set max_provider_attempts = max_provider_attempts + 1
+    where run_key = 'contact-turn-001'$$,
+  '23514', 'agent run execution contract is immutable',
+  'outside the completed-tool transition the run attempt budget remains immutable'
 );
 
 select extensions.lives_ok(
