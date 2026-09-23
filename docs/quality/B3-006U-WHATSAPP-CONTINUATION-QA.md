@@ -78,3 +78,17 @@
   la denegación de acceso directo a la función huérfana y el contrato UUID/conversación del
   wrapper activo. La mejora de resolución de fotos requiere un bloque separado; no se declara
   reparada con esta entrega.
+
+## Despliegue acotado y postflight
+
+- Código y pruebas finales: commit `0839ecc1d251989c7347157dc795f6c56c457cfc` en
+  `origin/develop`; `main` no se modificó.
+- La migración `20260922180000` se aplicó solamente al Supabase enlazado de AgenteFer. El
+  postflight confirmó una versión registrada y dos triggers nuevos; el barrido pgTAP posterior
+  pasó 1,486/1,486.
+- EasyPanel: solo proyecto `agente-fer`, servicio `worker`, fuente
+  `frankzuuia/agentefer@develop`. Acción de despliegue `cmudhrcz000el07l8a6t1bgon` terminada;
+  el servicio resolvió el SHA completo anterior, emitió `worker.runtime.started` y reportó
+  `actual=1`, `desired=1`.
+- No se tocaron `agente-fer/api`, otros proyectos, Facebook ni conversaciones de WhatsApp. La
+  entrega efectiva de una respuesta nueva sigue sin verificar hasta la prueba del dueño.

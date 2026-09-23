@@ -656,8 +656,9 @@ Trazabilidad: cada tarea CE corresponde a la regla y escenario del contrato
 - [x] Auditoría de pruebas antiguas: B2-009 sincroniza el inventario real de 106 tablas con
   RLS forzada; B3-006F exige la lista exacta y el rechazo de `purge_photo` directo; B3-006R
   verifica el dispatch real y la denegación de ejecución directa del resolver no conectado.
-- [ ] Desplegar `agente-fer/worker` desde el commit final de `develop`, comprobar arranque y
-  mantener API, `main`, Facebook y otros proyectos intactos.
+- [x] `agente-fer/worker` desplegado desde `0839ecc1d251989c7347157dc795f6c56c457cfc`
+  en `develop`; acción EasyPanel terminada, `worker.runtime.started` y `actual=1/desired=1`.
+  API, `main`, Facebook y otros proyectos permanecieron intactos.
 - [ ] El dueño envía un mensaje nuevo de WhatsApp; verificar run, tool execution, outbox y entrega
   sin que Codex envíe mensajes de prueba.
 - [ ] Bloque independiente: especificar y reparar la resolución de fotos B3-006R en el handler
