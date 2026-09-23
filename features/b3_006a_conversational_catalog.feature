@@ -17,7 +17,7 @@ Feature: B3-006A Owner creates a catalog through conversation
     Then the catalog SKU prices compositions and opening stock are saved atomically
     And no additional stock is created for the combo
     And no Facebook publication is enqueued
-    And all new offers remain drafts
+    And all confirmed offers become active in the QR store
 
   Scenario Outline: A07 A08 A12 A13 A14 Invalid applications have no partial effect
     Given an owner draft is ready for confirmation
@@ -32,10 +32,10 @@ Feature: B3-006A Owner creates a catalog through conversation
       | a duplicate SKU |
       | an invalid price or composition |
 
-  Scenario: A07 An identical retry returns the original result
+  Scenario: A07 An applied intake record cannot be mistaken for an editable product
     Given an owner has already applied a confirmed draft
     When the same draft revision is applied again
-    Then the original product and SKU mapping is returned
+    Then the tool redirects the agent to edit the existing product
     And products prices and stock are not duplicated
 
   Scenario Outline: A09 A10 Unauthorized actors cannot administer a draft

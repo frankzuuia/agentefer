@@ -21,6 +21,7 @@ import {
   type CreateWhatsAppAiProcessorInput,
 } from "../src/whatsapp-ai-processor.js";
 import {
+  WhatsAppAiRpcError,
   type ClaimedAgentTurn,
   type ClaimedOutboxEvent,
   type WhatsAppMediaVisualInput,
@@ -272,14 +273,17 @@ const createObservabilityEvidence = (): Readonly<{
   started: string[];
   completed: CompletedOperation[];
   warnings: Readonly<Record<string, unknown>>[];
+  errors: Readonly<Record<string, unknown>>[];
 }> => {
   const started: string[] = [];
   const completed: CompletedOperation[] = [];
   const warnings: Readonly<Record<string, unknown>>[] = [];
+  const errors: Readonly<Record<string, unknown>>[] = [];
   return Object.freeze({
     started,
     completed,
     warnings,
+    errors,
     metrics: Object.freeze({
       recordStarted: (operation: string) => started.push(operation),
       recordCompleted: (operation: CompletedOperation) => completed.push(operation),
@@ -289,7 +293,8 @@ const createObservabilityEvidence = (): Readonly<{
       info: () => undefined,
       warn: (event: string, outcome: LogOutcome = "observed", attributes: LogAttributes = {}) =>
         warnings.push({ event, outcome, attributes }),
-      error: () => undefined,
+      error: (event: string, _error: unknown, attributes: LogAttributes = {}) =>
+        errors.push({ event, attributes }),
     }),
   });
 };
@@ -868,6 +873,48 @@ describe("WhatsApp cognitive and outbox processor", () => {
     expect(rpc.evidence.agentFailures).toMatchObject([
       { errorCode: "provider_tool_arguments_invalid_json", disposition: "halt_safely" },
     ]);
+  });
+
+  it("logs the exact RPC operation and HTTP status for a failed owner tool without exposing payloads", async () => {
+    const rpc = createRpcContract({ turns: [agentClaim()] });
+    const observability = createObservabilityEvidence();
+    const invalidRpc = new WhatsAppAiRpcError("invalid", undefined, {
+      operation: "execute_whatsapp_tool_call",
+      phase: "http_status",
+      status: 400,
+    });
+    const providerResult: CognitiveTurnResult = {
+      providerRequestId: "provider-request-rpc-error",
+      visibleText: "",
+      terminationReason: "tool_calls",
+      toolCalls: [{ id: "call-rpc-error", name: "catalog_edit_offer", argumentsJson: "{}" }],
+      toolContinuationState: { role: "assistant", tool_calls: [] },
+      metadataSafe: {},
+    };
+    await drainWhatsAppAiOnce(
+      createInput({
+        rpc: {
+          ...rpc.client,
+          executeToolCall: () => Promise.reject(invalidRpc),
+        },
+        provider: providerReturning(providerResult),
+        logger: observability.logger,
+      }),
+      new AbortController().signal,
+    );
+
+    const failure = observability.errors.find(
+      (entry) => entry.event === "worker.whatsapp.ai.turn_failed",
+    );
+    expect(failure).toBeDefined();
+    expect(failure?.attributes).toMatchObject({
+      agent_run_id: uuids.run,
+      rpc_failure_kind: "invalid",
+      rpc_operation: "execute_whatsapp_tool_call",
+      rpc_failure_phase: "http_status",
+      rpc_http_status: 400,
+    });
+    expect(JSON.stringify(observability.errors)).not.toContain("catalog_edit_offer");
   });
 
   it.each(["[]", "null", '"tinaco"'])(

@@ -77,6 +77,7 @@ assert.deepEqual(
     "20260920131000_b3_006r_resolve_provider_media_id.sql",
     "20260921121000_b3_006s_owner_tool_grounding.sql",
     "20260922180000_b3_006u_tool_round_attempt_budget.sql",
+    "20260922210000_b3_006v_owner_catalog_activation.sql",
   ],
   "B2-001 through B4-005/B4-006 publication orchestration must remain ordered production migrations",
 );
@@ -229,6 +230,10 @@ const ownerToolGroundingMigration = await readFile(
 );
 const toolRoundAttemptBudgetMigration = await readFile(
   path.join(migrationDirectory, "20260922180000_b3_006u_tool_round_attempt_budget.sql"),
+  "utf8",
+);
+const ownerCatalogActivationMigration = await readFile(
+  path.join(migrationDirectory, "20260922210000_b3_006v_owner_catalog_activation.sql"),
   "utf8",
 );
 const foundationDatabaseTest = await readFile(
@@ -2365,6 +2370,18 @@ for (const statement of [
   assert.ok(
     toolRoundAttemptBudgetDatabaseTest.includes(statement),
     `B3-006U tool-round budget test must include: ${statement}`,
+  );
+}
+for (const statement of [
+  "create or replace function api.admin_edit_catalog_offer(",
+  "create function app_private.catalog_apply_draft_for_owner(",
+  "create function app_private.catalog_ingestion_context_for_owner(",
+  "catalog_confirmation_requires_text_message",
+  "catalog_already_applied_edit_existing_product",
+]) {
+  assert.ok(
+    ownerCatalogActivationMigration.includes(statement),
+    `B3-006V owner catalog activation migration must include: ${statement}`,
   );
 }
 

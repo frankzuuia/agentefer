@@ -156,6 +156,9 @@ describe("admin catalog routes", () => {
   it("keeps the responsive UX contract explicit and the browser script syntactically valid", () => {
     expect(() => new Script(ADMIN_CATALOG_JAVASCRIPT)).not.toThrow();
     expect(ADMIN_CATALOG_HTML).toContain('class="mobile-nav"');
+    expect(ADMIN_CATALOG_HTML).toContain('<option value="paused">Pausados</option>');
+    expect(ADMIN_CATALOG_HTML).not.toContain('<option value="draft">Borradores</option>');
+    expect(ADMIN_CATALOG_JAVASCRIPT).not.toContain('[summary.draft, "Borradores"');
     expect(ADMIN_CATALOG_HTML).toContain('id="connect-facebook-button"');
     expect(ADMIN_CATALOG_HTML).toContain('class="facebook-logo"');
     expect(ADMIN_CATALOG_HTML).toContain('id="facebook-page-dialog"');

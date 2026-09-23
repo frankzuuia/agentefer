@@ -409,6 +409,7 @@ const processAgentTurn = async (
       provider: claim.provider,
       model: claim.model,
       attempt_number: claim.attemptNumber,
+      ...rpcFailureAttributes(error),
     });
     if (processorSignal.aborted) {
       return;

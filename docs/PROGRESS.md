@@ -4,6 +4,16 @@ Estado histórico del bloque inicial: Bloque 1 y B2-001–B2-009 completos y cer
 Fuente: `BUSINESS_LOGIC.md` y `MASTER-SPECIFICATION.md`.  
 Regla: una tarea solo pasa a completada con entregable real y evidencia de validación.
 
+## B3-006V — Activo/Pausado sin borrador visible (2026-09-22)
+
+Evidencia: [QA B3-006V](quality/B3-006V-OWNER-CATALOG-QA.md).
+
+- [x] Autopsia de la foto no vinculada y del editor SQL roto, limitada a AgenteFer.
+- [x] Alta confirmada activa QR; edición de foto existente usa herramienta específica; panel sin filtro/contador de borradores.
+- [x] 110/110 pgTAP con rollback, 1,276/1,276 pruebas TypeScript, 2/2 mutantes críticos detectados.
+- [ ] Commit, push, migración y despliegue de `agente-fer/api` y `agente-fer/worker`.
+- [ ] E2E WhatsApp + panel/QR móvil ejecutado por el dueño; no enviar mensajes desde desarrollo.
+
 ## B3-006T — recuperación de respuesta administrativa (2026-09-21)
 
 Evidencia: [QA B3-006T](quality/B3-006T-OWNER-TOOL-EVIDENCE-QA.md) y

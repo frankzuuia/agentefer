@@ -87,7 +87,6 @@ export const ADMIN_CATALOG_HTML = `<!doctype html>
                 <option value="all">Todos</option>
                 <option value="active">Activos</option>
                 <option value="paused">Pausados</option>
-                <option value="draft">Borradores</option>
                 <option value="archived">Archivados</option>
               </select>
             </label>
@@ -616,7 +615,7 @@ input:focus, select:focus, button:focus-visible {
   .content-shell { border: 1px solid var(--border); border-left: 0; border-radius: 0 16px 16px 0; background: var(--canvas); }
   .context-bar { border-radius: 0 16px 0 0; padding: 14px 20px; }
   .section-panel { padding: 22px; }
-  .stats-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stats-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-nav { display: none; }
   .product-sheet { width: min(720px, calc(100% - 48px)); max-height: 86dvh; margin: auto; border-radius: 22px; }
@@ -770,7 +769,6 @@ export const ADMIN_CATALOG_JAVASCRIPT = `(() => {
       [summary.total, "Productos", ""],
       [summary.active, "Activos", "active"],
       [summary.paused, "Pausados", "paused"],
-      [summary.draft, "Borradores", ""],
       [summary.archived, "Archivados", ""],
       [summary.facebookErrors, "Errores FB", summary.facebookErrors ? "danger" : ""],
     ];
